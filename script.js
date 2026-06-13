@@ -335,33 +335,25 @@ window.toggleMyList = (id, event) => {
 function createStartupScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  // Use the exact file provided by user for initial app load Netflix opening animation
-  c.innerHTML = `
-    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-    <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
-      <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
-    </div>
-  `;
+  c.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden; z-index:9999; display:flex; justify-content:center; align-items:center; transition: background 1.5s ease;';
+  
+  const text = document.createElement('h1');
+  text.innerText = 'MEMORIES';
+  text.style.cssText = 'color:#e50914; font-size:10vw; letter-spacing:1vw; font-weight:900; transform-origin:center center; transition: transform 1.5s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.5s ease;';
+  
+  c.appendChild(text);
+
   setTimeout(() => {
-    const vid = c.querySelector('#startup-vid');
-    const overlay = c.querySelector('#startup-click-overlay');
-    const playAnim = () => {
-      overlay.style.display = 'none';
-      vid.play().catch(e => console.log("Autoplay blocked, needs click"));
-    };
-    vid.onended = () => {
+    text.style.transform = 'scale(50)'; // massive scale
+    text.style.opacity = '0';
+    c.style.background = 'rgba(0,0,0,0)'; // dissolve background
+    
+    setTimeout(() => {
       appState.currentProfile = null; // Reset profile
       transitionView('profiles');
-    };
-    vid.onerror = () => {
-      console.log("Startup video failed to load, skipping to profiles.");
-      appState.currentProfile = null; // Reset profile
-      transitionView('profiles');
-    };
-    c.onclick = playAnim;
-    // Auto-attempt
-    vid.play().then(() => { overlay.style.display = 'none'; }).catch(e => { /* Wait for click */ });
-  }, 50);
+    }, 1500);
+  }, 2500); // Wait initially before zoom
+
   return c;
 }
 
@@ -411,15 +403,23 @@ function createProfileSelection() {
         // Simulate Netflix style loading wait with 3D flip
         p.classList.add('flip-active');
         setTimeout(() => {
-          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+          // Swap image mid-air to a heart graphic
+          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="profile-avatar" style="background:#e50914; display:flex; justify-content:center; align-items:center;"><svg width="60" height="60" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div></div><div class="profile-name">${pf.name}</div>`;
         }, 300);
         
+        setTimeout(() => {
+          // Slide downward off screen
+          list.style.transition = "transform 0.6s ease, opacity 0.6s ease";
+          list.style.transform = "translateY(100vh)";
+          list.style.opacity = "0";
+        }, 900);
+
         setTimeout(() => {
           appState.currentProfile = pf.name;
           localStorage.setItem('sarthak_netflix_profile', pf.name);
           transitionView('intro');
-          setTimeout(() => { transitionView('dashboard'); }, 1200);
-        }, 1200);
+          setTimeout(() => { transitionView('dashboard'); }, 1500);
+        }, 1500);
       }
     };
     list.appendChild(p);
