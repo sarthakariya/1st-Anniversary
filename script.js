@@ -930,7 +930,7 @@ render();
 
 loadData().catch(e => {
   console.error("Error loading data:", e);
-  alert("Connection to the database failed. Some features may not work. You might be on a network that blocks Firebase (try switching to WiFi).");
+  console.log("If this is a fresh setup or deployment, Firebase rules might take a minute to deploy.");
 }).finally(() => {
   // Re-render to show updated data if we are already on a view that needs it
   render();
