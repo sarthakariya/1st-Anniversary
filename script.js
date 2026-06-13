@@ -5,35 +5,18 @@ import { animate, stagger } from 'motion';
 
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
-window.uploadFileToStorage = (file, path, buttonEl) => {
-  return new Promise((resolve, reject) => {
+window.uploadFileToStorage = async (file, path, buttonEl) => {
+  if(buttonEl) buttonEl.innerText = "Uploading... (Please wait)";
+  try {
     const fileRef = ref(storage, path + '_' + Date.now());
-    const uploadTask = uploadBytesResumable(fileRef, file);
-    
-    let lastProgress = 0;
-    const timeoutMonitor = setTimeout(() => {
-      if (lastProgress === 0) {
-        uploadTask.cancel();
-        reject(new Error("Upload timed out or blocked by CORS/Permissions. Please ensure Firebase Storage allows this."));
-      }
-    }, 15000);
-
-    uploadTask.on('state_changed', 
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        lastProgress = progress;
-        if(buttonEl) buttonEl.innerText = "Uploading... " + Math.round(progress) + "%";
-      }, 
-      (error) => { 
-        clearTimeout(timeoutMonitor);
-        reject(error); 
-      }, 
-      async () => { 
-        clearTimeout(timeoutMonitor);
-        resolve(await getDownloadURL(uploadTask.snapshot.ref)); 
-      }
-    );
-  });
+    const snapshot = await uploadBytes(fileRef, file);
+    if(buttonEl) buttonEl.innerText = "Finalizing Link...";
+    const url = await getDownloadURL(snapshot.ref);
+    return url;
+  } catch (err) {
+    console.error("Upload failed in storage:", err);
+    throw new Error("Upload failed: " + err.message);
+  }
 };
 
 const DB_NAME = "netflix_clone_db";
@@ -218,45 +201,64 @@ window.refreshRowsView = (rcNode, heroNode) => {
       if (mems.length) rc.appendChild(createRow(cat, mems));
     });
   } else if (appState.activeCategory === 'Anniversary Gallery') {
-    const galleryItems = [
-      { id: 'g_1', title: 'Our First Sunset', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1516589177380-50528f117c0a?w=800&auto=format&fit=crop', desc: 'A beautiful evening by the beach.', category: 'Romance' },
-      { id: 'g_2', title: 'Paris Getaway', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1502602898657-3e907a5ea071?w=800&auto=format&fit=crop', desc: 'Candlelight dinner with the Eiffel Tower glowing in the background.', category: 'Romance' },
-      { id: 'g_3', title: 'Snowy Retreat', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1518556488771-b0db37b34baf?w=800&auto=format&fit=crop', desc: 'Our first Christmas in the snow cabin.', category: 'Celebrations' },
-      { id: 'g_4', title: 'The Proposal', year: '2025', thumbnail: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=800&auto=format&fit=crop', desc: 'When you said yes!', category: 'Celebrations' },
-      { id: 'g_5', title: 'Mountain Hike', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&auto=format&fit=crop', desc: 'Looking over the vast mountain range.', category: 'Our Time' },
-      { id: 'g_6', title: 'Concert Night', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&auto=format&fit=crop', desc: 'Dancing till the sun came up.', category: 'Documentaries' },
-    ];
-    
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
-    wrapper.innerHTML = `<h2 style="font-size: 1.4vw; font-weight: 700; margin-bottom: 20px;">Anniversary Selection (AI Generated)</h2>`;
-    
-    const grid = document.createElement('div');
-    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
-    
-    galleryItems.forEach(m => {
-       const div = document.createElement('div');
-       div.className = 'media-card';
-       div.style.flex = "unset";
-       div.onclick = () => { 
-         // Mock adding it to appState so openDetailModal works
-         if (!appState.memories.find(mem => mem.id === m.id)) {
-           appState.memories.push(m);
-         }
-         openDetailModal(m.id); 
-       };
-       div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">
-       <div class="card-info">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <div>${m.title}</div>
-          <div class="circ-play-btn" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
-        </div>
-        <div class="card-meta"><span class="match-rate">100% Match</span> <span style="color:#fff">${m.year}</span></div>
-       </div>`;
-       grid.appendChild(div);
-    });
-    wrapper.appendChild(grid);
-    rc.appendChild(wrapper);
+    // Show local array instantly to feel responsive, then fetch from firestore
+    const fetchAndRenderGallery = async () => {
+      let galleryItems = [];
+      try {
+        const querySnapshot = await getDocs(collection(db, 'memories'));
+        querySnapshot.forEach(doc => {
+          galleryItems.push({ id: doc.id, ...doc.data() });
+        });
+      } catch(err) {
+        console.error("Error fetching memories", err);
+      }
+      
+      if(galleryItems.length === 0) {
+        galleryItems = [
+          { id: 'g_1', title: 'Our First Sunset', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1516589177380-50528f117c0a?w=800&auto=format&fit=crop', desc: 'A beautiful evening by the beach.', category: 'Romance' },
+          { id: 'g_2', title: 'Paris Getaway', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1502602898657-3e907a5ea071?w=800&auto=format&fit=crop', desc: 'Candlelight dinner with the Eiffel Tower glowing in the background.', category: 'Romance' },
+          { id: 'g_3', title: 'Snowy Retreat', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1518556488771-b0db37b34baf?w=800&auto=format&fit=crop', desc: 'Our first Christmas in the snow cabin.', category: 'Celebrations' }
+        ];
+        // optional: save to db
+        for(let g of galleryItems) {
+           try { await setDoc(doc(db, 'memories', g.id), g); } catch(er){}
+        }
+      }
+
+      rc.innerHTML = '';
+      
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
+      wrapper.innerHTML = `<h2 style="font-size: 1.4vw; font-weight: 700; margin-bottom: 20px;">Anniversary Selection (Firestore)</h2>`;
+      
+      const grid = document.createElement('div');
+      grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
+      
+      galleryItems.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'media-card';
+        div.style.flex = "unset";
+        div.onclick = () => { 
+          if (!appState.memories.find(mem => mem.id === m.id)) {
+            appState.memories.push(m);
+          }
+          openDetailModal(m.id); 
+        };
+        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">
+        <div class="card-info">
+          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>${m.title}</div>
+            <div class="circ-play-btn" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+          </div>
+          <div class="card-meta"><span class="match-rate">100% Match</span> <span style="color:#fff">${m.year || '2024'}</span></div>
+        </div>`;
+        grid.appendChild(div);
+      });
+      wrapper.appendChild(grid);
+      rc.appendChild(wrapper);
+    };
+
+    fetchAndRenderGallery();
   } else {
     // For Home
     if (appState.activeCategory === 'Home') {
