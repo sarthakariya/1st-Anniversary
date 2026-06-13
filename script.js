@@ -1,79 +1,9 @@
-import { db, storage, auth } from './src/firebase.js';
+import { db } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, uploadBytes } from 'firebase/storage';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { YouTubeMediaUploader } from './youtubeUploader.js';
 import { animate, stagger } from 'motion';
-
-let youtubeOAuthToken = null;
-
-async function executeYoutubeUpload(file, metadata, buttonEl) {
-  if (!youtubeOAuthToken) {
-    if(buttonEl) buttonEl.innerText = "Authenticating (Phase A)...";
-    const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/youtube.upload');
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    youtubeOAuthToken = credential.accessToken;
-  }
-  
-  if(buttonEl) buttonEl.innerText = "Streaming to YouTube (Phase B)...";
-  
-  return new Promise((resolve, reject) => {
-    const uploader = new YouTubeMediaUploader({
-      file: file,
-      token: youtubeOAuthToken,
-      metadata: {
-        snippet: {
-          title: metadata.title,
-          description: metadata.description,
-          categoryId: '22' // People & Blogs
-        },
-        status: {
-          privacyStatus: 'unlisted'
-        }
-      },
-      onProgress: function(p) {
-        if (!buttonEl) return;
-        if (p.phase === 'initializing') buttonEl.innerText = "Initializing connection...";
-        else if (p.phase === 'uploading') {
-          buttonEl.innerText = `Uploading... ${Math.round(p.p || 0)}%`;
-        }
-        else if (p.phase === 'completed') buttonEl.innerText = "Processing video...";
-      },
-      onComplete: function(responseString) {
-        try {
-          const responseData = JSON.parse(responseString);
-          const dynamicVideoId = responseData.id;
-          resolve(dynamicVideoId);
-        } catch(e) {
-          reject(e);
-        }
-      },
-      onError: function(err) {
-        console.error(err);
-        reject(err);
-      }
-    });
-    uploader.upload();
-  });
-}
 
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
-window.uploadFileToStorage = async (file, path, buttonEl) => {
-  if(buttonEl) buttonEl.innerText = "Uploading... (Please wait)";
-  try {
-    const fileRef = ref(storage, path + '_' + Date.now());
-    const snapshot = await uploadBytes(fileRef, file);
-    if(buttonEl) buttonEl.innerText = "Finalizing Link...";
-    const url = await getDownloadURL(snapshot.ref);
-    return url;
-  } catch (err) {
-    console.error("Upload failed in storage:", err);
-    throw new Error("Upload failed: " + err.message);
-  }
-};
 
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
@@ -112,9 +42,11 @@ const initialMemories = [
   }
 ];
 
+// Initialize from local memory if missing in db initially
 const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 if (savedProfile) {
   appState.currentProfile = savedProfile;
+  appState.view = 'dashboard';
 }
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery'];
@@ -409,7 +341,7 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="startup-vid" src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
       <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
     </div>
@@ -422,21 +354,13 @@ function createStartupScreen() {
       vid.play().catch(e => console.log("Autoplay blocked, needs click"));
     };
     vid.onended = () => {
-      if (appState.currentProfile) {
-        transitionView('intro');
-        setTimeout(() => { transitionView('dashboard'); }, 1200);
-      } else {
-        transitionView('profiles');
-      }
+      appState.currentProfile = null;
+      transitionView('profiles');
     };
     vid.onerror = () => {
-      console.log("Startup video failed to load, skipping to next view.");
-      if (appState.currentProfile) {
-        transitionView('intro');
-        setTimeout(() => { transitionView('dashboard'); }, 1200);
-      } else {
-        transitionView('profiles');
-      }
+      console.log("Startup video failed to load, skipping to profiles mode.");
+      appState.currentProfile = null;
+      transitionView('profiles');
     };
     c.onclick = playAnim;
     // Auto-attempt
@@ -846,6 +770,23 @@ window.openUploadModal = () => {
       <button class="upload-close" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       <div class="upload-title">Add New Memory</div>
       
+      <div style="margin-bottom: 15px; padding: 15px; background: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; text-shadow: none;">Please upload your video to YouTube Studio first.</p>
+        <button class="btn btn-secondary" style="width:100%" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload?d=ud&filter=%5B%5D&sort=%7B%22columnType%22%3A%22date%22%2C%22sortOrder%22%3A%22DESCENDING%22%7D', '_blank')">
+          🡥 Open YouTube Studio to Upload
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label>YouTube Video Link</label>
+        <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="font-family: monospace;">
+        <button id="up-fetch" class="btn btn-secondary" style="margin-top: 5px; width: 100%; font-size: 14px;">Extract Thumbnail</button>
+      </div>
+      
+      <div class="form-group" style="text-align: center; display: none;" id="up-preview-container">
+        <img id="up-thumb-preview" src="" style="max-height: 150px; border-radius: 4px; border: 1px solid #333;">
+      </div>
+
       <div class="form-group">
         <label>Title</label>
         <input type="text" id="up-title" placeholder="A Beautiful Memory">
@@ -864,28 +805,6 @@ window.openUploadModal = () => {
           <option value="Our Time">Our Time</option>
           <option value="Documentaries">Documentaries</option>
         </select>
-      </div>
-      <div class="form-group">
-        <label>Upload Method</label>
-        <select id="up-method" style="margin-bottom: 5px; background: #333; color: white; padding: 10px; width: 100%; border: none; border-radius: 4px;">
-          <option value="firebase">Direct to Firebase Storage (Fast/Reliable)</option>
-          <option value="youtube">Upload to YouTube</option>
-        </select>
-        <small style="color: #aaa; font-size: 12px; display: block; margin-top: 5px;">Firebase Storage works best without CORS or Google Console setup issues.</small>
-      </div>
-      <div class="form-group">
-        <label>Video File (From Device)</label>
-        <div class="file-upload-box" onclick="document.getElementById('up-vid-file').click()">
-          Click to Select 4K Video File
-        </div>
-        <input type="file" id="up-vid-file" class="file-input" accept="video/*">
-      </div>
-      <div class="form-group">
-        <label>Auto-Extracted Thumbnail (Or tap to upload custom)</label>
-        <div class="thumbnail-preview" id="up-thumb-preview" onclick="document.getElementById('up-img-file').click()">
-          <span style="color:#666">No Thumbnail yet</span>
-        </div>
-        <input type="file" id="up-img-file" class="file-input" accept="image/*">
       </div>
       
       <div style="display:flex; gap:15px">
@@ -907,108 +826,40 @@ window.openUploadModal = () => {
   `;
   
   document.body.appendChild(modal);
-  
-  // Add open class after small delay to trigger CSS transition
   setTimeout(() => modal.classList.add('open'), 10);
   
-  let currentVideoUrl = '';
   let currentThumbData = '';
-  
-  // Video Selection
-  document.getElementById('up-vid-file').onchange = (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    document.querySelector('.file-upload-box').innerText = file.name;
-    currentVideoUrl = URL.createObjectURL(file);
+  let extractedVideoId = '';
+
+  document.getElementById('up-fetch').onclick = async () => {
+    const link = document.getElementById('up-yt-link').value.trim();
+    if (!link) return alert("Please paste a YouTube link first.");
+
+    let videoId = '';
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = link.match(regExp);
+    if (match && match[2].length === 11) {
+      videoId = match[2];
+    } else {
+      videoId = link.length === 11 ? link : null;
+    }
+
+    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
     
-    // Auto-extract thumbnail
-    const video = document.createElement('video');
-    video.src = currentVideoUrl;
-    video.currentTime = 1; // Seek to 1s
-    video.onloadeddata = () => {
-      setTimeout(() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        currentThumbData = canvas.toDataURL('image/jpeg');
-        document.getElementById('up-thumb-preview').innerHTML = `<img src="${currentThumbData}">`;
-      }, 500); // give time to seek
-    };
+    extractedVideoId = videoId;
+    currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+    document.getElementById('up-thumb-preview').src = currentThumbData;
+    document.getElementById('up-preview-container').style.display = 'block';
   };
   
-  // Custom thumb override
-  document.getElementById('up-img-file').onchange = (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      currentThumbData = e.target.result;
-      document.getElementById('up-thumb-preview').innerHTML = `<img src="${currentThumbData}">`;
-    };
-    reader.readAsDataURL(file);
-  };
-  
-  // Publish
   document.getElementById('up-publish').onclick = async (e) => {
-    e.target.innerText = "Uploading... please wait";
+    const title = document.getElementById('up-title').value.trim();
+    if(!title) return alert("Title required");
+    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
+
+    e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    const title = document.getElementById('up-title').value.trim();
-    if(!title) {
-       e.target.innerText = "Publish Memory";
-       e.target.disabled = false;
-       return alert("Title required");
-    }
-    
-    let videoUrl = currentVideoUrl;
-    let youtubeSnippetId = null;
-    const fileObj = document.getElementById('up-vid-file').files[0];
-    
-    if (fileObj) {
-      const uploadMethod = document.getElementById('up-method').value;
-      if (uploadMethod === 'youtube') {
-        try {
-          // Phase A & B: Auth and Upload to YouTube
-          youtubeSnippetId = await executeYoutubeUpload(fileObj, {
-            title: title,
-            description: document.getElementById('up-desc').value || title
-          }, e.target);
-          
-          // Phase C: Pass Video ID to Database
-          videoUrl = youtubeSnippetId;
-        } catch(err) {
-          console.error("YouTube Upload error:", err);
-          alert("YouTube Upload failed: " + err.message + "\n\nFalling back to Google Cloud Storage (App Built-in Storage).");
-          if(e.target) {
-            e.target.innerText = "Uploading to Cloud Storage...";
-          }
-          try {
-            videoUrl = await window.uploadFileToStorage(fileObj, 'memories_video', e.target);
-          } catch (storageErr) {
-            alert("Cloud Storage Upload also failed: " + storageErr.message);
-            if(e.target) {
-              e.target.innerText = "Publish Memory";
-              e.target.disabled = false;
-            }
-            return;
-          }
-        }
-      } else {
-        // Firebase Storage direct upload
-        try {
-          videoUrl = await window.uploadFileToStorage(fileObj, 'memories_video', e.target);
-        } catch (storageErr) {
-          alert("Cloud Storage Upload failed: " + storageErr.message);
-          if(e.target) {
-            e.target.innerText = "Publish Memory";
-            e.target.disabled = false;
-          }
-          return;
-        }
-      }
-    }
-    
     const mem = {
       id: 'm_' + Date.now(),
       title,
@@ -1016,12 +867,12 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData,
-      videoUrl: videoUrl,
+      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/hqdefault.jpg'),
+      videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
-    
+
     await saveMemoryToDB(mem);
     appState.memories.unshift(mem);
     const modalEl = document.getElementById('uploadModal');
@@ -1139,7 +990,7 @@ window.playVideo = (id) => {
 
   c.innerHTML = `
     <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();" style="z-index: 10000; position:absolute;">🡠</div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
   `;
   document.body.appendChild(c);
