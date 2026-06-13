@@ -422,13 +422,21 @@ function createStartupScreen() {
       vid.play().catch(e => console.log("Autoplay blocked, needs click"));
     };
     vid.onended = () => {
-      appState.currentProfile = null; // Reset profile
-      transitionView('profiles');
+      if (appState.currentProfile) {
+        transitionView('intro');
+        setTimeout(() => { transitionView('dashboard'); }, 1200);
+      } else {
+        transitionView('profiles');
+      }
     };
     vid.onerror = () => {
-      console.log("Startup video failed to load, skipping to profiles.");
-      appState.currentProfile = null; // Reset profile
-      transitionView('profiles');
+      console.log("Startup video failed to load, skipping to next view.");
+      if (appState.currentProfile) {
+        transitionView('intro');
+        setTimeout(() => { transitionView('dashboard'); }, 1200);
+      } else {
+        transitionView('profiles');
+      }
     };
     c.onclick = playAnim;
     // Auto-attempt
