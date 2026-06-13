@@ -61,6 +61,14 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
+
+  const savedProfile = localStorage.getItem('sarthak_netflix_profile');
+  if (savedProfile) {
+    const pfData = appState.profiles.find(p => p.name === savedProfile);
+    if (pfData) {
+      appState.currentProfile = savedProfile;
+    }
+  }
 }
 
 async function saveMemoryToDB(memory) {
@@ -80,7 +88,24 @@ function render() {
   if(!app) return;
   app.innerHTML = '';
   if (appState.view === 'startup') app.appendChild(createStartupScreen());
-  else if (appState.view === 'profiles') app.appendChild(createProfileSelection());
+  else if (appState.view === 'profiles') {
+    const profs = createProfileSelection();
+    app.appendChild(profs);
+    
+    // Entrance Animation
+    profs.style.opacity = '0';
+    setTimeout(() => {
+      animate(profs, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+      const cards = profs.querySelectorAll('.profile-card');
+      if (cards.length > 0) {
+        animate(
+          cards, 
+          { y: [30, 0], opacity: [0, 1], scale: [0.95, 1] }, 
+          { duration: 0.6, delay: stagger(0.15, { startDelay: 0.1 }), ease: "easeOut" }
+        );
+      }
+    }, 50);
+  }
   else if (appState.view === 'intro') app.appendChild(createIntroScreen());
   else if (appState.view === 'dashboard') {
     const dashboard = createDashboard();
@@ -103,6 +128,12 @@ function render() {
   }
 }
 window.render = render;
+
+window.logoutProfile = () => {
+  localStorage.removeItem('sarthak_netflix_profile');
+  appState.currentProfile = null;
+  transitionView('profiles');
+};
 
 window.handleSearch = (e) => {
   appState.searchQuery = e.target.value.toLowerCase();
@@ -238,11 +269,11 @@ function createStartupScreen() {
       vid.play().catch(e => console.log("Autoplay blocked, needs click"));
     };
     vid.onended = () => {
-      transitionView('profiles');
+      transitionView(appState.currentProfile ? 'dashboard' : 'profiles');
     };
     vid.onerror = () => {
       console.log("Startup video failed to load, skipping to profiles.");
-      transitionView('profiles');
+      transitionView(appState.currentProfile ? 'dashboard' : 'profiles');
     };
     c.onclick = playAnim;
     // Auto-attempt
@@ -298,6 +329,7 @@ function createProfileSelection() {
         p.innerHTML = `<div class="profile-avatar-wrapper"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
         setTimeout(() => {
           appState.currentProfile = pf.name;
+          localStorage.setItem('sarthak_netflix_profile', pf.name);
           transitionView('intro');
           setTimeout(() => { transitionView('dashboard'); }, 1200);
         }, 1000);
@@ -486,6 +518,7 @@ function createNavbar() {
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
             <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
+            <div class="dropdown-item" onclick="logoutProfile()">🚪 Logout Profile</div>
           </div>
         </div>
       </div>
@@ -893,11 +926,9 @@ window.playVideo = (id) => {
 };
 
 // Initialize
-window.onload = () => {
-  loadData().catch(e => {
-    console.error("Error loading data:", e);
-    alert("Connection to the database failed. Some features may not work.");
-  }).finally(() => {
-    render();
-  });
-};
+loadData().catch(e => {
+  console.error("Error loading data:", e);
+  alert("Connection to the database failed. Some features may not work.");
+}).finally(() => {
+  render();
+});

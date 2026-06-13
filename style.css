@@ -36,15 +36,12 @@ body {
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at center, rgba(229, 9, 20, 0.15) 0%, #141414 70%);
-  animation: fadeZoomIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .profile-selection h1 {
   font-size: 3.5vw;
   font-weight: 500;
   color: #fff;
   margin-bottom: 2em;
-  opacity: 0;
-  animation: slideFadeUp 0.6s 0.2s ease-out forwards;
 }
 .profiles-list {
   display: flex;
@@ -56,9 +53,6 @@ body {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: opacity 0.4s, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  opacity: 0;
-  animation: scaleFadeIn 0.5s calc(0.1s * var(--stagger, 1) + 0.3s) ease-out forwards;
 }
 .profile-avatar {
   width: 10vw;
