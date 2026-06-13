@@ -42,17 +42,6 @@ const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
 async function loadData() {
-  const secretCode = localStorage.getItem('sarthak_netflix_code');
-  if (secretCode !== '0707') {
-    const input = prompt("Please enter the secret code (Hint: special date):");
-    if (input === '0707' || input === 'loveyou') {
-      localStorage.setItem('sarthak_netflix_code', '0707');
-    } else {
-      alert("Incorrect secret code. Access denied.");
-      return;
-    }
-  }
-  
   const stateDoc = await getDoc(doc(db, 'user_state', 'household'));
   if (stateDoc.exists()) {
     const data = stateDoc.data();
@@ -294,6 +283,17 @@ function createProfileSelection() {
       if(isManageMode) {
         editProfile(pf.id);
       } else {
+        const secretCode = localStorage.getItem('sarthak_netflix_code');
+        if (secretCode !== '0707') {
+          const input = prompt("Please enter the secret code (Hint: special date):");
+          if (input === '0707' || input === 'loveyou') {
+            localStorage.setItem('sarthak_netflix_code', '0707');
+          } else {
+            alert("Incorrect secret code. Access denied.");
+            return;
+          }
+        }
+        
         // Simulate Netflix style loading wait
         p.innerHTML = `<div class="profile-avatar-wrapper"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
         setTimeout(() => {
