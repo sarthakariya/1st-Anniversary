@@ -1,3 +1,14 @@
+import { db, auth, storage, provider, signInWithPopup, onAuthStateChanged } from './src/firebase.js';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+window.transitionView = transitionView; // Expose as it was removed from global scope
+window.uploadFileToStorage = async (file, path) => {
+  const fileRef = ref(storage, path + '_' + Date.now());
+  const snapshot = await uploadBytes(fileRef, file);
+  return await getDownloadURL(snapshot.ref);
+};
+
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
 
@@ -28,118 +39,58 @@ const initialMemories = [];
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
-function initDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('memories')) {
-        db.createObjectStore('memories', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('user_state')) {
-        db.createObjectStore('user_state', { keyPath: 'key' });
-      }
-    };
-    request.onsuccess = (e) => resolve(e.target.result);
-    request.onerror = (e) => reject(e.target.error);
-  });
-}
-
-async function loadData() {
-  const db = await initDB();
+async function initDB() {
   return new Promise((resolve) => {
-    const tx = db.transaction(['memories', 'user_state'], 'readonly');
-    const memStore = tx.objectStore('memories');
-    const stateStore = tx.objectStore('user_state');
-    
-    let dbMemories = [];
-    memStore.getAll().onsuccess = (e) => { dbMemories = e.target.result; };
-    stateStore.get('myList').onsuccess = (e) => { if (e.target.result) appState.myList = e.target.result.data; };
-    stateStore.get('continueWatching').onsuccess = (e) => { if (e.target.result) appState.continueWatching = e.target.result.data; };
-    stateStore.get('settings').onsuccess = (e) => { if (e.target.result) appState.settings = e.target.result.data; };
-    stateStore.get('profiles').onsuccess = (e) => { 
-      if (e.target.result) {
-        appState.profiles = e.target.result.data.map(pf => {
-          if(pf.avatar.includes('unsplash.com')) {
-            if(pf.name === 'Sarthak') pf.avatar = 'img20251010.jpg';
-            if(pf.name === 'Reechita') pf.avatar = 'img2025.78_07.jpg';
-            if(pf.name === 'Our Future Kids') pf.avatar = '20250707_2328.jpg';
-          }
-          return pf;
-        });
-      }
-    };
-    
-    tx.oncomplete = async () => {
-      if (appState.profiles.length === 0) {
-        appState.profiles = [...initialProfiles];
-        await saveStateList('profiles', appState.profiles);
-      }
-      
-      if (dbMemories.length === 0) {
-        for(const m of initialMemories) await saveMemoryToDB(m);
-        appState.memories = [...initialMemories];
-      } else {
-        appState.memories = dbMemories;
-      }
-      resolve();
-    };
-  });
-}
-
-function saveMemoryToDB(memory) {
-  return initDB().then(db => {
-    return new Promise((resolve) => {
-      const tx = db.transaction('memories', 'readwrite');
-      tx.objectStore('memories').put(memory);
-      tx.oncomplete = () => resolve();
+    const unsub = onAuthStateChanged(auth, user => {
+      unsub();
+      resolve(user);
     });
   });
 }
 
-function saveStateList(key, data) {
-  return initDB().then(db => {
-    const tx = db.transaction('user_state', 'readwrite');
-    tx.objectStore('user_state').put({ key, data });
-  });
-}
-
-function transitionView(newView) {
-  const app = document.getElementById('app');
-  app.classList.add('fade-out');
-  setTimeout(() => {
-    appState.view = newView;
-    render();
-    app.classList.remove('fade-out');
-  }, 400);
-}
-
-function render() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
-  if (appState.view === 'startup') app.appendChild(createStartupScreen());
-  else if (appState.view === 'profiles') app.appendChild(createProfileSelection());
-  else if (appState.view === 'intro') app.appendChild(createIntroScreen());
-  else if (appState.view === 'dashboard') app.appendChild(createDashboard());
-}
-
-window.setCategory = (cat) => {
-  appState.activeCategory = cat;
-  appState.searchQuery = '';
-  render();
-};
-
-window.toggleSearch = () => {
-  const container = document.getElementById('searchContainer');
-  const input = document.getElementById('searchInput');
-  container.classList.toggle('active');
-  if(container.classList.contains('active')) {
-    input.focus();
-  } else {
-    input.value = '';
-    appState.searchQuery = '';
-    window.refreshRowsView();
+async function loadData() {
+  let user = await initDB();
+  if (!user) {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      user = result.user;
+    } catch(e) {
+      alert("Sign in required to access household profiles.");
+      return;
+    }
   }
+  
+  const stateDoc = await getDoc(doc(db, 'user_state', 'household'));
+  if (stateDoc.exists()) {
+    const data = stateDoc.data();
+    if(data.myList) appState.myList = data.myList;
+    if(data.continueWatching) appState.continueWatching = data.continueWatching;
+    if(data.settings) appState.settings = data.settings;
+    if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
+  } else {
+    appState.profiles = [...initialProfiles];
+    await setDoc(doc(db, 'user_state', 'household'), {
+      myList: appState.myList,
+      continueWatching: appState.continueWatching,
+      settings: appState.settings,
+      profiles: appState.profiles
+    });
+  }
+
+  const memSnapshot = await getDocs(collection(db, 'memories'));
+  appState.memories = memSnapshot.docs.map(d => d.data());
+}
+
+async function saveMemoryToDB(memory) {
+  if(!memory.id) memory.id = "m_" + Date.now();
+  await setDoc(doc(db, 'memories', memory.id), memory);
+}
+
+async function saveStateList(key, data) {
+  appState[key] = data;
+  await setDoc(doc(db, 'user_state', 'household'), {
+    [key]: data
+  }, { merge: true });
 };
 
 window.handleSearch = (e) => {
@@ -322,7 +273,7 @@ function createProfileSelection() {
         setTimeout(() => {
           appState.currentProfile = pf.name;
           transitionView('intro');
-          setTimeout(() => { transitionView('dashboard'); }, 3500);
+          setTimeout(() => { transitionView('dashboard'); }, 1200);
         }, 1000);
       }
     };
@@ -379,6 +330,11 @@ function createIntroScreen() {
 }
 
 function createDashboard() {
+  setTimeout(() => {
+    const icon = document.querySelector('link[rel="icon"]');
+    const img = document.getElementById('nav-logo-img');
+    if(icon && img) img.src = icon.href;
+  }, 50);
   const c = document.createElement('div');
   c.appendChild(createNavbar());
 
@@ -431,7 +387,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <div class="nav-logo-text">OUR STORY</div>
+        <img id="nav-logo-img" width="111" style="cursor: pointer; position: relative; top: -5px;" src="">
       </div>
       <ul class="nav-links">
         ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
@@ -672,12 +628,31 @@ window.openUploadModal = () => {
   };
   
   // Publish
-  document.getElementById('up-publish').onclick = async () => {
+  document.getElementById('up-publish').onclick = async (e) => {
+    e.target.innerText = "Uploading... please wait";
+    e.target.disabled = true;
+
     const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
+    if(!title) {
+       e.target.innerText = "Publish Memory";
+       e.target.disabled = false;
+       return alert("Title required");
+    }
     
-    // Store video Blob via IndexedDB for persistence
+    let videoUrl = currentVideoUrl;
     const fileObj = document.getElementById('up-vid-file').files[0];
+    
+    if (fileObj) {
+      try {
+        videoUrl = await window.uploadFileToStorage(fileObj, 'videos/' + fileObj.name);
+      } catch(err) {
+        console.error("Upload error:", err);
+        alert("Failed to upload video.");
+        e.target.innerText = "Publish Memory";
+        e.target.disabled = false;
+        return;
+      }
+    }
     
     const mem = {
       id: 'm_' + Date.now(),
@@ -687,8 +662,7 @@ window.openUploadModal = () => {
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
       thumbnail: currentThumbData,
-      videoUrl: currentVideoUrl,
-      videoFile: fileObj, // File persists in IndexedDB directly
+      videoUrl: videoUrl,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
@@ -784,11 +758,6 @@ window.playVideo = (id) => {
   
   // Convert File Object to URL if loaded from DB
   let url = m.videoUrl;
-  if(m.videoFile && !url.startsWith('blob:')) {
-    url = URL.createObjectURL(m.videoFile);
-    m.videoUrl = url;
-  }
-  
   const detailModal = document.getElementById('detailModal');
   if(detailModal) detailModal.remove();
   
@@ -810,6 +779,15 @@ window.playVideo = (id) => {
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     mainPlayer.style.display = 'block';
+    
+    // Request fullscreen automatically on playback start
+    if (c.requestFullscreen) {
+      c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
+    } else if (c.webkitRequestFullscreen) { /* Safari */
+      c.webkitRequestFullscreen();
+    } else if (c.msRequestFullscreen) { /* IE11 */
+      c.msRequestFullscreen();
+    }
     
     // Auto play when transition is done
     const pPromise = mainPlayer.play();

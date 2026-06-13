@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Memory": {
+      "title": "Memory",
+      "description": "A single video or image uploaded by a profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "desc": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "category": { "type": "string" },
+        "year": { "type": "string" },
+        "rating": { "type": "string" },
+        "type": { "type": "string" },
+        "dateAdded": { "type": "number" },
+        "uploadedBy": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "title", "dateAdded", "ownerId"]
+    },
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile for the household",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "avatar", "ownerId"]
+    }
+  },
+  "firestore": {
+    "memories": {
+      "schema": "Memory",
+      "description": "Holds the memories"
+    },
+    "profiles": {
+      "schema": "Profile",
+      "description": "Holds the household profiles"
+    }
+  }
+}
