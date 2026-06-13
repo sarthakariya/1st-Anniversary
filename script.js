@@ -9,13 +9,29 @@ window.uploadFileToStorage = (file, path, buttonEl) => {
   return new Promise((resolve, reject) => {
     const fileRef = ref(storage, path + '_' + Date.now());
     const uploadTask = uploadBytesResumable(fileRef, file);
+    
+    let lastProgress = 0;
+    const timeoutMonitor = setTimeout(() => {
+      if (lastProgress === 0) {
+        uploadTask.cancel();
+        reject(new Error("Upload timed out or blocked by CORS/Permissions. Please ensure Firebase Storage allows this."));
+      }
+    }, 15000);
+
     uploadTask.on('state_changed', 
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        lastProgress = progress;
         if(buttonEl) buttonEl.innerText = "Uploading... " + Math.round(progress) + "%";
       }, 
-      (error) => { reject(error); }, 
-      async () => { resolve(await getDownloadURL(uploadTask.snapshot.ref)); }
+      (error) => { 
+        clearTimeout(timeoutMonitor);
+        reject(error); 
+      }, 
+      async () => { 
+        clearTimeout(timeoutMonitor);
+        resolve(await getDownloadURL(uploadTask.snapshot.ref)); 
+      }
     );
   });
 };
@@ -40,7 +56,7 @@ let appState = {
   },
   myList: [],
   continueWatching: [],
-  memories: [],
+  memories: null,
   profiles: [...initialProfiles]
 };
 
@@ -159,6 +175,20 @@ window.refreshRowsView = (rcNode, heroNode) => {
   if(!rc) return;
   rc.innerHTML = '';
   
+  // Show skeletons while data is null
+  if (appState.memories === null) {
+    if(hero) hero.style.display = 'block'; // Keep hero area while loading
+    for (let i = 0; i < 3; i++) {
+        const row = document.createElement('div');
+        row.className = 'row-container';
+        row.innerHTML = `<h2 class="row-title" style="color: #444;">Loading...</h2><div class="row-slider" style="display:flex; gap:8px;">
+          ${Array(6).fill('<div class="skeleton-card"></div>').join('')}
+        </div>`;
+        rc.appendChild(row);
+    }
+    return;
+  }
+  
   if(appState.searchQuery) {
     if(hero) hero.style.display = 'none';
     const q = appState.searchQuery;
@@ -196,7 +226,37 @@ window.refreshRowsView = (rcNode, heroNode) => {
       { id: 'g_5', title: 'Mountain Hike', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&auto=format&fit=crop', desc: 'Looking over the vast mountain range.', category: 'Our Time' },
       { id: 'g_6', title: 'Concert Night', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&auto=format&fit=crop', desc: 'Dancing till the sun came up.', category: 'Documentaries' },
     ];
-    rc.appendChild(createRow('Anniversary Selection (AI Generated)', galleryItems));
+    
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
+    wrapper.innerHTML = `<h2 style="font-size: 1.4vw; font-weight: 700; margin-bottom: 20px;">Anniversary Selection (AI Generated)</h2>`;
+    
+    const grid = document.createElement('div');
+    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
+    
+    galleryItems.forEach(m => {
+       const div = document.createElement('div');
+       div.className = 'media-card';
+       div.style.flex = "unset";
+       div.onclick = () => { 
+         // Mock adding it to appState so openDetailModal works
+         if (!appState.memories.find(mem => mem.id === m.id)) {
+           appState.memories.push(m);
+         }
+         openDetailModal(m.id); 
+       };
+       div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">
+       <div class="card-info">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>${m.title}</div>
+          <div class="circ-play-btn" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+        </div>
+        <div class="card-meta"><span class="match-rate">100% Match</span> <span style="color:#fff">${m.year}</span></div>
+       </div>`;
+       grid.appendChild(div);
+    });
+    wrapper.appendChild(grid);
+    rc.appendChild(wrapper);
   } else {
     // For Home
     if (appState.activeCategory === 'Home') {
@@ -346,14 +406,18 @@ function createProfileSelection() {
           }
         }
         
-        // Simulate Netflix style loading wait
-        p.innerHTML = `<div class="profile-avatar-wrapper"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+        // Simulate Netflix style loading wait with 3D flip
+        p.classList.add('flip-active');
+        setTimeout(() => {
+          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+        }, 300);
+        
         setTimeout(() => {
           appState.currentProfile = pf.name;
           localStorage.setItem('sarthak_netflix_profile', pf.name);
           transitionView('intro');
           setTimeout(() => { transitionView('dashboard'); }, 1200);
-        }, 1000);
+        }, 1200);
       }
     };
     list.appendChild(p);

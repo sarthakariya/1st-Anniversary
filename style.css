@@ -53,6 +53,15 @@ body {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  perspective: 1000px;
+}
+.profile-avatar-wrapper {
+  position: relative;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+.profile-card.flip-active .profile-avatar-wrapper {
+  transform: rotateY(180deg);
 }
 .profile-avatar {
   width: 10vw;
