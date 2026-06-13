@@ -1,14 +1,23 @@
 import { db, storage } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { animate, stagger } from 'motion';
 
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
-window.uploadFileToStorage = async (file, path) => {
-  const fileRef = ref(storage, path + '_' + Date.now());
-  const snapshot = await uploadBytes(fileRef, file);
-  return await getDownloadURL(snapshot.ref);
+window.uploadFileToStorage = (file, path, buttonEl) => {
+  return new Promise((resolve, reject) => {
+    const fileRef = ref(storage, path + '_' + Date.now());
+    const uploadTask = uploadBytesResumable(fileRef, file);
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if(buttonEl) buttonEl.innerText = "Uploading... " + Math.round(progress) + "%";
+      }, 
+      (error) => { reject(error); }, 
+      async () => { resolve(await getDownloadURL(uploadTask.snapshot.ref)); }
+    );
+  });
 };
 
 const DB_NAME = "netflix_clone_db";
@@ -46,7 +55,7 @@ if (savedProfile) {
   }
 }
 
-const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
+const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
 async function loadData() {
@@ -178,6 +187,16 @@ window.refreshRowsView = (rcNode, heroNode) => {
       const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
       if (mems.length) rc.appendChild(createRow(cat, mems));
     });
+  } else if (appState.activeCategory === 'Anniversary Gallery') {
+    const galleryItems = [
+      { id: 'g_1', title: 'Our First Sunset', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1516589177380-50528f117c0a?w=800&auto=format&fit=crop', desc: 'A beautiful evening by the beach.', category: 'Romance' },
+      { id: 'g_2', title: 'Paris Getaway', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1502602898657-3e907a5ea071?w=800&auto=format&fit=crop', desc: 'Candlelight dinner with the Eiffel Tower glowing in the background.', category: 'Romance' },
+      { id: 'g_3', title: 'Snowy Retreat', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1518556488771-b0db37b34baf?w=800&auto=format&fit=crop', desc: 'Our first Christmas in the snow cabin.', category: 'Celebrations' },
+      { id: 'g_4', title: 'The Proposal', year: '2025', thumbnail: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=800&auto=format&fit=crop', desc: 'When you said yes!', category: 'Celebrations' },
+      { id: 'g_5', title: 'Mountain Hike', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&auto=format&fit=crop', desc: 'Looking over the vast mountain range.', category: 'Our Time' },
+      { id: 'g_6', title: 'Concert Night', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&auto=format&fit=crop', desc: 'Dancing till the sun came up.', category: 'Documentaries' },
+    ];
+    rc.appendChild(createRow('Anniversary Selection (AI Generated)', galleryItems));
   } else {
     // For Home
     if (appState.activeCategory === 'Home') {
@@ -269,11 +288,13 @@ function createStartupScreen() {
       vid.play().catch(e => console.log("Autoplay blocked, needs click"));
     };
     vid.onended = () => {
-      transitionView(appState.currentProfile ? 'dashboard' : 'profiles');
+      appState.currentProfile = null; // Reset profile
+      transitionView('profiles');
     };
     vid.onerror = () => {
       console.log("Startup video failed to load, skipping to profiles.");
-      transitionView(appState.currentProfile ? 'dashboard' : 'profiles');
+      appState.currentProfile = null; // Reset profile
+      transitionView('profiles');
     };
     c.onclick = playAnim;
     // Auto-attempt
@@ -616,13 +637,15 @@ function createRow(title, memories) {
       if(v) v.remove();
     };
 
+    const matchScore = m.title ? Math.max(85, 100 - (m.title.length % 15)) : 98;
+
     card.innerHTML += `
       <div class="card-info">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           ${m.title}
           <div class="circ-play-btn" onclick="playTrailer(event, '${m.id}')" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
         </div>
-        <div class="card-meta">98% Match &nbsp;&nbsp; <span style="color:#fff">${m.year}</span></div>
+        <div class="card-meta"><span class="match-rate">${matchScore}% Match</span> <span style="color:#fff">${m.year || '2025'}</span></div>
       </div>
     `;
     rc.appendChild(card);
@@ -643,7 +666,7 @@ window.openUploadModal = () => {
   
   modal.innerHTML = `
     <div class="upload-modal-content">
-      <button class="upload-close" onclick="document.getElementById('uploadModal').remove()">&times;</button>
+      <button class="upload-close" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       <div class="upload-title">Add New Memory</div>
       
       <div class="form-group">
@@ -692,13 +715,16 @@ window.openUploadModal = () => {
       </div>
       
       <div class="actions">
-        <button class="btn btn-secondary" onclick="document.getElementById('uploadModal').remove()">Cancel</button>
+        <button class="btn btn-secondary" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
         <button class="btn btn-primary" id="up-publish">Publish Memory</button>
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
+  
+  // Add open class after small delay to trigger CSS transition
+  setTimeout(() => modal.classList.add('open'), 10);
   
   let currentVideoUrl = '';
   let currentThumbData = '';
@@ -755,7 +781,7 @@ window.openUploadModal = () => {
     
     if (fileObj) {
       try {
-        videoUrl = await window.uploadFileToStorage(fileObj, 'videos/' + fileObj.name);
+        videoUrl = await window.uploadFileToStorage(fileObj, 'videos/' + fileObj.name, e.target);
       } catch(err) {
         console.error("Upload error:", err);
         alert("Failed to upload video.");
@@ -780,8 +806,12 @@ window.openUploadModal = () => {
     
     await saveMemoryToDB(mem);
     appState.memories.unshift(mem);
-    document.getElementById('uploadModal').remove();
-    render();
+    const modalEl = document.getElementById('uploadModal');
+    modalEl.classList.remove('open');
+    setTimeout(() => {
+      modalEl.remove();
+      render();
+    }, 600);
   };
 };
 
@@ -913,6 +943,45 @@ window.playVideo = (id) => {
   introPlayer.onended = startMainVideo;
   introPlayer.onerror = startMainVideo;
   
+  mainPlayer.ontimeupdate = () => {
+    if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
+      const idx = appState.memories.findIndex(i => i.id === id);
+      if (idx >= 0 && idx < appState.memories.length - 1) {
+        if (!document.getElementById('next-ep-queue')) {
+          const nextMem = appState.memories[idx + 1];
+          const qBox = document.createElement('div');
+          qBox.id = 'next-ep-queue';
+          qBox.style.cssText = 'position:absolute; bottom:5vw; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
+          qBox.innerHTML = `
+            <div>
+              <div style="font-size:1vw; color:#ccc; margin-bottom:5px;">Playing Next</div>
+              <div style="font-size:1.2vw; font-weight:bold;">${nextMem.title}</div>
+            </div>
+            <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
+              <svg width="40" height="40" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
+                <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4" fill="none" />
+                <circle id="next-ep-timer-circle" cx="20" cy="20" r="18" stroke="#e50914" stroke-width="4" fill="none" stroke-dasharray="113" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.1s linear;" />
+              </svg>
+              ▶
+            </div>
+          `;
+          qBox.onclick = () => {
+             document.getElementById('playbackOverlay').remove();
+             playVideo(nextMem.id);
+          };
+          c.appendChild(qBox);
+        }
+        
+        const circle = document.getElementById('next-ep-timer-circle');
+        const remains = mainPlayer.duration - mainPlayer.currentTime;
+        if(circle) {
+          const offset = 113 - ((remains / 5) * 113);
+          circle.style.strokeDashoffset = offset + '';
+        }
+      }
+    }
+  };
+
   mainPlayer.onended = () => {
     if(appState.settings.autoPlayNextEpisode) {
       // Find next memory
