@@ -1,6 +1,7 @@
 import { db, storage } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { animate, stagger } from 'motion';
 
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
@@ -92,7 +93,25 @@ function render() {
   if (appState.view === 'startup') app.appendChild(createStartupScreen());
   else if (appState.view === 'profiles') app.appendChild(createProfileSelection());
   else if (appState.view === 'intro') app.appendChild(createIntroScreen());
-  else if (appState.view === 'dashboard') app.appendChild(createDashboard());
+  else if (appState.view === 'dashboard') {
+    const dashboard = createDashboard();
+    app.appendChild(dashboard);
+    
+    // Entrance Animation
+    dashboard.style.opacity = '0';
+    setTimeout(() => {
+      animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+      
+      const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
+      if (elements.length > 0) {
+          animate(
+            elements, 
+            { y: [40, 0], opacity: [0, 1] }, 
+            { duration: 0.7, delay: stagger(0.15, { startDelay: 0.2 }), ease: "easeOut" }
+          );
+      }
+    }, 50);
+  }
 }
 window.render = render;
 
@@ -105,9 +124,9 @@ window.toggleNotifications = () => {
   document.getElementById('notifPanel').classList.toggle('active');
 };
 
-window.refreshRowsView = () => {
-  const rc = document.querySelector('.slider-container');
-  const hero = document.getElementById('hero-section');
+window.refreshRowsView = (rcNode, heroNode) => {
+  const rc = rcNode || document.querySelector('.slider-container');
+  const hero = heroNode || document.getElementById('hero-section');
   if(!rc) return;
   rc.innerHTML = '';
   
@@ -410,7 +429,7 @@ function createDashboard() {
   rc.className = 'slider-container';
   c.appendChild(rc);
   
-  setTimeout(() => window.refreshRowsView(), 0);
+  window.refreshRowsView(rc, heroContent);
   return c;
 }
 
