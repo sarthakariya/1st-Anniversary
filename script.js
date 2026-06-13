@@ -894,5 +894,10 @@ window.playVideo = (id) => {
 
 // Initialize
 window.onload = () => {
-  loadData().then(render);
+  loadData().catch(e => {
+    console.error("Error loading data:", e);
+    alert("Connection to the database failed. Some features may not work.");
+  }).finally(() => {
+    render();
+  });
 };
