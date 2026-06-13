@@ -226,7 +226,7 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <video id="startup-vid" src="src/components/vidssave.com%20Netflix%20New%20Logo%20Animation%202019%201080p.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
       <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
     </div>
@@ -239,6 +239,10 @@ function createStartupScreen() {
       vid.play().catch(e => console.log("Autoplay blocked, needs click"));
     };
     vid.onended = () => {
+      transitionView('profiles');
+    };
+    vid.onerror = () => {
+      console.log("Startup video failed to load, skipping to profiles.");
       transitionView('profiles');
     };
     c.onclick = playAnim;
@@ -278,7 +282,7 @@ function createProfileSelection() {
     
     p.onclick = () => {
       if(isManageMode) {
-        editProfileImage(pf.id);
+        editProfile(pf.id);
       } else {
         // Simulate Netflix style loading wait
         p.innerHTML = `<div class="profile-avatar-wrapper"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
@@ -299,15 +303,57 @@ window.toggleManageProfiles = () => {
   render();
 };
 
-window.editProfileImage = (pfId) => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = (e) => {
+window.editProfile = (pfId) => {
+  const pf = appState.profiles.find(p => p.id === pfId);
+  if(!pf) return;
+  
+  const m = document.createElement('div');
+  m.className = 'upload-modal';
+  m.id = 'editProfileModal';
+  
+  const defaultAvatars = [
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23e50914"/><circle cx="50" cy="50" r="30" fill="%23fff"/></svg>',
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%230275d8"/><rect x="30" y="30" width="40" height="40" fill="%23fff"/></svg>',
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%235cb85c"/><polygon points="50,20 80,80 20,80" fill="%23fff"/></svg>',
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23f0ad4e"/><circle cx="35" cy="40" r="10" fill="%23fff"/><circle cx="65" cy="40" r="10" fill="%23fff"/><path d="M30,70 Q50,90 70,70" stroke="%23fff" stroke-width="5" fill="none"/></svg>'
+  ].map(s => 'data:image/svg+xml;utf8,' + encodeURIComponent(s));
+  
+  m.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 400px; text-align: center;">
+      <button class="upload-close" onclick="document.getElementById('editProfileModal').remove()">&times;</button>
+      <div class="upload-title">Edit Profile</div>
+      
+      <div style="margin-bottom: 20px;">
+        <img id="ep-avatar-preview" src="${pf.avatar}" style="width: 100px; height: 100px; border-radius: 4px; object-fit: cover; margin-bottom: 10px;">
+        <div>
+          <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 14px;" onclick="document.getElementById('ep-file').click()">Upload Custom</button>
+          <input type="file" id="ep-file" accept="image/*" style="display:none;">
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px; text-align: left;">
+        <label style="display:block; margin-bottom:5px; color:#808080;">Select an avatar:</label>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          ${defaultAvatars.map(av => `<img src="${av}" class="default-avatar-btn" style="width: 50px; height: 50px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s;" onclick="document.getElementById('ep-avatar-preview').src = '${av}'"> `).join('')}
+        </div>
+      </div>
+      
+      <div class="form-group" style="text-align: left;">
+        <label>Profile Name</label>
+        <input type="text" id="ep-name" class="form-control" value="${pf.name}">
+      </div>
+      
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('editProfileModal').remove()">Cancel</button>
+        <button class="btn btn-primary" id="ep-save">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  
+  document.getElementById('ep-file').onchange = (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    
-    // Very simple square cropping canvas
     const img = new Image();
     const reader = new FileReader();
     reader.onload = (re) => {
@@ -315,23 +361,25 @@ window.editProfileImage = (pfId) => {
         const size = Math.min(img.width, img.height);
         const sx = (img.width - size) / 2;
         const sy = (img.height - size) / 2;
-        
         const canvas = document.createElement('canvas');
         canvas.width = 400; canvas.height = 400;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
-        
-        const newAvatar = canvas.toDataURL('image/jpeg');
-        const pf = appState.profiles.find(p => p.id === pfId);
-        if(pf) pf.avatar = newAvatar;
-        saveStateList('profiles', appState.profiles);
-        render();
+        document.getElementById('ep-avatar-preview').src = canvas.toDataURL('image/jpeg');
       };
       img.src = re.target.result;
     };
     reader.readAsDataURL(file);
   };
-  input.click();
+  
+  document.getElementById('ep-save').onclick = () => {
+    const newName = document.getElementById('ep-name').value.trim();
+    if(newName) pf.name = newName;
+    pf.avatar = document.getElementById('ep-avatar-preview').src;
+    saveStateList('profiles', appState.profiles);
+    document.getElementById('editProfileModal').remove();
+    render();
+  };
 };
 
 function createIntroScreen() {
@@ -780,7 +828,7 @@ window.playVideo = (id) => {
   // Play Netflix initial animation before playing video
   c.innerHTML = `
     <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();">🡠</div>
-    <video src="src/components/vidssave.com%20Netflix%20New%20Logo%20Animation%202019%201080p.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%;"></video>
     <video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>
   `;
   document.body.appendChild(c);
@@ -812,6 +860,7 @@ window.playVideo = (id) => {
   }
   
   introPlayer.onended = startMainVideo;
+  introPlayer.onerror = startMainVideo;
   
   mainPlayer.onended = () => {
     if(appState.settings.autoPlayNextEpisode) {
