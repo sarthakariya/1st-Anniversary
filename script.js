@@ -1,960 +1,752 @@
-const defaultProfiles = [
-  { id: '1', name: 'Sarthak', avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop', savedPin: '143' },
-  { id: '2', name: 'Reechita', avatar: 'https://images.unsplash.com/photo-1610030469668-93535c17b6b3?q=80&w=400&auto=format&fit=crop', savedPin: '143' },
-  { id: '3', name: 'Our Future Kids', avatar: 'https://images.unsplash.com/photo-1560169897-fc0cdbdfa4d5?q=80&w=400&auto=format&fit=crop', savedPin: '143', isKids: true }
-];
+const DB_NAME = "netflix_clone_db";
+const DB_VERSION = 1;
 
-let profilesData = [];
-
-const mainFeatureData = {
-  title: "Life of Sia and Aman",
-  description: "A beautiful journey of two souls intertwining. Witness the incredible moments, the laughs, the tears, and the love that grows stronger every passing day.",
-  coverUrl: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=1920&auto=format&fit=crop",
-  videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
+let appState = {
+  view: 'startup', 
+  currentProfile: null,
+  activeCategory: 'Home',
+  settings: {
+    autoPlayPreviews: true,
+    autoPlayNextEpisode: true
+  },
+  myList: [],
+  continueWatching: [],
+  memories: [],
+  profiles: []
 };
 
-const categoriesData = [
+const initialProfiles = [
+  { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
+  { id: 'p_2', name: 'Reechita', avatar: 'img2025.78_07.jpg' },
+  { id: 'p_3', name: 'Our Future Kids', avatar: '20250707_2328.jpg' }
+];
+
+// Seed Data
+const initialMemories = [
   {
-    id: 'popular',
-    title: 'Popular on Netflix',
-    memories: [
-      { id: 'm1', title: 'Our First Date', desc: 'The day my life changed forever. We went to that little cafe and talked for hours.', thumb: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800&auto=format&fit=crop', match: 99, year: '2023', duration: '2h 15m', rating: '13+', cast: 'Sia, Aman', tags: 'Romantic, Core Memory', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', type: 'Movies' },
-      { id: 'm2', title: 'Beach Day', desc: 'Watching the sunset together and eating too much ice cream.', thumb: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop', match: 98, year: '2023', duration: '1h 30m', rating: 'PG', cast: 'Sia, Aman', tags: 'Fun, Summer', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', type: 'Movies' },
-      { id: 'm3', title: 'Late Night Drives', desc: 'Listening to our favorite playlist with no destination in mind.', thumb: 'https://images.unsplash.com/photo-1494774157365-9e04c6720e47?q=80&w=800&auto=format&fit=crop', match: 100, year: '2023', duration: '45m', rating: '16+', cast: 'Sia, Aman', tags: 'Cozy, Music', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', type: 'TV Shows' },
-      { id: 'm4', title: 'Movie Night', desc: 'Falling asleep halfway through the movie we promised we would finish.', thumb: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=800&auto=format&fit=crop', match: 95, year: '2024', duration: '3h', rating: 'PG', cast: 'Sia, Aman', tags: 'Sleepy, Home', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', type: 'Movies' }
-    ]
+    id: '1', title: 'Our First Date', desc: 'The day everything started at the coffee shop.',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800',
+    category: 'Dates', year: '2023', rating: 'U/A 13+', type: 'Movie', dateAdded: Date.now() - 100000
   },
   {
-    id: 'recent',
-    title: 'Recently Watched',
-    memories: [
-      { id: 'm5', title: 'Winter Trip', desc: 'Playing in the snow and drinking hot chocolate by the fire.', thumb: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop', match: 97, year: '2024', duration: '3 Days', rating: '13+', cast: 'Sia, Aman', tags: 'Travel, Cold', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', type: 'TV Shows' },
-      { id: 'm6', title: 'Anniversary Dinner', desc: 'Getting dressed up and celebrating us.', thumb: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800&auto=format&fit=crop', match: 100, year: '2024', duration: '2h 30m', rating: '18+', cast: 'Sia, Aman', tags: 'Fancy, Romantic', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', type: 'Documentaries' },
-      { id: 'm7', title: 'Random Tuesday', desc: 'Doing absolutely nothing together and loving every second of it.', thumb: 'https://images.unsplash.com/photo-1494774157365-9e04c6720e47?q=80&w=800&auto=format&fit=crop', match: 96, year: '2024', duration: 'All Day', rating: 'G', cast: 'Sia, Aman', tags: 'Lazy, Comfort', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', type: 'Documentaries' }
-    ]
-  },
-  {
-    id: 'trending',
-    title: 'Trending Chronicles',
-    memories: [
-      { id: 'm8', title: 'Cafe Outing', desc: 'Discovering the mini pastries that became our weekly craving.', thumb: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop', match: 94, year: '2024', duration: '1h', rating: 'G', cast: 'Sia, Aman', tags: 'Foodie, Coffee', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', type: 'Documentaries' },
-      { id: 'm9', title: 'City Park Picnic', desc: 'Sia trying to paint while Aman is busy feeding birds.', thumb: 'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=800&auto=format&fit=crop', match: 99, year: '2025', duration: '4h', rating: 'PG', cast: 'Sia, Aman', tags: 'Art, Sunshine', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', type: 'TV Shows' },
-      { id: 'm10', title: 'Midnight Culinary Fail', desc: 'The historic attempt at baking deep-dish pizza at 2:00 AM.', thumb: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=800&auto=format&fit=crop', match: 91, year: '2025', duration: '1h 15m', rating: '13+', cast: 'Sia, Aman', tags: 'Hilarious, Kitchen', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', type: 'Movies' }
-    ]
+    id: '2', title: 'First Anniversary', desc: 'Celebration at the beach house.',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800',
+    category: 'Celebrations', year: '2024', rating: 'U/A 16+', type: 'Series', dateAdded: Date.now() - 50000
   }
 ];
 
-const upcomingData = [
-  { id: 'u1', title: 'Cozy Snow Cabin Escape', desc: 'Planning our cozy cabin stay in mountains.', thumb: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop', match: 99, year: 'Upcoming', duration: 'TBA', rating: 'G', cast: 'Sia, Aman', tags: 'Cozy, Escape', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', releaseDate: 'Dec 15, 2026' },
-  { id: 'u2', title: 'Our Second Anniversary', desc: 'A major milestone of memory building and growth.', thumb: 'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=800&auto=format&fit=crop', match: 100, year: 'Upcoming', duration: 'All Night', rating: 'PG', cast: 'Sia, Aman', tags: 'Milestone, Romance', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', releaseDate: 'May 12, 2027' },
-  { id: 'u3', title: 'The Coastal Roadtrip', desc: 'Hand in hand to meet the golden sands and blue waves.', thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', match: 98, year: 'Upcoming', duration: '7 Days', rating: 'PG', cast: 'Sia, Aman', tags: 'Adventure, Ocean', video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', releaseDate: 'Aug 1, 2027' }
-];
+const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
+const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
-const availableAvatars = [
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1610030469668-93535c17b6b3?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1560169897-fc0cdbdfa4d5?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?q=80&w=400&auto=format&fit=crop'
-];
-
-let appState = {
-  view: 'intro',
-  activeProfile: null,
-  myList: [],
-  currentCategoryFilter: 'Home',
-  searchQuery: '',
-  isManaging: false
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-    applyTimeBasedTheme();
-    try {
-      const savedProfiles = localStorage.getItem('netflix_profiles_v4');
-      if (savedProfiles) {
-          profilesData = JSON.parse(savedProfiles);
-      } else {
-          profilesData = JSON.parse(JSON.stringify(defaultProfiles));
-          saveState();
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('memories')) {
+        db.createObjectStore('memories', { keyPath: 'id' });
       }
-      const savedList = localStorage.getItem('netflix_mylist');
-      if (savedList) {
-          appState.myList = JSON.parse(savedList);
+      if (!db.objectStoreNames.contains('user_state')) {
+        db.createObjectStore('user_state', { keyPath: 'key' });
       }
-    } catch(e) {
-      profilesData = JSON.parse(JSON.stringify(defaultProfiles));
-    }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function loadData() {
+  const db = await initDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(['memories', 'user_state'], 'readonly');
+    const memStore = tx.objectStore('memories');
+    const stateStore = tx.objectStore('user_state');
     
+    let dbMemories = [];
+    memStore.getAll().onsuccess = (e) => { dbMemories = e.target.result; };
+    stateStore.get('myList').onsuccess = (e) => { if (e.target.result) appState.myList = e.target.result.data; };
+    stateStore.get('continueWatching').onsuccess = (e) => { if (e.target.result) appState.continueWatching = e.target.result.data; };
+    stateStore.get('settings').onsuccess = (e) => { if (e.target.result) appState.settings = e.target.result.data; };
+    stateStore.get('profiles').onsuccess = (e) => { 
+      if (e.target.result) {
+        appState.profiles = e.target.result.data.map(pf => {
+          if(pf.avatar.includes('unsplash.com')) {
+            if(pf.name === 'Sarthak') pf.avatar = 'img20251010.jpg';
+            if(pf.name === 'Reechita') pf.avatar = 'img2025.78_07.jpg';
+            if(pf.name === 'Our Future Kids') pf.avatar = '20250707_2328.jpg';
+          }
+          return pf;
+        });
+      }
+    };
+    
+    tx.oncomplete = async () => {
+      if (appState.profiles.length === 0) {
+        appState.profiles = [...initialProfiles];
+        await saveStateList('profiles', appState.profiles);
+      }
+      
+      if (dbMemories.length === 0) {
+        for(const m of initialMemories) await saveMemoryToDB(m);
+        appState.memories = [...initialMemories];
+      } else {
+        appState.memories = dbMemories;
+      }
+      resolve();
+    };
+  });
+}
+
+function saveMemoryToDB(memory) {
+  return initDB().then(db => {
+    return new Promise((resolve) => {
+      const tx = db.transaction('memories', 'readwrite');
+      tx.objectStore('memories').put(memory);
+      tx.oncomplete = () => resolve();
+    });
+  });
+}
+
+function saveStateList(key, data) {
+  return initDB().then(db => {
+    const tx = db.transaction('user_state', 'readwrite');
+    tx.objectStore('user_state').put({ key, data });
+  });
+}
+
+function transitionView(newView) {
+  const app = document.getElementById('app');
+  app.classList.add('fade-out');
+  setTimeout(() => {
+    appState.view = newView;
     render();
-});
-
-function applyTimeBasedTheme() {
-    const body = document.body;
-    body.classList.remove('is-morning');
-}
-
-function updateThemeButtonLabel() {
-    // Theme switch button is deprecated, keeping empty stub for compatibility
-}
-
-function saveState() {
-    localStorage.setItem('netflix_profiles_v4', JSON.stringify(profilesData));
-    localStorage.setItem('netflix_mylist', JSON.stringify(appState.myList));
+    app.classList.remove('fade-out');
+  }, 400);
 }
 
 function render() {
-    applyTimeBasedTheme();
-    const app = document.getElementById('app');
-    app.innerHTML = '';
-    
-    if (appState.view === 'intro') {
-        app.appendChild(createIntroScreen());
-        setTimeout(() => {
-            appState.view = 'profiles';
-            render();
-        }, 4800);
-    } else if (appState.view === 'profiles') {
-        app.appendChild(createProfilesScreen());
-    } else if (appState.view === 'pinSetup' || appState.view === 'pinVerify') {
-        app.appendChild(createPinScreen());
-    } else if (appState.view === 'browse') {
-        app.appendChild(createBrowseScreen());
-    }
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (appState.view === 'startup') app.appendChild(createStartupScreen());
+  else if (appState.view === 'profiles') app.appendChild(createProfileSelection());
+  else if (appState.view === 'intro') app.appendChild(createIntroScreen());
+  else if (appState.view === 'dashboard') app.appendChild(createDashboard());
 }
+
+window.setCategory = (cat) => {
+  appState.activeCategory = cat;
+  render();
+};
+
+window.toggleSetting = (settingKey) => {
+  appState.settings[settingKey] = !appState.settings[settingKey];
+  saveStateList('settings', appState.settings);
+  render();
+};
+
+window.openSettingsModal = () => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'settingsModal';
+  
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 400px;">
+      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
+      <div class="upload-title" style="margin-bottom:30px;">Account Settings</div>
+      
+      <div class="settings-row">
+        <div>
+          <div style="font-weight:bold; font-size:16px;">Autoplay Previews</div>
+          <div style="font-size:12px; color:#888; margin-top:5px;">Play video previews on the home screen and hover.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="toggleSetting('autoPlayPreviews')">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div style="font-weight:bold; font-size:16px;">Autoplay Next Episode</div>
+          <div style="font-size:12px; color:#888; margin-top:5px;">Automatically play the next memory/video.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''} onchange="toggleSetting('autoPlayNextEpisode')">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="actions" style="margin-top:30px; justify-content:center;">
+        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('settingsModal').remove()">Done</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.toggleMyList = (id, event) => {
+  if (event) event.stopPropagation();
+  if (appState.myList.includes(id)) {
+    appState.myList = appState.myList.filter(i => i !== id);
+  } else {
+    appState.myList.push(id);
+  }
+  saveStateList('myList', appState.myList);
+  render();
+};
+
+function createStartupScreen() {
+  const c = document.createElement('div');
+  c.className = 'intro-container';
+  // Use the exact file provided by user for initial app load Netflix opening animation
+  c.innerHTML = `
+    <video id="startup-vid" src="src/components/vidssave.com%20Netflix%20New%20Logo%20Animation%202019%201080p.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
+      <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
+    </div>
+  `;
+  setTimeout(() => {
+    const vid = c.querySelector('#startup-vid');
+    const overlay = c.querySelector('#startup-click-overlay');
+    const playAnim = () => {
+      overlay.style.display = 'none';
+      vid.play().catch(e => console.log("Autoplay blocked, needs click"));
+    };
+    vid.onended = () => {
+      transitionView('profiles');
+    };
+    c.onclick = playAnim;
+    // Auto-attempt
+    vid.play().then(() => { overlay.style.display = 'none'; }).catch(e => { /* Wait for click */ });
+  }, 50);
+  return c;
+}
+
+function createProfileSelection() {
+  const c = document.createElement('div');
+  c.className = 'profile-selection';
+  
+  const isManageMode = appState.manageProfiles;
+  
+  c.innerHTML = `
+    <h1>${isManageMode ? 'Manage Profiles' : 'Who\'s watching?'}</h1>
+    <div class="profiles-list" id="pfList"></div>
+    <button class="manage-profiles-btn" onclick="toggleManageProfiles()">${isManageMode ? 'DONE' : 'MANAGE PROFILES'}</button>
+  `;
+  const list = c.querySelector('.profiles-list');
+  
+  let delay = 0;
+  appState.profiles.forEach((pf) => {
+    const p = document.createElement('div');
+    p.className = 'profile-card';
+    if(isManageMode) p.classList.add('manage-mode');
+    
+    p.style.setProperty('--stagger', delay++);
+    p.innerHTML = `
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar" style="background-image: url('${pf.avatar}')"></div>
+        ${isManageMode ? '<div class="edit-overlay"><svg viewBox="0 0 24 24" fill="white" width="24" height="24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>' : ''}
+      </div>
+      <div class="profile-name">${pf.name}</div>
+    `;
+    
+    p.onclick = () => {
+      if(isManageMode) {
+        editProfileImage(pf.id);
+      } else {
+        // Simulate Netflix style loading wait
+        p.innerHTML = `<div class="profile-avatar-wrapper"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+        setTimeout(() => {
+          appState.currentProfile = pf.name;
+          transitionView('intro');
+          setTimeout(() => { transitionView('dashboard'); }, 3500);
+        }, 1000);
+      }
+    };
+    list.appendChild(p);
+  });
+  return c;
+}
+
+window.toggleManageProfiles = () => {
+  appState.manageProfiles = !appState.manageProfiles;
+  render();
+};
+
+window.editProfileImage = (pfId) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    // Very simple square cropping canvas
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (re) => {
+      img.onload = () => {
+        const size = Math.min(img.width, img.height);
+        const sx = (img.width - size) / 2;
+        const sy = (img.height - size) / 2;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
+        
+        const newAvatar = canvas.toDataURL('image/jpeg');
+        const pf = appState.profiles.find(p => p.id === pfId);
+        if(pf) pf.avatar = newAvatar;
+        saveStateList('profiles', appState.profiles);
+        render();
+      };
+      img.src = re.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+};
 
 function createIntroScreen() {
-    const container = document.createElement('div');
-    container.className = 'intro-screen intro-screen-fade-out';
-    
-    const audio = document.createElement('audio');
-    audio.src = 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4';
-    audio.autoplay = true;
-    audio.volume = 0.5;
-    container.appendChild(audio);
-    
-    const brush = document.createElement('div');
-    brush.className = 'effect-brush';
-    container.appendChild(brush);
-    
-    const n = document.createElement('div');
-    n.className = 'sa-container';
-    n.innerText = 'N';
-    n.style.fontFamily = '"Bebas Neue", "Helvetica Neue", sans-serif';
-    n.style.fontSize = '30vw';
-    n.style.fontWeight = 'bold';
-    
-    container.appendChild(n);
-    return container;
+  const c = document.createElement('div');
+  c.className = 'intro-container';
+  c.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline></video>`;
+  return c;
 }
 
-function createProfilesScreen() {
-    const container = document.createElement('div');
-    container.className = 'profiles-screen' + (appState.isManaging ? ' is-managing' : '');
-    
-    const title = document.createElement('h1');
-    title.className = 'profiles-title';
-    title.innerText = appState.isManaging ? "Manage Profiles:" : "Who's watching?";
-    container.appendChild(title);
-    
-    const list = document.createElement('div');
-    list.className = 'profiles-list';
-    
-    profilesData.forEach(profile => {
-        const card = document.createElement('div');
-        card.className = 'profile-card';
-        card.onclick = () => {
-            if (appState.isManaging) {
-                openProfileEditModal(profile);
-            } else {
-                appState.activeProfile = profile;
-                if (!profile.savedPin) {
-                    appState.view = 'pinSetup';
-                } else {
-                    appState.view = 'pinVerify';
-                }
-                render();
-            }
-        };
-        
-        const avatarWrapper = document.createElement('div');
-        avatarWrapper.className = 'profile-avatar-wrapper';
-        
-        const avatar = document.createElement('img');
-        avatar.className = 'profile-avatar';
-        avatar.src = profile.avatar;
-        avatarWrapper.appendChild(avatar);
-        
-        if (profile.isKids) {
-            const kidBadge = document.createElement('div');
-            kidBadge.className = 'kids-badge';
-            kidBadge.innerText = 'KIDS';
-            avatarWrapper.appendChild(kidBadge);
-        }
-        
-        // Dark edit overlay holding pencil
-        const editOverlay = document.createElement('div');
-        editOverlay.className = 'profile-edit-overlay';
-        const editIcon = document.createElement('div');
-        editIcon.className = 'profile-edit-icon';
-        editIcon.innerText = '✏️';
-        editOverlay.appendChild(editIcon);
-        avatarWrapper.appendChild(editOverlay);
-        
-        const name = document.createElement('div');
-        name.className = 'profile-name';
-        name.innerText = profile.name;
-        
-        card.appendChild(avatarWrapper);
-        card.appendChild(name);
-        list.appendChild(card);
+function createDashboard() {
+  const c = document.createElement('div');
+  c.appendChild(createNavbar());
+  c.appendChild(createHero());
+  
+  const rc = document.createElement('div');
+  rc.className = 'slider-container';
+  
+  if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
+    const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
+    if(cw.length) rc.appendChild(createRow('Continue Watching', cw));
+  }
+  
+  if (appState.activeCategory === 'My List') {
+    rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id))));
+  } else if (appState.activeCategory === 'Categories') {
+    subCategories.forEach(cat => {
+      const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+      if (mems.length) rc.appendChild(createRow(cat, mems));
     });
-    
-    // Add profile card
-    const addCard = document.createElement('div');
-    addCard.className = 'profile-card';
-    addCard.onclick = () => {
-        openProfileAddModal();
-    };
-    
-    const plusWrapper = document.createElement('div');
-    plusWrapper.className = 'profile-avatar-wrapper';
-    const plusCircle = document.createElement('div');
-    plusCircle.className = 'profile-add-circle';
-    plusCircle.innerText = '+';
-    plusWrapper.appendChild(plusCircle);
-    
-    const plusName = document.createElement('div');
-    plusName.className = 'profile-name';
-    plusName.innerText = 'Add Profile';
-    
-    addCard.appendChild(plusWrapper);
-    addCard.appendChild(plusName);
-    list.appendChild(addCard);
-    
-    container.appendChild(list);
-    
-    const manageBtn = document.createElement('button');
-    manageBtn.className = 'manage-profiles-btn';
-    manageBtn.innerText = appState.isManaging ? 'Done' : 'Manage Profiles';
-    manageBtn.onclick = () => {
-        appState.isManaging = !appState.isManaging;
-        render();
-    };
-    container.appendChild(manageBtn);
-    
-    return container;
-}
-
-function openProfileAddModal() {
-    const overlay = document.createElement('div');
-    overlay.className = 'profile-modal-overlay';
-    
-    let selectedAvatar = availableAvatars[0];
-    
-    overlay.innerHTML = `
-        <div class="profile-modal-box">
-            <h2 class="profile-modal-title">Create Profile</h2>
-            <div class="profile-modal-field">
-                <label>Profile Name</label>
-                <input type="text" class="profile-modal-input" id="new-profile-name" placeholder="Enter name" maxlength="15">
-            </div>
-            <div class="profile-modal-field">
-                <label>Choose Avatar Icon</label>
-                <div class="avatar-selection-grid" id="add-avatar-grid"></div>
-            </div>
-            <div class="profile-modal-field" style="flex-direction: row; align-items: center; gap: 10px; margin-top: 15px;">
-                <input type="checkbox" id="new-profile-kids" style="transform: scale(1.3); cursor: pointer;">
-                <label for="new-profile-kids" style="cursor: pointer; font-size: 14px; user-select: none; color: #ccc;">This profile is modeled for Kids edition</label>
-            </div>
-            <div class="profile-modal-field" style="margin-top: 15px;">
-                <label>3-Digit Access Lock PIN (Optional)</label>
-                <input type="text" class="profile-modal-input" id="new-profile-pin" placeholder="None" maxlength="3" style="width: 100px; text-align: center;">
-            </div>
-            <div class="profile-modal-actions">
-                <button class="profile-btn-cancel" id="add-profile-cancel">Cancel</button>
-                <button class="profile-btn-save" id="add-profile-save">Save Profile</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    const grid = overlay.querySelector('#add-avatar-grid');
-    availableAvatars.forEach((url, index) => {
-        const item = document.createElement('div');
-        item.className = 'avatar-option' + (index === 0 ? ' selected' : '');
-        item.dataset.url = url;
-        item.innerHTML = `<img src="${url}">`;
-        item.onclick = () => {
-            overlay.querySelectorAll('.avatar-option').forEach(n => n.classList.remove('selected'));
-            item.classList.add('selected');
-            selectedAvatar = url;
-        };
-        grid.appendChild(item);
-    });
-    
-    overlay.querySelector('#new-profile-name').focus();
-    
-    overlay.querySelector('#add-profile-cancel').onclick = () => {
-        overlay.remove();
-    };
-    
-    overlay.querySelector('#add-profile-save').onclick = () => {
-        const nameVal = overlay.querySelector('#new-profile-name').value.trim();
-        if (!nameVal) {
-            alert('A profile must have a valid name!');
-            return;
-        }
-        
-        const pinVal = overlay.querySelector('#new-profile-pin').value.trim();
-        if (pinVal && (pinVal.length !== 3 || isNaN(pinVal))) {
-            alert('PIN locker must be exact 3 numerical digits!');
-            return;
-        }
-        
-        const isKids = overlay.querySelector('#new-profile-kids').checked;
-        
-        const newProf = {
-            id: Date.now().toString(),
-            name: nameVal,
-            avatar: selectedAvatar,
-            savedPin: pinVal,
-            isKids: isKids
-        };
-        
-        profilesData.push(newProf);
-        saveState();
-        overlay.remove();
-        render();
-    };
-}
-
-function openProfileEditModal(profile) {
-    const overlay = document.createElement('div');
-    overlay.className = 'profile-modal-overlay';
-    
-    let selectedAvatar = profile.avatar;
-    
-    overlay.innerHTML = `
-        <div class="profile-modal-box">
-            <h2 class="profile-modal-title">Edit Profile Details</h2>
-            <div class="profile-modal-field">
-                <label>Profile Name</label>
-                <input type="text" class="profile-modal-input" id="edit-profile-name" value="${profile.name}" maxlength="15">
-            </div>
-            <div class="profile-modal-field">
-                <label>Change Avatar Icon</label>
-                <div class="avatar-selection-grid" id="edit-avatar-grid"></div>
-            </div>
-            <div class="profile-modal-field" style="flex-direction: row; align-items: center; gap: 10px; margin-top: 15px;">
-                <input type="checkbox" id="edit-profile-kids" ${profile.isKids ? 'checked' : ''} style="transform: scale(1.3); cursor: pointer;">
-                <label for="edit-profile-kids" style="cursor: pointer; font-size: 14px; user-select: none; color: #ccc;">This profile is modeled for Kids edition</label>
-            </div>
-            <div class="profile-modal-field" style="margin-top: 15px;">
-                <label>3-Digit Access Lock PIN (Optional)</label>
-                <input type="text" class="profile-modal-input" id="edit-profile-pin" value="${profile.savedPin || ''}" placeholder="None" maxlength="3" style="width: 100px; text-align: center;">
-            </div>
-            <div class="profile-modal-actions">
-                ${profilesData.length > 1 ? '<button class="profile-btn-delete" id="edit-profile-delete">Delete</button>' : ''}
-                <button class="profile-btn-cancel" id="edit-profile-cancel">Cancel</button>
-                <button class="profile-btn-save" id="edit-profile-save">Save Changes</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    const grid = overlay.querySelector('#edit-avatar-grid');
-    availableAvatars.forEach((url) => {
-        const item = document.createElement('div');
-        item.className = 'avatar-option' + (selectedAvatar === url ? ' selected' : '');
-        item.dataset.url = url;
-        item.innerHTML = `<img src="${url}">`;
-        item.onclick = () => {
-            overlay.querySelectorAll('.avatar-option').forEach(n => n.classList.remove('selected'));
-            item.classList.add('selected');
-            selectedAvatar = url;
-        };
-        grid.appendChild(item);
-    });
-    
-    overlay.querySelector('#edit-profile-cancel').onclick = () => {
-        overlay.remove();
-    };
-    
-    const delBtn = overlay.querySelector('#edit-profile-delete');
-    if (delBtn) {
-        delBtn.onclick = () => {
-            if (confirm(`Are you completely sure you want to delete profile "${profile.name}"?`)) {
-                profilesData = profilesData.filter(p => p.id !== profile.id);
-                saveState();
-                overlay.remove();
-                render();
-            }
-        };
+  } else {
+    // For Home
+    if (appState.activeCategory === 'Home') {
+      subCategories.forEach(cat => {
+        const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+        if (mems.length) rc.appendChild(createRow(cat, mems));
+      });
+      rc.appendChild(createRow('Recent Additions', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
     }
-    
-    overlay.querySelector('#edit-profile-save').onclick = () => {
-        const nameVal = overlay.querySelector('#edit-profile-name').value.trim();
-        if (!nameVal) {
-            alert('Profile must contain a non-empty name!');
-            return;
-        }
-        
-        const pinVal = overlay.querySelector('#edit-profile-pin').value.trim();
-        if (pinVal && (pinVal.length !== 3 || isNaN(pinVal))) {
-            alert('PIN lock must be exactly 3 numerical digits!');
-            return;
-        }
-        
-        const isKids = overlay.querySelector('#edit-profile-kids').checked;
-        
-        const matched = profilesData.find(p => p.id === profile.id);
-        if (matched) {
-            matched.name = nameVal;
-            matched.avatar = selectedAvatar;
-            matched.savedPin = pinVal;
-            matched.isKids = isKids;
-        }
-        
-        saveState();
-        overlay.remove();
-        render();
-    };
+    // For Dates
+    if (appState.activeCategory === 'Dates') {
+      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
+    }
+  }
+  
+  c.appendChild(rc);
+  return c;
 }
 
-function createPinScreen() {
-    const isSetup = appState.view === 'pinSetup';
-    const container = document.createElement('div');
-    container.className = 'pin-screen';
-    
-    const title = document.createElement('h2');
-    title.className = 'pin-title';
-    title.innerText = isSetup ? 'Set 3-Digit PIN' : 'Enter Profile PIN';
-    container.appendChild(title);
+function createNavbar() {
+  const nav = document.createElement('nav');
+  nav.className = 'navbar';
+  window.addEventListener('scroll', () => {
+    if(window.scrollY > 10) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  });
 
-    const sub = document.createElement('p');
-    sub.className = 'pin-subtitle';
-    sub.innerText = isSetup ? 'Setup your secure PIN to protect this profile.' : 'Enter your 3-digit PIN to access this profile. (Hint: The PIN is 143)';
-    container.appendChild(sub);
-
-    const inputs = document.createElement('div');
-    inputs.className = 'pin-inputs';
+    const currentPf = appState.profiles.find(p => p.name === appState.currentProfile);
+    const currAvatar = currentPf ? currentPf.avatar : 'img20251010.jpg';
     
-    let pinStr = '';
-    
-    for(let i=0; i<3; i++) {
-        const input = document.createElement('input');
-        input.type = 'password';
-        input.className = 'pin-input';
-        // HTML ID Attribute for automation
-        input.id = `pin-digit-${i}`;
-        input.maxLength = 1;
-        input.dataset.index = i;
-        
-        input.addEventListener('input', (e) => {
-            if(e.target.value.length > 1) {
-                e.target.value = e.target.value.slice(-1);
-            }
-            
-            pinStr = Array.from(inputs.querySelectorAll('input')).map(inp => inp.value).join('');
-            
-            if (e.target.value && i < 2) {
-                inputs.children[i+1].focus();
-            }
-            
-            if (pinStr.length === 3) {
-               if (isSetup) {
-                   appState.activeProfile.savedPin = pinStr;
-                   saveState();
-                   appState.view = 'browse';
-                   render();
-               } else {
-                   if (pinStr === appState.activeProfile.savedPin) {
-                       appState.view = 'browse';
-                       render();
-                   } else {
-                       alert('Incorrect PIN! Please try again.');
-                       inputs.querySelectorAll('input').forEach(inp => inp.value = '');
-                       inputs.children[0].focus();
-                   }
-               }
-            }
-        });
-        
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !e.target.value && i > 0) {
-                 inputs.children[i-1].focus();
-            }
-        });
-        
-        inputs.appendChild(input);
-    }
-    
-    container.appendChild(inputs);
-    
-    const actionWrapper = document.createElement('div');
-    actionWrapper.className = 'profile-manage-actions';
-    
-    const backBtn = document.createElement('button');
-    backBtn.className = 'btn btn-secondary';
-    backBtn.style.background = 'transparent';
-    backBtn.innerText = 'Back to Profiles';
-    backBtn.onclick = () => { appState.view = 'profiles'; render(); };
-    actionWrapper.appendChild(backBtn);
-    
-    container.appendChild(actionWrapper);
-
-    if (!isSetup) {
-        const resetLink = document.createElement('div');
-        resetLink.className = 'pin-reset-link';
-        resetLink.innerText = 'Forgot PIN? Resecure Slot';
-        resetLink.onclick = () => {
-            if(confirm('Reset this slot PIN specifically and proceed to set a new one?')) {
-                appState.activeProfile.savedPin = '';
-                saveState();
-                appState.view = 'pinSetup';
-                render();
-            }
-        };
-        container.appendChild(resetLink);
-    }
-    
-    setTimeout(() => {
-        if(inputs.children[0]) inputs.children[0].focus();
-    }, 100);
-    
-    return container;
-}
-
-function createBrowseScreen() {
-    const container = document.createElement('div');
-    container.className = 'browse-screen animation-fade';
-    
-    // Navbar
-    const nav = document.createElement('nav');
-    nav.className = 'navbar';
-    nav.id = 'netflix-navbar';
     nav.innerHTML = `
-        <div class="nav-left">
-            <div class="logo" onclick="setFilter('Home')" style="cursor: pointer; display: flex; align-items: center;">
-                <svg viewBox="0 0 110 30" width="110" height="30" fill="#e50914" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 110px; height: 30px;">
-                    <path d="M0 0h4.3v15L11.2 0h4.8v30h-4.3V15L4.8 30H0V0z"/>
-                    <path d="M20 0h11v4.5h-6.7v8h5.8v4.5h-5.8V25.5H31V30H20V0z"/>
-                    <path d="M35 0h12v4.5H41V30h-4.5V4.5H35V0z"/>
-                    <path d="M51 0h11v4.5h-6.5V13h5.5v4.5h-5.5V30h-4.5V0z"/>
-                    <path d="M66 0h4.5v25.5h6.5V30H66V0z"/>
-                    <path d="M80 0h4.5v30H80V0z"/>
-                    <path d="M89 0h4.8l4.2 11.5L102.2 0h4.8l-6.8 15 6.8 15h-4.8l-4.2-11.5L93.8 30H89l6.8-15-6.8-15z"/>
-                </svg>
-            </div>
-            <div class="nav-links">
-                <a class="${appState.currentCategoryFilter === 'Home' ? 'active' : ''}" onclick="setFilter('Home')">Home</a>
-                <a class="${appState.currentCategoryFilter === 'TV Shows' ? 'active' : ''}" onclick="setFilter('TV Shows')">TV Shows</a>
-                <a class="${appState.currentCategoryFilter === 'Movies' ? 'active' : ''}" onclick="setFilter('Movies')">Movies</a>
-                <a class="${appState.currentCategoryFilter === 'Documentaries' ? 'active' : ''}" onclick="setFilter('Documentaries')">Documentaries</a>
-                <a class="${appState.currentCategoryFilter === 'My List' ? 'active' : ''}" onclick="setFilter('My List')">My List</a>
-            </div>
+      <div class="nav-logo" onclick="setCategory('Home')">
+        <div class="nav-logo-text">OUR STORY</div>
+      </div>
+      <ul class="nav-links">
+        ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
+      </ul>
+      <div class="nav-right">
+        <button class="add-memory-btn" onclick="openUploadModal()">＋ Add Memory</button>
+        <div class="profile-dropdown">
+          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
+          <div class="dropdown-menu">
+            <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
+            <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
+          </div>
         </div>
-        <div class="nav-right">
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" id="search-bar" placeholder="Search memories..." value="${appState.searchQuery}" oninput="handleSearch(this.value)">
-                <span class="search-clear" id="search-clear-btn" onclick="clearSearch()" style="${appState.searchQuery ? 'display: inline;' : 'display: none;'}">&times;</span>
-            </div>
-            <img class="nav-avatar" src="${appState.activeProfile.avatar}" alt="User" onclick="logout()" title="Click to logout">
-        </div>
+      </div>
     `;
-    
-    window.setFilter = (filterName) => {
-        appState.currentCategoryFilter = filterName;
-        // Keep search preserved or reset on filter change as fits standard expectation
-        render();
-    };
+  return nav;
+}
 
-    window.logout = () => {
-        appState.view = 'profiles';
-        appState.activeProfile = null;
-        appState.searchQuery = '';
-        render();
-    };
-
-    window.handleSearch = (val) => {
-        appState.searchQuery = val;
-        const clrBtn = document.getElementById('search-clear-btn');
-        if (clrBtn) {
-            clrBtn.style.display = val ? 'inline' : 'none';
-        }
-        renderBrowseRows();
-    };
-
-    window.clearSearch = () => {
-        appState.searchQuery = '';
-        const searchInput = document.getElementById('search-bar');
-        if (searchInput) {
-            searchInput.value = '';
-        }
-        const clrBtn = document.getElementById('search-clear-btn');
-        if (clrBtn) {
-            clrBtn.style.display = 'none';
-        }
-        renderBrowseRows();
-    };
-
-    window.onscroll = () => {
-        if (window.scrollY > 20) {
-            nav.classList.add('scrolled');
-        } else {
-            nav.classList.remove('scrolled');
-        }
-    };
-    
-    container.appendChild(nav);
-    
-    // Hero Section
-    const hero = document.createElement('div');
-    hero.className = 'hero';
-    hero.innerHTML = `
-        <div class="hero-bg-wrapper">
-            <video class="hero-bg hero-video" id="hero-bg-video" src="${mainFeatureData.videoUrl}" autoplay loop muted playsinline></video>
-        </div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <div class="hero-title">${mainFeatureData.title}</div>
-            <!-- Custom playwrite english joined tag subtitle for premium aesthetic -->
-            <div class="meta-subtitle">Our 1st Anniversary Commemorative Chronicle</div>
-            <div class="hero-desc">${mainFeatureData.description}</div>
-            <div class="btn-row">
-                <button class="btn btn-primary" onclick="playFeatureTrailer()">▶ Play Trailer</button>
-                <button class="btn btn-secondary" onclick="openFeaturedMeta()">ⓘ More Info</button>
-            </div>
-        </div>
-        <div class="hero-controls">
-            <button class="hero-audio-btn" id="hero-audio-toggle" onclick="toggleHeroVolume()" title="Mute/Unmute Feature Video">🔇</button>
-            <div class="hero-divider"></div>
-            <div class="hero-rating-badge">U/A 17+</div>
-        </div>
+function createHero() {
+  const c = document.createElement('div');
+  c.className = 'hero-billboard';
+  
+  const heroMem = appState.memories[0] || initialMemories[0];
+  
+  if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
+    c.innerHTML = `
+      <div class="hero-video-wrapper">
+        <video class="hero-video" src="${heroMem.videoUrl}" autoplay muted loop playsinline></video>
+      </div>
     `;
-    
-    window.toggleHeroVolume = () => {
-        const vid = document.getElementById('hero-bg-video');
-        const btn = document.getElementById('hero-audio-toggle');
-        if (vid && btn) {
-            vid.muted = !vid.muted;
-            btn.innerText = vid.muted ? '🔇' : '🔊';
-        }
-    };
-
-    window.playFeatureTrailer = () => {
-        openModal({
-            title: mainFeatureData.title,
-            desc: mainFeatureData.description,
-            thumb: mainFeatureData.coverUrl,
-            match: 100,
-            year: '2026',
-            duration: 'Full Special',
-            rating: '17+',
-            cast: 'Sia, Aman',
-            tags: 'Romantic, Anniversary Special',
-            video: mainFeatureData.videoUrl
-        });
-    };
-
-    window.openFeaturedMeta = () => {
-        playFeatureTrailer();
-    };
-
-    container.appendChild(hero);
-    
-    // Rows
-    const rowsWrapper = document.createElement('div');
-    rowsWrapper.id = 'rows-container';
-    rowsWrapper.className = 'rows-container';
-    container.appendChild(rowsWrapper);
-    
-    setTimeout(() => {
-        renderBrowseRows();
-    }, 0);
-    
-    return container;
-}
-
-function renderBrowseRows() {
-    const rowsContainer = document.getElementById('rows-container');
-    if (!rowsContainer) return;
-    
-    rowsContainer.innerHTML = '';
-    
-    // Deep clone static categories 
-    const allCategories = JSON.parse(JSON.stringify(categoriesData));
-    
-    let filteredCategories = [];
-    
-    if (appState.currentCategoryFilter === 'Home') {
-        filteredCategories = allCategories;
-        // Prepend My List segment to Home if populated 
-        if (appState.myList.length > 0) {
-            filteredCategories = [{
-                id: 'mylist',
-                title: 'My Saved Memories',
-                memories: appState.myList
-            }, ...filteredCategories];
-        }
-    } else if (appState.currentCategoryFilter === 'My List') {
-        filteredCategories = [{
-            id: 'mylist',
-            title: 'My Saved Memories',
-            memories: appState.myList
-        }];
-    } else {
-        // Filter memories inside each category by the selected type
-        allCategories.forEach(cat => {
-            const matchingMemories = cat.memories.filter(m => m.type === appState.currentCategoryFilter);
-            if (matchingMemories.length > 0) {
-                filteredCategories.push({
-                    id: cat.id,
-                    title: `${cat.title} - ${appState.currentCategoryFilter}`,
-                    memories: matchingMemories
-                });
-            }
-        });
-    }
-
-    // Apply real-time search query filtering if active
-    const query = (appState.searchQuery || '').trim().toLowerCase();
-    if (query) {
-        const searched = [];
-        filteredCategories.forEach(cat => {
-            const matches = cat.memories.filter(m => {
-                return (m.title || '').toLowerCase().includes(query) || 
-                       (m.desc || '').toLowerCase().includes(query) ||
-                       (m.tags || '').toLowerCase().includes(query) ||
-                       (m.cast || '').toLowerCase().includes(query);
-            });
-            if (matches.length > 0) {
-                searched.push({
-                    id: cat.id,
-                    title: cat.title,
-                    memories: matches
-                });
-            }
-        });
-        filteredCategories = searched;
-    }
-
-    // Render filtered rows
-    filteredCategories.forEach((cat, rIdx) => {
-        const row = document.createElement('div');
-        row.className = 'feature-row';
-        row.id = `row-category-${cat.id}`;
-        
-        const title = document.createElement('div');
-        title.className = 'row-title';
-        title.innerText = cat.title;
-        row.appendChild(title);
-        
-        const items = document.createElement('div');
-        items.className = 'row-items';
-        
-        cat.memories.forEach(mem => {
-            const card = document.createElement('div');
-            card.className = 'movie-card';
-            card.id = `card-movie-${mem.id}`;
-            card.onclick = () => openModal(mem);
-            
-            const img = document.createElement('img');
-            img.src = mem.thumb;
-            img.className = 'movie-img';
-            img.loading = 'lazy';
-            
-            card.appendChild(img);
-            items.appendChild(card);
-        });
-        
-        row.appendChild(items);
-        rowsContainer.appendChild(row);
-    });
-
-    // Append standard Netflix-style 'Coming Soon' row at the bottom of Home View 
-    let upcomingVisible = false;
-    if (appState.currentCategoryFilter === 'Home' || appState.currentCategoryFilter === 'Movies') {
-        let upcomingItems = upcomingData;
-        if (query) {
-            upcomingItems = upcomingData.filter(item => {
-                return (item.title || '').toLowerCase().includes(query) || 
-                       (item.desc || '').toLowerCase().includes(query) ||
-                       (item.tags || '').toLowerCase().includes(query);
-            });
-        }
-
-        if (upcomingItems.length > 0) {
-            upcomingVisible = true;
-            const row = document.createElement('div');
-            row.className = 'feature-row';
-            row.id = 'row-category-upcoming';
-            
-            const title = document.createElement('div');
-            title.className = 'row-title';
-            title.innerText = 'Coming Soon (Upcoming Special Releases)';
-            row.appendChild(title);
-            
-            const items = document.createElement('div');
-            items.className = 'row-items';
-            
-            upcomingItems.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'movie-card';
-                card.id = `card-upcoming-${item.id}`;
-                card.style.position = 'relative';
-                card.onclick = () => openModal(item);
-                
-                const badge = document.createElement('div');
-                badge.className = 'upcoming-badge';
-                badge.innerText = item.releaseDate;
-                card.appendChild(badge);
-                
-                const img = document.createElement('img');
-                img.src = item.thumb;
-                img.className = 'movie-img';
-                img.loading = 'lazy';
-                card.appendChild(img);
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'upcoming-date';
-                infoDiv.innerText = `${item.releaseDate}`;
-                card.appendChild(infoDiv);
-                
-                items.appendChild(card);
-            });
-            
-            row.appendChild(items);
-            rowsContainer.appendChild(row);
-        }
-    }
-
-    // Show stylish empty state if absolutely nothing matches
-    if (filteredCategories.length === 0 && !upcomingVisible) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'search-empty-state';
-        emptyDiv.innerHTML = `
-            <div class="search-empty-title">No matching memories found for "${appState.searchQuery}"</div>
-            <div class="search-empty-subtitle">Sia and Aman have countless beautiful moments together. Try typing "date", "trip", "romantic", or "Tuesday"!</div>
-        `;
-        rowsContainer.appendChild(emptyDiv);
-    }
-    
-    // Trigger intersection scroll animation in rows
-    setTimeout(() => {
-        initScrollAnimation();
-    }, 100);
-}
-
-function initScrollAnimation() {
-    const rows = document.querySelectorAll('.feature-row');
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-            }
-        });
-    }, {
-        threshold: 0.1
-    });
-    
-    rows.forEach(row => {
-        observer.observe(row);
-    });
-}
-
-function toggleMyList(memory) {
-    const idx = appState.myList.findIndex(m => m.id === memory.id);
-    let inList = false;
-    
-    if (idx > -1) {
-        appState.myList.splice(idx, 1);
-        inList = false;
-    } else {
-        appState.myList.push(memory);
-        inList = true;
-    }
-    
-    saveState();
-    renderBrowseRows();
-    return inList;
-}
-
-function openModal(memory) {
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'modal-overlay';
-    modalOverlay.id = 'movie-modal';
-    
-    modalOverlay.onclick = (e) => {
-        if (e.target === modalOverlay) {
-            modalOverlay.remove();
-        }
-    };
-
-    const inMyList = appState.myList.find(m => m.id === memory.id);
-    
-    modalOverlay.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-video-container">
-                    <!-- Dynamic trailer playback with speaker mute controls -->
-                    <video class="modal-video" src="${memory.video}" autoplay loop muted></video>
-                </div>
-                <div class="modal-header-overlay"></div>
-                <button class="close-btn" id="modal-close-x" title="Close details">&times;</button>
-                <div class="modal-title-wrapper">
-                    <div class="modal-title">${memory.title}</div>
-                    <div class="btn-row">
-                        <button class="btn btn-primary" onclick="alert('Enjoying this beautiful memory clip of Sia and Aman!')">
-                            ▶ Play Clip
-                        </button>
-                        <button class="add-to-list-btn" id="modal-list-btn" title="Add to Saved List">
-                            ${inMyList ? '✓' : '+'}
-                        </button>
-                        <button class="mute-btn" id="modal-mute-btn" title="Mute/Unmute Audio">🔇</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div class="modal-left">
-                    <div class="modal-meta">
-                        <span>${memory.match}% Love Match</span>
-                        <span class="year">${memory.year}</span>
-                        <span class="rating">${memory.rating}</span>
-                        <span>${memory.duration}</span>
-                    </div>
-                    <div class="modal-desc">${memory.desc}</div>
-                </div>
-                <div class="modal-tags">
-                    <div><span>Cast:</span> <span>${memory.cast}</span></div>
-                    <div><span>Genres:</span> <span>${memory.tags}</span></div>
-                    <div><span>This memory is:</span> <span>Intimate, Wholesome & True</span></div>
-                </div>
-            </div>
-        </div>
+  } else {
+    c.innerHTML = `
+      <div class="hero-video-wrapper">
+        <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero">
+      </div>
     `;
+  }
+  
+  c.innerHTML += `
+    <div class="hero-overlay"></div>
+    <div class="hero-overlay-bottom"></div>
+    <div class="hero-info">
+      <div class="hero-original">
+        <div class="n-series">N</div>
+        <div class="series-tag">S E R I E S</div>
+      </div>
+      <div class="hero-title">${heroMem.title}</div>
+      <div class="hero-desc">${heroMem.desc}</div>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">▶ Play</button>
+        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}')">ⓘ More Info</button>
+      </div>
+    </div>
+    <div class="hero-controls">
+      <div class="mute-btn" onclick="toggleSetting('autoPlayPreviews')" title="Toggle Autoplay Previews">
+        ${appState.settings.autoPlayPreviews ? 
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>` : 
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`}
+      </div>
+      <div class="maturity-rating">${heroMem.rating}</div>
+    </div>
+  `;
+  return c;
+}
 
-    modalOverlay.querySelector('#modal-close-x').onclick = () => modalOverlay.remove();
+function createRow(title, memories) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<div class="row-header">${title}</div><div class="row-content"></div>`;
+  
+  const rc = row.querySelector('.row-content');
+  memories.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'media-card';
+    card.onclick = () => openDetailModal(m.id);
     
-    modalOverlay.querySelector('#modal-list-btn').onclick = (e) => {
-        const isNowInList = toggleMyList(memory);
-        e.currentTarget.innerText = isNowInList ? '✓' : '+';
+    // Fallback if videoUrl exists and autoPlay is on
+    card.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">`;
+    
+    // Hover Video Preview Support
+    card.onmouseenter = () => {
+      card.hoverTimeout = setTimeout(() => {
+        if(m.videoUrl && appState.settings.autoPlayPreviews) {
+          const v = document.createElement('video');
+          // Support blob or http urls
+          let srcUrl = m.videoUrl;
+          if (m.videoFile && !srcUrl.startsWith('blob:')) {
+            srcUrl = URL.createObjectURL(m.videoFile);
+            m.videoUrl = srcUrl;
+          }
+          v.src = srcUrl;
+          v.muted = true;
+          v.autoplay = true;
+          v.loop = true;
+          v.className = 'media-card-hover-video';
+          
+          card.appendChild(v);
+          v.play().catch(e => console.log('Autoplay prevented'));
+        }
+      }, 600);
     };
 
-    const videoElement = modalOverlay.querySelector('.modal-video');
-    const muteBtn = modalOverlay.querySelector('#modal-mute-btn');
-    if (videoElement && muteBtn) {
-        muteBtn.onclick = () => {
-            videoElement.muted = !videoElement.muted;
-            muteBtn.innerText = videoElement.muted ? '🔇' : '🔊';
-        };
-    }
+    card.onmouseleave = () => {
+      clearTimeout(card.hoverTimeout);
+      const v = card.querySelector('.media-card-hover-video');
+      if(v) v.remove();
+    };
 
-    document.getElementById('app').appendChild(modalOverlay);
+    card.innerHTML += `
+      <div class="card-info">
+        <div class="card-title">${m.title}</div>
+        <div class="card-meta">98% Match &nbsp;&nbsp; <span style="color:#fff">${m.year}</span></div>
+      </div>
+    `;
+    rc.appendChild(card);
+  });
+  return row;
 }
+
+// === UPLOAD FEATURE ===
+window.openUploadModal = () => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'uploadModal';
+  
+  modal.innerHTML = `
+    <div class="upload-modal-content">
+      <button class="upload-close" onclick="document.getElementById('uploadModal').remove()">&times;</button>
+      <div class="upload-title">Add New Memory</div>
+      
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="up-title" placeholder="A Beautiful Memory">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="up-desc" rows="3" placeholder="Write about the memory..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="up-cat">
+          <option value="Dates">Dates</option>
+          <option value="My Fav">My Fav</option>
+          <option value="Celebrations">Celebrations</option>
+          <option value="Romance">Romance</option>
+          <option value="Our Time">Our Time</option>
+          <option value="Documentaries">Documentaries</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Video File (From Device)</label>
+        <div class="file-upload-box" onclick="document.getElementById('up-vid-file').click()">
+          Click to Select 4K Video File
+        </div>
+        <input type="file" id="up-vid-file" class="file-input" accept="video/*">
+      </div>
+      <div class="form-group">
+        <label>Auto-Extracted Thumbnail (Or tap to upload custom)</label>
+        <div class="thumbnail-preview" id="up-thumb-preview" onclick="document.getElementById('up-img-file').click()">
+          <span style="color:#666">No Thumbnail yet</span>
+        </div>
+        <input type="file" id="up-img-file" class="file-input" accept="image/*">
+      </div>
+      
+      <div style="display:flex; gap:15px">
+        <div class="form-group" style="flex:1">
+          <label>Date / Year</label>
+          <input type="date" id="up-date">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Maturity Rating</label>
+          <input type="text" id="up-rating" value="U/A 13+">
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="document.getElementById('uploadModal').remove()">Cancel</button>
+        <button class="btn btn-primary" id="up-publish">Publish Memory</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  let currentVideoUrl = '';
+  let currentThumbData = '';
+  
+  // Video Selection
+  document.getElementById('up-vid-file').onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    document.querySelector('.file-upload-box').innerText = file.name;
+    currentVideoUrl = URL.createObjectURL(file);
+    
+    // Auto-extract thumbnail
+    const video = document.createElement('video');
+    video.src = currentVideoUrl;
+    video.currentTime = 1; // Seek to 1s
+    video.onloadeddata = () => {
+      setTimeout(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        currentThumbData = canvas.toDataURL('image/jpeg');
+        document.getElementById('up-thumb-preview').innerHTML = `<img src="${currentThumbData}">`;
+      }, 500); // give time to seek
+    };
+  };
+  
+  // Custom thumb override
+  document.getElementById('up-img-file').onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      currentThumbData = e.target.result;
+      document.getElementById('up-thumb-preview').innerHTML = `<img src="${currentThumbData}">`;
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // Publish
+  document.getElementById('up-publish').onclick = async () => {
+    const title = document.getElementById('up-title').value.trim();
+    if(!title) return alert("Title required");
+    
+    // Store video Blob via IndexedDB for persistence
+    const fileObj = document.getElementById('up-vid-file').files[0];
+    
+    const mem = {
+      id: 'm_' + Date.now(),
+      title,
+      desc: document.getElementById('up-desc').value,
+      category: document.getElementById('up-cat').value,
+      year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
+      rating: document.getElementById('up-rating').value,
+      thumbnail: currentThumbData,
+      videoUrl: currentVideoUrl,
+      videoFile: fileObj, // File persists in IndexedDB directly
+      dateAdded: Date.now()
+    };
+    
+    await saveMemoryToDB(mem);
+    appState.memories.unshift(mem);
+    document.getElementById('uploadModal').remove();
+    render();
+  };
+};
+
+// === DETAIL MODAL ===
+window.openDetailModal = (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if(!m) return;
+  
+  const inMyList = appState.myList.includes(id);
+  
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'detailModal';
+  
+  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
+      `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>` : 
+      `<img src="${m.thumbnail}">`;
+
+  modal.innerHTML = `
+    <div class="detail-modal">
+      <div class="modal-controls">
+        <button class="modal-close-btn" onclick="document.getElementById('detailModal').remove()">&times;</button>
+      </div>
+      <div class="detail-header">
+        ${mediaHtml}
+        <div class="detail-gradient"></div>
+        <div class="detail-title-btn">
+          <div class="detail-title">${m.title}</div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="playVideo('${m.id}')">▶ Play</button>
+            <button class="btn btn-secondary" onclick="toggleMyList('${m.id}', event)">
+              ${inMyList ? '✓ Remove from List' : '＋ Add to My List'}
+            </button>
+            <button class="btn btn-secondary" onclick="downloadVideo('${m.id}')" title="Download for Offline Viewing">⬇</button>
+            <button class="btn btn-secondary" onclick="shareVideo('${m.id}')">🔗 Share</button>
+          </div>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-left">
+          <div class="detail-meta">
+            99% Match <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
+          </div>
+          <div class="detail-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
+        </div>
+        <div class="detail-right">
+          <div><span class="white">Cast:</span> Sarthak, Reechita</div>
+          <div style="margin-top:10px;"><span class="white">Genres:</span> ${m.category}, Emotional</div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+window.shareVideo = (id) => {
+  alert("Memory link copied to clipboard!\nYou can share this with Sarthak & Reechita.");
+}
+window.downloadVideo = () => {
+  const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
+  if (quality) {
+    alert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...");
+  }
+}
+
+// === FULLSCREEN PLAYBACK ===
+window.playVideo = (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if(!m || !m.videoUrl) return alert("Video file not available for playback.");
+  
+  // Track Continue Watching
+  if(!appState.continueWatching.includes(id)) {
+    appState.continueWatching.unshift(id);
+    saveStateList('continueWatching', appState.continueWatching);
+  }
+  
+  // Convert File Object to URL if loaded from DB
+  let url = m.videoUrl;
+  if(m.videoFile && !url.startsWith('blob:')) {
+    url = URL.createObjectURL(m.videoFile);
+    m.videoUrl = url;
+  }
+  
+  const detailModal = document.getElementById('detailModal');
+  if(detailModal) detailModal.remove();
+  
+  const c = document.createElement('div');
+  c.className = 'playback-overlay';
+  c.id = 'playbackOverlay';
+  
+  // Play Netflix initial animation before playing video
+  c.innerHTML = `
+    <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();">🡠</div>
+    <video src="src/components/vidssave.com%20Netflix%20New%20Logo%20Animation%202019%201080p.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%;"></video>
+    <video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>
+  `;
+  document.body.appendChild(c);
+  
+  const introPlayer = document.getElementById('introPlayer');
+  const mainPlayer = document.getElementById('fsyPlayer');
+  
+  const startMainVideo = () => {
+    introPlayer.style.display = 'none';
+    mainPlayer.style.display = 'block';
+    
+    // Auto play when transition is done
+    const pPromise = mainPlayer.play();
+    if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+  };
+  
+  // Try autoplaying intro, else wait
+  if(introPlayer.play() !== undefined) {
+    introPlayer.play().catch(() => startMainVideo());
+  }
+  
+  introPlayer.onended = startMainVideo;
+  
+  mainPlayer.onended = () => {
+    if(appState.settings.autoPlayNextEpisode) {
+      // Find next memory
+      const idx = appState.memories.findIndex(i => i.id === id);
+      if(idx >= 0 && idx < appState.memories.length - 1) {
+        document.getElementById('playbackOverlay').remove();
+        playVideo(appState.memories[idx + 1].id);
+      }
+    }
+  };
+};
+
+// Initialize
+window.onload = () => {
+  loadData().then(render);
+};
