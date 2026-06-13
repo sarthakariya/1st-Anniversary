@@ -1,4 +1,4 @@
-import { db, auth, storage, provider, signInWithPopup, onAuthStateChanged } from './src/firebase.js';
+import { db, storage } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -40,23 +40,14 @@ const initialMemories = [];
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
-async function initDB() {
-  return new Promise((resolve) => {
-    const unsub = onAuthStateChanged(auth, user => {
-      unsub();
-      resolve(user);
-    });
-  });
-}
-
 async function loadData() {
-  let user = await initDB();
-  if (!user) {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      user = result.user;
-    } catch(e) {
-      alert("Sign in required to access household profiles.");
+  const secretCode = localStorage.getItem('sarthak_netflix_code');
+  if (secretCode !== '0707') {
+    const input = prompt("Please enter the secret code (Hint: special date):");
+    if (input === '0707' || input === 'loveyou') {
+      localStorage.setItem('sarthak_netflix_code', '0707');
+    } else {
+      alert("Incorrect secret code. Access denied.");
       return;
     }
   }
@@ -575,7 +566,10 @@ function createRow(title, memories) {
 
     card.innerHTML += `
       <div class="card-info">
-        <div class="card-title">${m.title}</div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          ${m.title}
+          <div class="circ-play-btn" onclick="playTrailer(event, '${m.id}')" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+        </div>
         <div class="card-meta">98% Match &nbsp;&nbsp; <span style="color:#fff">${m.year}</span></div>
       </div>
     `;
@@ -583,6 +577,11 @@ function createRow(title, memories) {
   });
   return row;
 }
+
+window.playTrailer = (e, id) => {
+  e.stopPropagation();
+  playVideo(id);
+};
 
 // === UPLOAD FEATURE ===
 window.openUploadModal = () => {
