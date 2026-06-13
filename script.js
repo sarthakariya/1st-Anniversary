@@ -92,14 +92,21 @@ let appState = {
 };
 
 // Seed Data
-const initialMemories = [];
+const initialMemories = [
+  {
+    id: 'm_mock1',
+    title: 'Our First Memory',
+    description: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
+    thumbnail: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMjc1IiBmaWxsPSIjMjIyIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI3NSIvPjwvc3ZnPg==',
+    videoUrl: 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4',
+    category: 'Celebrations',
+    dateAdded: Date.now()
+  }
+];
 
 const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 if (savedProfile) {
-  const pfData = initialProfiles.find(p => p.name === savedProfile);
-  if (pfData) {
-    appState.currentProfile = savedProfile;
-  }
+  appState.currentProfile = savedProfile;
 }
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery'];
@@ -125,6 +132,14 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
+
+  if (appState.currentProfile) {
+    const pfData = appState.profiles.find(p => p.name === appState.currentProfile);
+    if (!pfData) {
+      appState.currentProfile = null;
+      localStorage.removeItem('sarthak_netflix_profile');
+    }
+  }
 }
 
 async function saveMemoryToDB(memory) {
@@ -367,6 +382,7 @@ window.openSettingsModal = () => {
     </div>
   `;
   document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
 };
 
 window.toggleMyList = (id, event) => {
@@ -443,7 +459,7 @@ function createProfileSelection() {
     
     p.onclick = () => {
       if(isManageMode) {
-        editProfile(pf.id);
+        window.editProfile(pf.id);
       } else {
         const secretCode = localStorage.getItem('sarthak_netflix_code');
         if (secretCode !== '0707') {
@@ -527,6 +543,7 @@ window.editProfile = (pfId) => {
     </div>
   `;
   document.body.appendChild(m);
+  setTimeout(() => m.classList.add('open'), 10);
   
   document.getElementById('ep-file').onchange = (e) => {
     const file = e.target.files[0];
@@ -551,8 +568,15 @@ window.editProfile = (pfId) => {
   
   document.getElementById('ep-save').onclick = () => {
     const newName = document.getElementById('ep-name').value.trim();
+    const oldName = pf.name;
     if(newName) pf.name = newName;
     pf.avatar = document.getElementById('ep-avatar-preview').src;
+    
+    if (appState.currentProfile === oldName) {
+      appState.currentProfile = pf.name;
+      localStorage.setItem('sarthak_netflix_profile', pf.name);
+    }
+    
     saveStateList('profiles', appState.profiles);
     document.getElementById('editProfileModal').remove();
     render();
@@ -575,19 +599,6 @@ function createDashboard() {
   const c = document.createElement('div');
   c.appendChild(createNavbar());
 
-  if(appState.memories.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-dashboard';
-    empty.innerHTML = `
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="#555"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z"/></svg>
-      <h2>No videos</h2>
-      <p>Your timeline is empty. Videos you add will appear here.</p>
-      <button class="add-memory-btn" style="margin-top:20px; font-size:16px; padding:10px 20px;" onclick="openUploadModal()">＋ Add First Memory</button>
-    `;
-    c.appendChild(empty);
-    return c;
-  }
-  
   const heroContent = createHero();
   heroContent.id = 'hero-section';
   c.appendChild(heroContent);
@@ -652,6 +663,8 @@ function createNavbar() {
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
+            <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
+            <div class="dropdown-item" onclick="appState.manageProfiles = true; transitionView('profiles')">✎ Manage Profiles</div>
             <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
             <div class="dropdown-item" onclick="logoutProfile()">🚪 Logout Profile</div>
           </div>
@@ -1003,6 +1016,7 @@ window.openDetailModal = (id) => {
     </div>
   `;
   document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
 }
 
 window.shareVideo = (id) => {

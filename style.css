@@ -557,10 +557,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   justify-content: flex-end;
   z-index: 11000;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s;
 }
 .upload-modal.open {
   opacity: 1;
+  pointer-events: auto;
 }
 .upload-modal-content {
   background: #181818;
