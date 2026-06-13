@@ -17,7 +17,7 @@ export class YouTubeMediaUploader {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
-          'X-Upload-Content-Length': this.file.size,
+          'X-Upload-Content-Length': this.file.size.toString(),
           'X-Upload-Content-Type': this.file.type
         },
         body: JSON.stringify(this.metadata)

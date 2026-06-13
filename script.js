@@ -438,7 +438,7 @@ function createProfileSelection() {
   c.innerHTML = `
     <h1>${isManageMode ? 'Manage Profiles' : 'Who\'s watching?'}</h1>
     <div class="profiles-list" id="pfList"></div>
-    <button class="manage-profiles-btn" onclick="toggleManageProfiles()">${isManageMode ? 'DONE' : 'MANAGE PROFILES'}</button>
+    <button class="manage-profiles-btn" onclick="window.toggleManageProfiles()">${isManageMode ? 'DONE' : 'MANAGE PROFILES'}</button>
   `;
   const list = c.querySelector('.profiles-list');
   
@@ -598,6 +598,21 @@ function createDashboard() {
   }, 50);
   const c = document.createElement('div');
   c.appendChild(createNavbar());
+  
+  if(appState.memories.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-dashboard';
+    empty.innerHTML = `
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="#555" style="margin: 0 auto 20px auto; display: block;"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z"/></svg>
+      <h2 style="text-align: center; color: white;">No memories yet</h2>
+      <p style="text-align: center; color: #aaa;">Your timeline is empty. Videos you add will appear here.</p>
+      <div style="display: flex; justify-content: center;">
+        <button class="add-memory-btn" style="margin-top:20px; font-size:16px; padding:10px 20px;" onclick="openUploadModal()">＋ Add First Memory</button>
+      </div>
+    `;
+    c.appendChild(empty);
+    return c;
+  }
 
   const heroContent = createHero();
   heroContent.id = 'hero-section';
@@ -610,6 +625,11 @@ function createDashboard() {
   window.refreshRowsView(rc, heroContent);
   return c;
 }
+
+window.openManageProfiles = () => {
+  appState.manageProfiles = true;
+  transitionView('profiles');
+};
 
 function createNavbar() {
   const nav = document.createElement('nav');
@@ -664,9 +684,9 @@ function createNavbar() {
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
             <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
-            <div class="dropdown-item" onclick="appState.manageProfiles = true; transitionView('profiles')">✎ Manage Profiles</div>
+            <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
             <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
-            <div class="dropdown-item" onclick="logoutProfile()">🚪 Logout Profile</div>
+            <div class="dropdown-item" onclick="window.logoutProfile()">🚪 Logout Profile</div>
           </div>
         </div>
       </div>
@@ -933,9 +953,11 @@ window.openUploadModal = () => {
         videoUrl = youtubeSnippetId;
       } catch(err) {
         console.error("YouTube Upload error:", err);
-        alert("Failed to upload video to YouTube.");
-        e.target.innerText = "Publish Memory";
-        e.target.disabled = false;
+        alert("YouTube Upload failed: " + err.message + "\n\nHints:\n1. Open browser console (F12) to see exact details.\n2. In Firebase Console > Authentication > Settings > Authorized domains, ensure your github.io is added.\n3. Make sure you have a YouTube channel created.\n4. In Google Cloud Console, ensure this URL is in 'Authorized JavaScript origins'.");
+        if(e.target) {
+          e.target.innerText = "Publish Memory";
+          e.target.disabled = false;
+        }
         return;
       }
     }
