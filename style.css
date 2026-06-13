@@ -774,7 +774,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* 7. Profile Desaturation Ripple */
 .profile-selection:hover .profile-card:not(:hover) {
-  filter: grayscale(100%);
   opacity: 0.4;
 }
 

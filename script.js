@@ -3,19 +3,54 @@ import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/fi
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { animate, stagger } from 'motion';
 
+const localFileDB = {
+  db: null,
+  init() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('VideoStorage', 1);
+      request.onupgradeneeded = e => {
+        if(!e.target.result.objectStoreNames.contains('files')) {
+           e.target.result.createObjectStore('files');
+        }
+      };
+      request.onsuccess = e => { this.db = e.target.result; resolve(); };
+      request.onerror = e => reject(e);
+    });
+  },
+  save(id, file) {
+    return new Promise((resolve, reject) => {
+      if(!this.db) { reject(new Error('DB not initialized')); return; }
+      const tx = this.db.transaction('files', 'readwrite');
+      tx.objectStore('files').put(file, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = e => reject(e);
+    });
+  },
+  get(id) {
+    return new Promise((resolve, reject) => {
+      if(!this.db) { reject(new Error('DB not initialized')); return; }
+      const tx = this.db.transaction('files', 'readonly');
+      const req = tx.objectStore('files').get(id);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e);
+    });
+  }
+};
+localFileDB.init();
+
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
 window.uploadFileToStorage = async (file, path, buttonEl) => {
-  if(buttonEl) buttonEl.innerText = "Uploading... (Please wait)";
+  if(buttonEl) buttonEl.innerText = "Processing File Locally...";
+  
+  // We use local IndexedDB because Firebase Storage requires a paid plan or throws quota errors.
   try {
-    const fileRef = ref(storage, path + '_' + Date.now());
-    const snapshot = await uploadBytes(fileRef, file);
-    if(buttonEl) buttonEl.innerText = "Finalizing Link...";
-    const url = await getDownloadURL(snapshot.ref);
-    return url;
+    const localId = 'local_' + Date.now() + '_' + file.name;
+    await localFileDB.save(localId, file);
+    return 'localdb://' + localId;
   } catch (err) {
-    console.error("Upload failed in storage:", err);
-    throw new Error("Upload failed: " + err.message);
+    console.error("Local save failed:", err);
+    throw new Error("Upload failed to save locally: " + err.message);
   }
 };
 
@@ -77,6 +112,14 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
+  for(let m of appState.memories) {
+    if(m.videoUrl && m.videoUrl.startsWith('localdb://')) {
+       try {
+         const file = await localFileDB.get(m.videoUrl.split('//')[1]);
+         if(file) m.videoUrl = URL.createObjectURL(file);
+       } catch(e) {}
+    }
+  }
 }
 
 async function saveMemoryToDB(memory) {
@@ -335,25 +378,33 @@ window.toggleMyList = (id, event) => {
 function createStartupScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  c.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden; z-index:9999; display:flex; justify-content:center; align-items:center; transition: background 1.5s ease;';
-  
-  const text = document.createElement('h1');
-  text.innerText = 'MEMORIES';
-  text.style.cssText = 'color:#e50914; font-size:10vw; letter-spacing:1vw; font-weight:900; transform-origin:center center; transition: transform 1.5s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.5s ease;';
-  
-  c.appendChild(text);
-
+  // Use the exact file provided by user for initial app load Netflix opening animation
+  c.innerHTML = `
+    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
+      <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
+    </div>
+  `;
   setTimeout(() => {
-    text.style.transform = 'scale(50)'; // massive scale
-    text.style.opacity = '0';
-    c.style.background = 'rgba(0,0,0,0)'; // dissolve background
-    
-    setTimeout(() => {
+    const vid = c.querySelector('#startup-vid');
+    const overlay = c.querySelector('#startup-click-overlay');
+    const playAnim = () => {
+      overlay.style.display = 'none';
+      vid.play().catch(e => console.log("Autoplay blocked, needs click"));
+    };
+    vid.onended = () => {
       appState.currentProfile = null; // Reset profile
       transitionView('profiles');
-    }, 1500);
-  }, 2500); // Wait initially before zoom
-
+    };
+    vid.onerror = () => {
+      console.log("Startup video failed to load, skipping to profiles.");
+      appState.currentProfile = null; // Reset profile
+      transitionView('profiles');
+    };
+    c.onclick = playAnim;
+    // Auto-attempt
+    vid.play().then(() => { overlay.style.display = 'none'; }).catch(e => { /* Wait for click */ });
+  }, 50);
   return c;
 }
 
