@@ -1,7 +1,55 @@
-import { db, storage } from './src/firebase.js';
+import { db, storage, auth } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { YouTubeMediaUploader } from './youtubeUploader.js';
 import { animate, stagger } from 'motion';
+
+let youtubeOAuthToken = null;
+
+async function executeYoutubeUpload(file, metadata, buttonEl) {
+  if (!youtubeOAuthToken) {
+    if(buttonEl) buttonEl.innerText = "Authenticating (Phase A)...";
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/youtube.upload');
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    youtubeOAuthToken = credential.accessToken;
+  }
+  
+  if(buttonEl) buttonEl.innerText = "Streaming to YouTube (Phase B)...";
+  
+  return new Promise((resolve, reject) => {
+    const uploader = new YouTubeMediaUploader({
+      file: file,
+      token: youtubeOAuthToken,
+      metadata: {
+        snippet: {
+          title: metadata.title,
+          description: metadata.description,
+          categoryId: '22' // People & Blogs
+        },
+        status: {
+          privacyStatus: 'unlisted'
+        }
+      },
+      onComplete: function(responseString) {
+        try {
+          const responseData = JSON.parse(responseString);
+          const dynamicVideoId = responseData.id;
+          resolve(dynamicVideoId);
+        } catch(e) {
+          reject(e);
+        }
+      },
+      onError: function(err) {
+        console.error(err);
+        reject(err);
+      }
+    });
+    uploader.upload();
+  });
+}
 
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
@@ -21,54 +69,6 @@ window.uploadFileToStorage = async (file, path, buttonEl) => {
 
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
-
-class YouTubeMediaUploader {
-  constructor(options) {
-    this.file = options.file;
-    this.token = options.token;
-    this.metadata = options.metadata;
-    this.onComplete = options.onComplete;
-    this.onError = options.onError;
-    this.onProgress = options.onProgress;
-  }
-  
-  async upload() {
-    try {
-      if(this.onProgress) this.onProgress("Initializing YouTube link...");
-      const initRes = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + this.token,
-          'Content-Type': 'application/json',
-          'X-Upload-Content-Length': this.file.size.toString(),
-          'X-Upload-Content-Type': this.file.type
-        },
-        body: JSON.stringify(this.metadata)
-      });
-      // The location header is exposed in CORS by default for this API.
-      const uploadUrl = initRes.headers.get('Location');
-      if (!uploadUrl) {
-         throw new Error("Could not get upload location from YouTube. Check channel permissions.");
-      }
-      
-      if(this.onProgress) this.onProgress("Uploading to YouTube... (Please wait)");
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-           'Content-Type': this.file.type
-        },
-        body: this.file
-      });
-      
-      if (!uploadRes.ok) throw new Error("Upload failed: " + uploadRes.statusText);
-      const data = await uploadRes.json();
-      if(this.onComplete) this.onComplete(JSON.stringify(data));
-    } catch(err) {
-      console.error(err);
-      if(this.onError) this.onError(err);
-    }
-  }
-}
 
 const initialProfiles = [
   { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
@@ -383,25 +383,33 @@ window.toggleMyList = (id, event) => {
 function createStartupScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  c.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden; z-index:9999; display:flex; justify-content:center; align-items:center; transition: background 1.5s ease;';
-  
-  const text = document.createElement('h1');
-  text.innerText = 'MEMORIES';
-  text.style.cssText = 'color:#e50914; font-size:10vw; letter-spacing:1vw; font-weight:900; transform-origin:center center; transition: transform 1.5s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.5s ease;';
-  
-  c.appendChild(text);
-
+  // Use the exact file provided by user for initial app load Netflix opening animation
+  c.innerHTML = `
+    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
+      <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
+    </div>
+  `;
   setTimeout(() => {
-    text.style.transform = 'scale(50)'; // massive scale
-    text.style.opacity = '0';
-    c.style.background = 'rgba(0,0,0,0)'; // dissolve background
-    
-    setTimeout(() => {
+    const vid = c.querySelector('#startup-vid');
+    const overlay = c.querySelector('#startup-click-overlay');
+    const playAnim = () => {
+      overlay.style.display = 'none';
+      vid.play().catch(e => console.log("Autoplay blocked, needs click"));
+    };
+    vid.onended = () => {
       appState.currentProfile = null; // Reset profile
       transitionView('profiles');
-    }, 1500);
-  }, 2500); // Wait initially before zoom
-
+    };
+    vid.onerror = () => {
+      console.log("Startup video failed to load, skipping to profiles.");
+      appState.currentProfile = null; // Reset profile
+      transitionView('profiles');
+    };
+    c.onclick = playAnim;
+    // Auto-attempt
+    vid.play().then(() => { overlay.style.display = 'none'; }).catch(e => { /* Wait for click */ });
+  }, 50);
   return c;
 }
 
@@ -451,23 +459,15 @@ function createProfileSelection() {
         // Simulate Netflix style loading wait with 3D flip
         p.classList.add('flip-active');
         setTimeout(() => {
-          // Swap image mid-air to a heart graphic
-          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="profile-avatar" style="background:#e50914; display:flex; justify-content:center; align-items:center;"><svg width="60" height="60" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div></div><div class="profile-name">${pf.name}</div>`;
+          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
         }, 300);
         
-        setTimeout(() => {
-          // Slide downward off screen
-          list.style.transition = "transform 0.6s ease, opacity 0.6s ease";
-          list.style.transform = "translateY(100vh)";
-          list.style.opacity = "0";
-        }, 900);
-
         setTimeout(() => {
           appState.currentProfile = pf.name;
           localStorage.setItem('sarthak_netflix_profile', pf.name);
           transitionView('intro');
-          setTimeout(() => { transitionView('dashboard'); }, 1500);
-        }, 1500);
+          setTimeout(() => { transitionView('dashboard'); }, 1200);
+        }, 1200);
       }
     };
     list.appendChild(p);
@@ -666,17 +666,16 @@ function createHero() {
   c.className = 'hero-billboard';
   
   const heroMem = appState.memories[0] || initialMemories[0];
+  const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
-  if (appState.settings.autoPlayPreviews && heroMem.youtubeVideoId) {
+  if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
+    const mediaNode = isYouTube 
+      ? `<iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3" style="pointer-events:none;border:none;"></iframe>` 
+      : `<video class="hero-video" src="${heroMem.videoUrl}" autoplay muted loop playsinline></video>`;
+      
     c.innerHTML = `
       <div class="hero-video-wrapper">
-        <iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${heroMem.youtubeVideoId}&modestbranding=1&rel=0" frameborder="0" style="pointer-events:none; width:100%; height:140%; transform:translateY(-15%);"></iframe>
-      </div>
-    `;
-  } else if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
-    c.innerHTML = `
-      <div class="hero-video-wrapper">
-        <video class="hero-video" src="${heroMem.videoUrl}" autoplay muted loop playsinline></video>
+        ${mediaNode}
       </div>
     `;
   } else {
@@ -731,17 +730,17 @@ function createRow(title, memories) {
     // Hover Video Preview Support
     card.onmouseenter = () => {
       card.hoverTimeout = setTimeout(() => {
-        if (appState.settings.autoPlayPreviews) {
-          if (m.youtubeVideoId) {
-             const iframe = document.createElement('iframe');
-             iframe.src = `https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${m.youtubeVideoId}&modestbranding=1&rel=0`;
-             iframe.className = 'media-card-hover-video';
-             iframe.style.pointerEvents = 'none';
-             iframe.frameBorder = '0';
-             card.appendChild(iframe);
-          } else if(m.videoUrl) {
+        if(m.videoUrl && appState.settings.autoPlayPreviews) {
+          const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+          
+          if (isYouTube) {
+            const v = document.createElement('iframe');
+            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3`;
+            v.className = 'media-card-hover-video';
+            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2;';
+            card.appendChild(v);
+          } else {
             const v = document.createElement('video');
-            // Support blob or http urls
             let srcUrl = m.videoUrl;
             if (m.videoFile && !srcUrl.startsWith('blob:')) {
               srcUrl = URL.createObjectURL(m.videoFile);
@@ -895,7 +894,7 @@ window.openUploadModal = () => {
   
   // Publish
   document.getElementById('up-publish').onclick = async (e) => {
-    e.target.innerText = "Initiating Upload...";
+    e.target.innerText = "Uploading... please wait";
     e.target.disabled = true;
 
     const title = document.getElementById('up-title').value.trim();
@@ -905,107 +904,50 @@ window.openUploadModal = () => {
        return alert("Title required");
     }
     
-    const desc = document.getElementById('up-desc').value;
-    let videoUrl = currentVideoUrl; // old fallback
-    let youtubeVideoId = null;
+    let videoUrl = currentVideoUrl;
+    let youtubeSnippetId = null;
     const fileObj = document.getElementById('up-vid-file').files[0];
     
-    const finalizeSaveAndClose = async (vidUrl, ytId) => {
-      const mem = {
-        id: 'm_' + Date.now(),
-        title,
-        desc: desc,
-        category: document.getElementById('up-cat').value,
-        year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
-        rating: document.getElementById('up-rating').value,
-        thumbnail: currentThumbData,
-        videoUrl: vidUrl,
-        youtubeVideoId: ytId,
-        dateAdded: Date.now(),
-        uploadedBy: appState.currentProfile
-      };
-      
-      await saveMemoryToDB(mem);
-      appState.memories.unshift(mem);
-      const modalEl = document.getElementById('uploadModal');
-      modalEl.classList.remove('open');
-      setTimeout(() => {
-        modalEl.remove();
-        render();
-      }, 500);
-    };
-
     if (fileObj) {
-      const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-      if (!clientId) {
-        alert("YouTube Client ID is missing. Please set VITE_YOUTUBE_CLIENT_ID in .env");
+      try {
+        // Phase A & B: Auth and Upload to YouTube
+        youtubeSnippetId = await executeYoutubeUpload(fileObj, {
+          title: title,
+          description: document.getElementById('up-desc').value || title
+        }, e.target);
+        
+        // Phase C: Pass Video ID to Database
+        videoUrl = youtubeSnippetId;
+      } catch(err) {
+        console.error("YouTube Upload error:", err);
+        alert("Failed to upload video to YouTube.");
         e.target.innerText = "Publish Memory";
         e.target.disabled = false;
         return;
       }
-
-      if (!window.google || !window.google.accounts) {
-        alert("Google Identity Services failed to load.");
-        e.target.innerText = "Publish Memory";
-        e.target.disabled = false;
-        return;
-      }
-
-      e.target.innerText = "Awaiting Google Login...";
-      
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/youtube.upload',
-        callback: async (tokenResponse) => {
-          if (tokenResponse.error !== undefined) {
-             console.error("OAuth Error", tokenResponse);
-             alert("YouTube authentication failed.");
-             e.target.innerText = "Publish Memory";
-             e.target.disabled = false;
-             return;
-          }
-          
-          try {
-            const uploader = new YouTubeMediaUploader({
-                file: fileObj,
-                token: tokenResponse.access_token,
-                metadata: {
-                    snippet: {
-                        title: title,
-                        description: desc || 'Uploaded via Netflix Clone',
-                        categoryId: '22' // People & Blogs
-                    },
-                    status: {
-                        privacyStatus: 'unlisted' // Keeps it private!
-                    }
-                },
-                onProgress: (msg) => { e.target.innerText = msg; },
-                onComplete: (responseString) => {
-                    const responseData = JSON.parse(responseString);
-                    youtubeVideoId = responseData.id;
-                    e.target.innerText = "Finalizing Link...";
-                    finalizeSaveAndClose(videoUrl, youtubeVideoId).catch(console.error);
-                },
-                onError: (err) => {
-                    console.error("Upload error:", err);
-                    alert("Failed to upload video to YouTube.");
-                    e.target.innerText = "Publish Memory";
-                    e.target.disabled = false;
-                }
-            });
-            await uploader.upload();
-          } catch(err) {
-            console.error("Uploader exception:", err);
-          }
-        },
-      });
-
-      // Request token (triggers popup)
-      tokenClient.requestAccessToken({prompt: 'consent'});
-      
-    } else {
-      await finalizeSaveAndClose(videoUrl, null);
     }
+    
+    const mem = {
+      id: 'm_' + Date.now(),
+      title,
+      desc: document.getElementById('up-desc').value,
+      category: document.getElementById('up-cat').value,
+      year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
+      rating: document.getElementById('up-rating').value,
+      thumbnail: currentThumbData,
+      videoUrl: videoUrl,
+      dateAdded: Date.now(),
+      uploadedBy: appState.currentProfile
+    };
+    
+    await saveMemoryToDB(mem);
+    appState.memories.unshift(mem);
+    const modalEl = document.getElementById('uploadModal');
+    modalEl.classList.remove('open');
+    setTimeout(() => {
+      modalEl.remove();
+      render();
+    }, 600);
   };
 };
 
@@ -1020,14 +962,11 @@ window.openDetailModal = (id) => {
   modal.className = 'upload-modal';
   modal.id = 'detailModal';
   
-  let mediaHtml = `<img src="${m.thumbnail}">`;
-  if (appState.settings.autoPlayPreviews) {
-     if (m.youtubeVideoId) {
-        mediaHtml = `<iframe src="https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${m.youtubeVideoId}&modestbranding=1&rel=0" frameborder="0" style="width:100%; height:130%; transform:translateY(-15%); pointer-events:none;"></iframe>`;
-     } else if (m.videoUrl) {
-        mediaHtml = `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>`;
-     }
-  }
+  const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+  
+  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
+      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>`) : 
+      `<img src="${m.thumbnail}">`;
 
   modal.innerHTML = `
     <div class="detail-modal">
@@ -1088,7 +1027,7 @@ window.downloadVideo = () => {
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
   const m = appState.memories.find(i => i.id === id);
-  if(!m || (!m.videoUrl && !m.youtubeVideoId)) return alert("Video file not available for playback.");
+  if(!m || !m.videoUrl) return alert("Video file not available for playback.");
   
   // Track Continue Watching
   if(!appState.continueWatching.includes(id)) {
@@ -1105,21 +1044,20 @@ window.playVideo = (id) => {
   c.className = 'playback-overlay';
   c.id = 'playbackOverlay';
   
-  // Conditionally render YouTube iframe or native video tag
-  let mainPlayerHtml = '';
-  if (m.youtubeVideoId) {
-    mainPlayerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;" 
-      src="https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=1&rel=0&showinfo=0&modestbranding=1" 
-      frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  // Play Netflix initial animation before playing video
+  const isYouTube = url && !url.includes('/') && !url.includes('blob:');
+  
+  let playerHtml = '';
+  if (isYouTube) {
+    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="https://www.youtube.com/embed/${url}?autoplay=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1" allow="autoplay; fullscreen"></iframe>`;
   } else {
-    mainPlayerHtml = `<video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>`;
+    playerHtml = `<video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>`;
   }
 
-  // Play Netflix initial animation before playing video
   c.innerHTML = `
-    <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();">🡠</div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%;"></video>
-    ${mainPlayerHtml}
+    <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();" style="z-index: 10000; position:absolute;">🡠</div>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    ${playerHtml}
   `;
   document.body.appendChild(c);
   
@@ -1133,78 +1071,77 @@ window.playVideo = (id) => {
     // Request fullscreen automatically on playback start
     if (c.requestFullscreen) {
       c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
-    } else if (c.webkitRequestFullscreen) { /* Safari */
-      c.webkitRequestFullscreen();
-    } else if (c.msRequestFullscreen) { /* IE11 */
-      c.msRequestFullscreen();
     }
     
     // Auto play when transition is done
-    if (m.youtubeVideoId) {
-       // iframe will autoplay via URL parameter
-    } else {
-       const pPromise = mainPlayer.play();
-       if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+    if (!isYouTube) {
+      const pPromise = mainPlayer.play();
+      if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
     }
   };
   
   // Try autoplaying intro, else wait
-  if(introPlayer.play() !== undefined) {
-    introPlayer.play().catch(() => startMainVideo());
+  if (introPlayer) {
+    if(introPlayer.play() !== undefined) {
+      introPlayer.play().catch(() => startMainVideo());
+    }
+    introPlayer.onended = startMainVideo;
+    introPlayer.onerror = startMainVideo;
+  } else {
+    startMainVideo();
   }
   
-  introPlayer.onended = startMainVideo;
-  introPlayer.onerror = startMainVideo;
+  if (!isYouTube) {
+    mainPlayer.ontimeupdate = () => {
+      if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
+        const idx = appState.memories.findIndex(i => i.id === id);
+        if (idx >= 0 && idx < appState.memories.length - 1) {
+          if (!document.getElementById('next-ep-queue')) {
+            const nextMem = appState.memories[idx + 1];
+            const qBox = document.createElement('div');
+            qBox.id = 'next-ep-queue';
+            qBox.style.cssText = 'position:absolute; bottom:5vw; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
+            qBox.innerHTML = `
+              <div>
+                <div style="font-size:1vw; color:#ccc; margin-bottom:5px;">Playing Next</div>
+                <div style="font-size:1.2vw; font-weight:bold;">${nextMem.title}</div>
+              </div>
+              <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
+                <svg width="40" height="40" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
+                  <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4" fill="none" />
+                  <circle id="next-ep-timer-circle" cx="20" cy="20" r="18" stroke="#e50914" stroke-width="4" fill="none" stroke-dasharray="113" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.1s linear;" />
+                </svg>
+                ▶
+              </div>
+            `;
+            qBox.onclick = () => {
+               document.getElementById('playbackOverlay').remove();
+               playVideo(nextMem.id);
+            };
+            c.appendChild(qBox);
+          }
+          
+          const circle = document.getElementById('next-ep-timer-circle');
+          const remains = mainPlayer.duration - mainPlayer.currentTime;
+          if(circle) {
+            const offset = 113 - ((remains / 5) * 113);
+            circle.style.strokeDashoffset = offset + '';
+          }
+        }
+      }
+    };
   
-  mainPlayer.ontimeupdate = () => {
-    if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
-      const idx = appState.memories.findIndex(i => i.id === id);
-      if (idx >= 0 && idx < appState.memories.length - 1) {
-        if (!document.getElementById('next-ep-queue')) {
-          const nextMem = appState.memories[idx + 1];
-          const qBox = document.createElement('div');
-          qBox.id = 'next-ep-queue';
-          qBox.style.cssText = 'position:absolute; bottom:5vw; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
-          qBox.innerHTML = `
-            <div>
-              <div style="font-size:1vw; color:#ccc; margin-bottom:5px;">Playing Next</div>
-              <div style="font-size:1.2vw; font-weight:bold;">${nextMem.title}</div>
-            </div>
-            <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
-              <svg width="40" height="40" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
-                <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4" fill="none" />
-                <circle id="next-ep-timer-circle" cx="20" cy="20" r="18" stroke="#e50914" stroke-width="4" fill="none" stroke-dasharray="113" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.1s linear;" />
-              </svg>
-              ▶
-            </div>
-          `;
-          qBox.onclick = () => {
-             document.getElementById('playbackOverlay').remove();
-             playVideo(nextMem.id);
-          };
-          c.appendChild(qBox);
-        }
-        
-        const circle = document.getElementById('next-ep-timer-circle');
-        const remains = mainPlayer.duration - mainPlayer.currentTime;
-        if(circle) {
-          const offset = 113 - ((remains / 5) * 113);
-          circle.style.strokeDashoffset = offset + '';
+    mainPlayer.onended = () => {
+      if(appState.settings.autoPlayNextEpisode) {
+        // Find next memory
+        const idx = appState.memories.findIndex(i => i.id === id);
+        if(idx >= 0 && idx < appState.memories.length - 1) {
+          document.getElementById('playbackOverlay').remove();
+          playVideo(appState.memories[idx + 1].id);
         }
       }
-    }
-  };
-
-  mainPlayer.onended = () => {
-    if(appState.settings.autoPlayNextEpisode) {
-      // Find next memory
-      const idx = appState.memories.findIndex(i => i.id === id);
-      if(idx >= 0 && idx < appState.memories.length - 1) {
-        document.getElementById('playbackOverlay').remove();
-        playVideo(appState.memories[idx + 1].id);
-      }
-    }
-  };
+    };
+  }
 };
 
 // Initialize
