@@ -5,6 +5,7 @@ let appState = {
   view: 'startup', 
   currentProfile: null,
   activeCategory: 'Home',
+  searchQuery: '',
   settings: {
     autoPlayPreviews: true,
     autoPlayNextEpisode: true
@@ -22,20 +23,7 @@ const initialProfiles = [
 ];
 
 // Seed Data
-const initialMemories = [
-  {
-    id: '1', title: 'Our First Date', desc: 'The day everything started at the coffee shop.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    thumbnail: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800',
-    category: 'Dates', year: '2023', rating: 'U/A 13+', type: 'Movie', dateAdded: Date.now() - 100000
-  },
-  {
-    id: '2', title: 'First Anniversary', desc: 'Celebration at the beach house.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    thumbnail: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800',
-    category: 'Celebrations', year: '2024', rating: 'U/A 16+', type: 'Series', dateAdded: Date.now() - 50000
-  }
-];
+const initialMemories = [];
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
@@ -137,7 +125,80 @@ function render() {
 
 window.setCategory = (cat) => {
   appState.activeCategory = cat;
+  appState.searchQuery = '';
   render();
+};
+
+window.toggleSearch = () => {
+  const container = document.getElementById('searchContainer');
+  const input = document.getElementById('searchInput');
+  container.classList.toggle('active');
+  if(container.classList.contains('active')) {
+    input.focus();
+  } else {
+    input.value = '';
+    appState.searchQuery = '';
+    window.refreshRowsView();
+  }
+};
+
+window.handleSearch = (e) => {
+  appState.searchQuery = e.target.value.toLowerCase();
+  window.refreshRowsView();
+};
+
+window.toggleNotifications = () => {
+  document.getElementById('notifPanel').classList.toggle('active');
+};
+
+window.refreshRowsView = () => {
+  const rc = document.querySelector('.slider-container');
+  const hero = document.getElementById('hero-section');
+  if(!rc) return;
+  rc.innerHTML = '';
+  
+  if(appState.searchQuery) {
+    if(hero) hero.style.display = 'none';
+    const q = appState.searchQuery;
+    const mems = appState.memories.filter(m => 
+      m.title.toLowerCase().includes(q) || 
+      (m.desc && m.desc.toLowerCase().includes(q)) || 
+      (m.year && m.year.toString().includes(q)) ||
+      (m.category && m.category.toLowerCase().includes(q))
+    );
+    if(mems.length) rc.appendChild(createRow('Search Results', mems));
+    else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
+    return;
+  }
+  
+  if(hero) hero.style.display = 'block';
+  
+  if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
+    const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
+    if(cw.length) rc.appendChild(createRow('Continue Watching', cw));
+  }
+  
+  if (appState.activeCategory === 'My List') {
+    rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id))));
+  } else if (appState.activeCategory === 'Categories') {
+    subCategories.forEach(cat => {
+      const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+      if (mems.length) rc.appendChild(createRow(cat, mems));
+    });
+  } else {
+    // For Home
+    if (appState.activeCategory === 'Home') {
+      subCategories.forEach(cat => {
+        const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+        if (mems.length) rc.appendChild(createRow(cat, mems));
+      });
+      rc.appendChild(createRow('Recent Additions', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
+    }
+    // For Dates
+    if (appState.activeCategory === 'Dates') {
+      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
+    }
+  }
 };
 
 window.toggleSetting = (settingKey) => {
@@ -320,39 +381,29 @@ function createIntroScreen() {
 function createDashboard() {
   const c = document.createElement('div');
   c.appendChild(createNavbar());
-  c.appendChild(createHero());
+
+  if(appState.memories.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-dashboard';
+    empty.innerHTML = `
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="#555"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z"/></svg>
+      <h2>No videos</h2>
+      <p>Your timeline is empty. Videos you add will appear here.</p>
+      <button class="add-memory-btn" style="margin-top:20px; font-size:16px; padding:10px 20px;" onclick="openUploadModal()">＋ Add First Memory</button>
+    `;
+    c.appendChild(empty);
+    return c;
+  }
+  
+  const heroContent = createHero();
+  heroContent.id = 'hero-section';
+  c.appendChild(heroContent);
   
   const rc = document.createElement('div');
   rc.className = 'slider-container';
-  
-  if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
-    const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
-    if(cw.length) rc.appendChild(createRow('Continue Watching', cw));
-  }
-  
-  if (appState.activeCategory === 'My List') {
-    rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id))));
-  } else if (appState.activeCategory === 'Categories') {
-    subCategories.forEach(cat => {
-      const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
-      if (mems.length) rc.appendChild(createRow(cat, mems));
-    });
-  } else {
-    // For Home
-    if (appState.activeCategory === 'Home') {
-      subCategories.forEach(cat => {
-        const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
-        if (mems.length) rc.appendChild(createRow(cat, mems));
-      });
-      rc.appendChild(createRow('Recent Additions', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
-    }
-    // For Dates
-    if (appState.activeCategory === 'Dates') {
-      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded)));
-    }
-  }
-  
   c.appendChild(rc);
+  
+  setTimeout(() => window.refreshRowsView(), 0);
   return c;
 }
 
@@ -366,6 +417,17 @@ function createNavbar() {
 
     const currentPf = appState.profiles.find(p => p.name === appState.currentProfile);
     const currAvatar = currentPf ? currentPf.avatar : 'img20251010.jpg';
+
+    const latestMems = appState.memories.slice().sort((a,b)=>b.dateAdded - a.dateAdded).slice(0, 10);
+    let notifHTML = latestMems.length === 0 ? '<div class="notification-item"><div style="color:#888;">No recent activity</div></div>' : latestMems.map(m => `
+      <div class="notification-item" onclick="openDetailModal('${m.id}')">
+        <img src="${m.thumbnail}" width="80" height="45" style="object-fit:cover; border-radius:4px;">
+        <div style="flex:1">
+          <div style="font-weight:bold; color:white; font-size:14px;">${m.uploadedBy || 'Someone'} added a video</div>
+          <div style="font-size:12px; color:#aaa; margin-top:4px;">${m.title}</div>
+        </div>
+      </div>
+    `).join('');
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
@@ -375,6 +437,23 @@ function createNavbar() {
         ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
       </ul>
       <div class="nav-right">
+        <div class="search-container" id="searchContainer">
+          <div class="search-icon" onclick="toggleSearch()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          </div>
+          <input type="text" id="searchInput" class="search-input" placeholder="Titles, descriptions, dates" oninput="handleSearch(event)" value="${appState.searchQuery || ''}">
+        </div>
+
+        <div class="notification-container">
+          <div class="bell-icon" onclick="toggleNotifications()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            ${latestMems.length > 0 ? `<div class="bell-badge">${latestMems.length}</div>` : ''}
+          </div>
+          <div class="notifications-panel" id="notifPanel">
+            ${notifHTML}
+          </div>
+        </div>
+
         <button class="add-memory-btn" onclick="openUploadModal()">＋ Add Memory</button>
         <div class="profile-dropdown">
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
@@ -610,7 +689,8 @@ window.openUploadModal = () => {
       thumbnail: currentThumbData,
       videoUrl: currentVideoUrl,
       videoFile: fileObj, // File persists in IndexedDB directly
-      dateAdded: Date.now()
+      dateAdded: Date.now(),
+      uploadedBy: appState.currentProfile
     };
     
     await saveMemoryToDB(mem);
@@ -673,7 +753,16 @@ window.openDetailModal = (id) => {
 }
 
 window.shareVideo = (id) => {
-  alert("Memory link copied to clipboard!\nYou can share this with Sarthak & Reechita.");
+  const link = window.location.origin + window.location.pathname + "?v=" + id;
+  if(navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(link).then(() => {
+      alert("Memory link copied to clipboard!\n" + link);
+    }).catch(() => {
+      prompt("Copy this link to share:", link);
+    });
+  } else {
+    prompt("Copy this link to share:", link);
+  }
 }
 window.downloadVideo = () => {
   const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
