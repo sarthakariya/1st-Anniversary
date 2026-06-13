@@ -10,6 +10,7 @@ export class YouTubeMediaUploader {
 
   async upload() {
     try {
+      this.onProgress({ phase: 'initializing' });
       // 1. Initialize resumable upload
       const initUrl = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status';
       const initRes = await fetch(initUrl, {
@@ -24,32 +25,48 @@ export class YouTubeMediaUploader {
       });
 
       if (!initRes.ok) {
-        throw new Error('Failed to initialize YouTube upload: ' + await initRes.text());
+        const errText = await initRes.text();
+        throw new Error('Phase B (Init) Failed: ' + initRes.status + ' ' + errText);
       }
 
       const uploadUrl = initRes.headers.get('Location');
       if (!uploadUrl) {
-        throw new Error('No upload URL returned from YouTube API');
+        throw new Error('Phase B (Init) Failed: No upload URL returned from YouTube API');
       }
 
-      // 2. Upload the file chunks (or whole file if small enough, but doing whole file using PUT)
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': this.file.type
-        },
-        body: this.file
-      });
+      // 2. Upload using XMLHttpRequest to get progress events and detailed tracking
+      this.onProgress({ phase: 'uploading', loaded: 0, total: this.file.size });
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl, true);
+      xhr.setRequestHeader('Content-Type', this.file.type);
+      xhr.setRequestHeader('Authorization', `Bearer ${this.token}`);
 
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload file content to YouTube: ' + await uploadRes.text());
-      }
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          this.onProgress({ phase: 'uploading', loaded: e.loaded, total: e.total, p: percentComplete });
+        }
+      };
 
-      const responseString = await uploadRes.text();
-      this.onComplete(responseString);
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          this.onProgress({ phase: 'completed' });
+          this.onComplete(xhr.responseText);
+        } else {
+          this.onError(new Error(`Phase B (Upload) Failed: ${xhr.status} ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        this.onError(new Error('Phase B (Upload) Network/CORS Error. The request was blocked, or the connection failed.'));
+      };
+
+      xhr.send(this.file);
       
     } catch (error) {
       this.onError(error);
     }
   }
 }
+

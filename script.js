@@ -1,6 +1,6 @@
 import { db, storage, auth } from './src/firebase.js';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { YouTubeMediaUploader } from './youtubeUploader.js';
 import { animate, stagger } from 'motion';
@@ -32,6 +32,14 @@ async function executeYoutubeUpload(file, metadata, buttonEl) {
         status: {
           privacyStatus: 'unlisted'
         }
+      },
+      onProgress: function(p) {
+        if (!buttonEl) return;
+        if (p.phase === 'initializing') buttonEl.innerText = "Initializing connection...";
+        else if (p.phase === 'uploading') {
+          buttonEl.innerText = `Uploading... ${Math.round(p.p || 0)}%`;
+        }
+        else if (p.phase === 'completed') buttonEl.innerText = "Processing video...";
       },
       onComplete: function(responseString) {
         try {
@@ -850,6 +858,14 @@ window.openUploadModal = () => {
         </select>
       </div>
       <div class="form-group">
+        <label>Upload Method</label>
+        <select id="up-method" style="margin-bottom: 5px; background: #333; color: white; padding: 10px; width: 100%; border: none; border-radius: 4px;">
+          <option value="firebase">Direct to Firebase Storage (Fast/Reliable)</option>
+          <option value="youtube">Upload to YouTube</option>
+        </select>
+        <small style="color: #aaa; font-size: 12px; display: block; margin-top: 5px;">Firebase Storage works best without CORS or Google Console setup issues.</small>
+      </div>
+      <div class="form-group">
         <label>Video File (From Device)</label>
         <div class="file-upload-box" onclick="document.getElementById('up-vid-file').click()">
           Click to Select 4K Video File
@@ -942,23 +958,46 @@ window.openUploadModal = () => {
     const fileObj = document.getElementById('up-vid-file').files[0];
     
     if (fileObj) {
-      try {
-        // Phase A & B: Auth and Upload to YouTube
-        youtubeSnippetId = await executeYoutubeUpload(fileObj, {
-          title: title,
-          description: document.getElementById('up-desc').value || title
-        }, e.target);
-        
-        // Phase C: Pass Video ID to Database
-        videoUrl = youtubeSnippetId;
-      } catch(err) {
-        console.error("YouTube Upload error:", err);
-        alert("YouTube Upload failed: " + err.message + "\n\nHints:\n1. Open browser console (F12) to see exact details.\n2. In Firebase Console > Authentication > Settings > Authorized domains, ensure your github.io is added.\n3. Make sure you have a YouTube channel created.\n4. In Google Cloud Console, ensure this URL is in 'Authorized JavaScript origins'.");
-        if(e.target) {
-          e.target.innerText = "Publish Memory";
-          e.target.disabled = false;
+      const uploadMethod = document.getElementById('up-method').value;
+      if (uploadMethod === 'youtube') {
+        try {
+          // Phase A & B: Auth and Upload to YouTube
+          youtubeSnippetId = await executeYoutubeUpload(fileObj, {
+            title: title,
+            description: document.getElementById('up-desc').value || title
+          }, e.target);
+          
+          // Phase C: Pass Video ID to Database
+          videoUrl = youtubeSnippetId;
+        } catch(err) {
+          console.error("YouTube Upload error:", err);
+          alert("YouTube Upload failed: " + err.message + "\n\nFalling back to Google Cloud Storage (App Built-in Storage).");
+          if(e.target) {
+            e.target.innerText = "Uploading to Cloud Storage...";
+          }
+          try {
+            videoUrl = await window.uploadFileToStorage(fileObj, 'memories_video', e.target);
+          } catch (storageErr) {
+            alert("Cloud Storage Upload also failed: " + storageErr.message);
+            if(e.target) {
+              e.target.innerText = "Publish Memory";
+              e.target.disabled = false;
+            }
+            return;
+          }
         }
-        return;
+      } else {
+        // Firebase Storage direct upload
+        try {
+          videoUrl = await window.uploadFileToStorage(fileObj, 'memories_video', e.target);
+        } catch (storageErr) {
+          alert("Cloud Storage Upload failed: " + storageErr.message);
+          if(e.target) {
+            e.target.innerText = "Publish Memory";
+            e.target.disabled = false;
+          }
+          return;
+        }
       }
     }
     
