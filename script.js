@@ -14,6 +14,12 @@ window.uploadFileToStorage = async (file, path) => {
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
 
+const initialProfiles = [
+  { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
+  { id: 'p_2', name: 'Reechita', avatar: 'img2025.78_07.jpg' },
+  { id: 'p_3', name: 'Our Future Kids', avatar: '20250707_2328.jpg' }
+];
+
 let appState = {
   view: 'startup', 
   currentProfile: null,
@@ -26,17 +32,19 @@ let appState = {
   myList: [],
   continueWatching: [],
   memories: [],
-  profiles: []
+  profiles: [...initialProfiles]
 };
-
-const initialProfiles = [
-  { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
-  { id: 'p_2', name: 'Reechita', avatar: 'img2025.78_07.jpg' },
-  { id: 'p_3', name: 'Our Future Kids', avatar: '20250707_2328.jpg' }
-];
 
 // Seed Data
 const initialMemories = [];
+
+const savedProfile = localStorage.getItem('sarthak_netflix_profile');
+if (savedProfile) {
+  const pfData = initialProfiles.find(p => p.name === savedProfile);
+  if (pfData) {
+    appState.currentProfile = savedProfile;
+  }
+}
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
@@ -61,14 +69,6 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
-
-  const savedProfile = localStorage.getItem('sarthak_netflix_profile');
-  if (savedProfile) {
-    const pfData = appState.profiles.find(p => p.name === savedProfile);
-    if (pfData) {
-      appState.currentProfile = savedProfile;
-    }
-  }
 }
 
 async function saveMemoryToDB(memory) {
@@ -926,9 +926,12 @@ window.playVideo = (id) => {
 };
 
 // Initialize
+render();
+
 loadData().catch(e => {
   console.error("Error loading data:", e);
-  alert("Connection to the database failed. Some features may not work.");
+  alert("Connection to the database failed. Some features may not work. You might be on a network that blocks Firebase (try switching to WiFi).");
 }).finally(() => {
+  // Re-render to show updated data if we are already on a view that needs it
   render();
 });
