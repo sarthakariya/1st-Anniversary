@@ -2,7 +2,8 @@ import { db, auth, storage, provider, signInWithPopup, onAuthStateChanged } from
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-window.transitionView = transitionView; // Expose as it was removed from global scope
+function transitionView(v) { appState.view = v; render(); }
+window.transitionView = transitionView;
 window.uploadFileToStorage = async (file, path) => {
   const fileRef = ref(storage, path + '_' + Date.now());
   const snapshot = await uploadBytes(fileRef, file);
@@ -92,6 +93,17 @@ async function saveStateList(key, data) {
     [key]: data
   }, { merge: true });
 };
+
+function render() {
+  const app = document.getElementById('app');
+  if(!app) return;
+  app.innerHTML = '';
+  if (appState.view === 'startup') app.appendChild(createStartupScreen());
+  else if (appState.view === 'profiles') app.appendChild(createProfileSelection());
+  else if (appState.view === 'intro') app.appendChild(createIntroScreen());
+  else if (appState.view === 'dashboard') app.appendChild(createDashboard());
+}
+window.render = render;
 
 window.handleSearch = (e) => {
   appState.searchQuery = e.target.value.toLowerCase();
