@@ -3,59 +3,72 @@ import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/fi
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { animate, stagger } from 'motion';
 
-const localFileDB = {
-  db: null,
-  init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('VideoStorage', 1);
-      request.onupgradeneeded = e => {
-        if(!e.target.result.objectStoreNames.contains('files')) {
-           e.target.result.createObjectStore('files');
-        }
-      };
-      request.onsuccess = e => { this.db = e.target.result; resolve(); };
-      request.onerror = e => reject(e);
-    });
-  },
-  save(id, file) {
-    return new Promise((resolve, reject) => {
-      if(!this.db) { reject(new Error('DB not initialized')); return; }
-      const tx = this.db.transaction('files', 'readwrite');
-      tx.objectStore('files').put(file, id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = e => reject(e);
-    });
-  },
-  get(id) {
-    return new Promise((resolve, reject) => {
-      if(!this.db) { reject(new Error('DB not initialized')); return; }
-      const tx = this.db.transaction('files', 'readonly');
-      const req = tx.objectStore('files').get(id);
-      req.onsuccess = e => resolve(e.target.result);
-      req.onerror = e => reject(e);
-    });
-  }
-};
-localFileDB.init();
-
 function transitionView(v) { appState.view = v; render(); }
 window.transitionView = transitionView;
 window.uploadFileToStorage = async (file, path, buttonEl) => {
-  if(buttonEl) buttonEl.innerText = "Processing File Locally...";
-  
-  // We use local IndexedDB because Firebase Storage requires a paid plan or throws quota errors.
+  if(buttonEl) buttonEl.innerText = "Uploading... (Please wait)";
   try {
-    const localId = 'local_' + Date.now() + '_' + file.name;
-    await localFileDB.save(localId, file);
-    return 'localdb://' + localId;
+    const fileRef = ref(storage, path + '_' + Date.now());
+    const snapshot = await uploadBytes(fileRef, file);
+    if(buttonEl) buttonEl.innerText = "Finalizing Link...";
+    const url = await getDownloadURL(snapshot.ref);
+    return url;
   } catch (err) {
-    console.error("Local save failed:", err);
-    throw new Error("Upload failed to save locally: " + err.message);
+    console.error("Upload failed in storage:", err);
+    throw new Error("Upload failed: " + err.message);
   }
 };
 
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
+
+class YouTubeMediaUploader {
+  constructor(options) {
+    this.file = options.file;
+    this.token = options.token;
+    this.metadata = options.metadata;
+    this.onComplete = options.onComplete;
+    this.onError = options.onError;
+    this.onProgress = options.onProgress;
+  }
+  
+  async upload() {
+    try {
+      if(this.onProgress) this.onProgress("Initializing YouTube link...");
+      const initRes = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + this.token,
+          'Content-Type': 'application/json',
+          'X-Upload-Content-Length': this.file.size.toString(),
+          'X-Upload-Content-Type': this.file.type
+        },
+        body: JSON.stringify(this.metadata)
+      });
+      // The location header is exposed in CORS by default for this API.
+      const uploadUrl = initRes.headers.get('Location');
+      if (!uploadUrl) {
+         throw new Error("Could not get upload location from YouTube. Check channel permissions.");
+      }
+      
+      if(this.onProgress) this.onProgress("Uploading to YouTube... (Please wait)");
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+           'Content-Type': this.file.type
+        },
+        body: this.file
+      });
+      
+      if (!uploadRes.ok) throw new Error("Upload failed: " + uploadRes.statusText);
+      const data = await uploadRes.json();
+      if(this.onComplete) this.onComplete(JSON.stringify(data));
+    } catch(err) {
+      console.error(err);
+      if(this.onError) this.onError(err);
+    }
+  }
+}
 
 const initialProfiles = [
   { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
@@ -112,14 +125,6 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
-  for(let m of appState.memories) {
-    if(m.videoUrl && m.videoUrl.startsWith('localdb://')) {
-       try {
-         const file = await localFileDB.get(m.videoUrl.split('//')[1]);
-         if(file) m.videoUrl = URL.createObjectURL(file);
-       } catch(e) {}
-    }
-  }
 }
 
 async function saveMemoryToDB(memory) {
@@ -157,6 +162,7 @@ function render() {
       }
     }, 50);
   }
+  else if (appState.view === 'intro') app.appendChild(createIntroScreen());
   else if (appState.view === 'dashboard') {
     const dashboard = createDashboard();
     app.appendChild(dashboard);
@@ -377,25 +383,24 @@ window.toggleMyList = (id, event) => {
 function createStartupScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  c.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden; z-index:100; display:flex; justify-content:center; align-items:center; transition: background 1.5s ease;';
+  c.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden; z-index:9999; display:flex; justify-content:center; align-items:center; transition: background 1.5s ease;';
   
   const text = document.createElement('h1');
   text.innerText = 'MEMORIES';
-  text.style.cssText = 'color:#E50914; font-size:10vw; letter-spacing:1vw; font-weight:900; transform-origin:center center; transition: transform 1.5s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.5s ease;';
+  text.style.cssText = 'color:#e50914; font-size:10vw; letter-spacing:1vw; font-weight:900; transform-origin:center center; transition: transform 1.5s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.5s ease;';
   
   c.appendChild(text);
 
   setTimeout(() => {
-    // Massive transform scale up through the letters as a window
-    text.style.transform = 'scale(40)';
+    text.style.transform = 'scale(50)'; // massive scale
     text.style.opacity = '0';
-    c.style.background = 'rgba(0,0,0,0)'; 
+    c.style.background = 'rgba(0,0,0,0)'; // dissolve background
     
     setTimeout(() => {
-      appState.currentProfile = null;
+      appState.currentProfile = null; // Reset profile
       transitionView('profiles');
     }, 1500);
-  }, 2000);
+  }, 2500); // Wait initially before zoom
 
   return c;
 }
@@ -432,10 +437,22 @@ function createProfileSelection() {
       if(isManageMode) {
         editProfile(pf.id);
       } else {
+        const secretCode = localStorage.getItem('sarthak_netflix_code');
+        if (secretCode !== '0707') {
+          const input = prompt("Please enter the secret code (Hint: special date):");
+          if (input === '0707' || input === 'loveyou') {
+            localStorage.setItem('sarthak_netflix_code', '0707');
+          } else {
+            alert("Incorrect secret code. Access denied.");
+            return;
+          }
+        }
+        
         // Simulate Netflix style loading wait with 3D flip
         p.classList.add('flip-active');
         setTimeout(() => {
-          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+          // Swap image mid-air to a heart graphic
+          p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="profile-avatar" style="background:#e50914; display:flex; justify-content:center; align-items:center;"><svg width="60" height="60" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div></div><div class="profile-name">${pf.name}</div>`;
         }, 300);
         
         setTimeout(() => {
@@ -448,7 +465,8 @@ function createProfileSelection() {
         setTimeout(() => {
           appState.currentProfile = pf.name;
           localStorage.setItem('sarthak_netflix_profile', pf.name);
-          transitionView('dashboard');
+          transitionView('intro');
+          setTimeout(() => { transitionView('dashboard'); }, 1500);
         }, 1500);
       }
     };
@@ -540,6 +558,13 @@ window.editProfile = (pfId) => {
     render();
   };
 };
+
+function createIntroScreen() {
+  const c = document.createElement('div');
+  c.className = 'intro-container';
+  c.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline></video>`;
+  return c;
+}
 
 function createDashboard() {
   setTimeout(() => {
@@ -642,7 +667,13 @@ function createHero() {
   
   const heroMem = appState.memories[0] || initialMemories[0];
   
-  if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
+  if (appState.settings.autoPlayPreviews && heroMem.youtubeVideoId) {
+    c.innerHTML = `
+      <div class="hero-video-wrapper">
+        <iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${heroMem.youtubeVideoId}&modestbranding=1&rel=0" frameborder="0" style="pointer-events:none; width:100%; height:140%; transform:translateY(-15%);"></iframe>
+      </div>
+    `;
+  } else if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     c.innerHTML = `
       <div class="hero-video-wrapper">
         <video class="hero-video" src="${heroMem.videoUrl}" autoplay muted loop playsinline></video>
@@ -700,22 +731,31 @@ function createRow(title, memories) {
     // Hover Video Preview Support
     card.onmouseenter = () => {
       card.hoverTimeout = setTimeout(() => {
-        if(m.videoUrl && appState.settings.autoPlayPreviews) {
-          const v = document.createElement('video');
-          // Support blob or http urls
-          let srcUrl = m.videoUrl;
-          if (m.videoFile && !srcUrl.startsWith('blob:')) {
-            srcUrl = URL.createObjectURL(m.videoFile);
-            m.videoUrl = srcUrl;
+        if (appState.settings.autoPlayPreviews) {
+          if (m.youtubeVideoId) {
+             const iframe = document.createElement('iframe');
+             iframe.src = `https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${m.youtubeVideoId}&modestbranding=1&rel=0`;
+             iframe.className = 'media-card-hover-video';
+             iframe.style.pointerEvents = 'none';
+             iframe.frameBorder = '0';
+             card.appendChild(iframe);
+          } else if(m.videoUrl) {
+            const v = document.createElement('video');
+            // Support blob or http urls
+            let srcUrl = m.videoUrl;
+            if (m.videoFile && !srcUrl.startsWith('blob:')) {
+              srcUrl = URL.createObjectURL(m.videoFile);
+              m.videoUrl = srcUrl;
+            }
+            v.src = srcUrl;
+            v.muted = true;
+            v.autoplay = true;
+            v.loop = true;
+            v.className = 'media-card-hover-video';
+            
+            card.appendChild(v);
+            v.play().catch(e => console.log('Autoplay prevented'));
           }
-          v.src = srcUrl;
-          v.muted = true;
-          v.autoplay = true;
-          v.loop = true;
-          v.className = 'media-card-hover-video';
-          
-          card.appendChild(v);
-          v.play().catch(e => console.log('Autoplay prevented'));
         }
       }, 600);
     };
@@ -855,7 +895,7 @@ window.openUploadModal = () => {
   
   // Publish
   document.getElementById('up-publish').onclick = async (e) => {
-    e.target.innerText = "Uploading... please wait";
+    e.target.innerText = "Initiating Upload...";
     e.target.disabled = true;
 
     const title = document.getElementById('up-title').value.trim();
@@ -865,42 +905,107 @@ window.openUploadModal = () => {
        return alert("Title required");
     }
     
-    let videoUrl = currentVideoUrl;
+    const desc = document.getElementById('up-desc').value;
+    let videoUrl = currentVideoUrl; // old fallback
+    let youtubeVideoId = null;
     const fileObj = document.getElementById('up-vid-file').files[0];
     
+    const finalizeSaveAndClose = async (vidUrl, ytId) => {
+      const mem = {
+        id: 'm_' + Date.now(),
+        title,
+        desc: desc,
+        category: document.getElementById('up-cat').value,
+        year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
+        rating: document.getElementById('up-rating').value,
+        thumbnail: currentThumbData,
+        videoUrl: vidUrl,
+        youtubeVideoId: ytId,
+        dateAdded: Date.now(),
+        uploadedBy: appState.currentProfile
+      };
+      
+      await saveMemoryToDB(mem);
+      appState.memories.unshift(mem);
+      const modalEl = document.getElementById('uploadModal');
+      modalEl.classList.remove('open');
+      setTimeout(() => {
+        modalEl.remove();
+        render();
+      }, 500);
+    };
+
     if (fileObj) {
-      try {
-        videoUrl = await window.uploadFileToStorage(fileObj, 'videos/' + fileObj.name, e.target);
-      } catch(err) {
-        console.error("Upload error:", err);
-        alert("Failed to upload video.");
+      const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
+      if (!clientId) {
+        alert("YouTube Client ID is missing. Please set VITE_YOUTUBE_CLIENT_ID in .env");
         e.target.innerText = "Publish Memory";
         e.target.disabled = false;
         return;
       }
+
+      if (!window.google || !window.google.accounts) {
+        alert("Google Identity Services failed to load.");
+        e.target.innerText = "Publish Memory";
+        e.target.disabled = false;
+        return;
+      }
+
+      e.target.innerText = "Awaiting Google Login...";
+      
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/youtube.upload',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error !== undefined) {
+             console.error("OAuth Error", tokenResponse);
+             alert("YouTube authentication failed.");
+             e.target.innerText = "Publish Memory";
+             e.target.disabled = false;
+             return;
+          }
+          
+          try {
+            const uploader = new YouTubeMediaUploader({
+                file: fileObj,
+                token: tokenResponse.access_token,
+                metadata: {
+                    snippet: {
+                        title: title,
+                        description: desc || 'Uploaded via Netflix Clone',
+                        categoryId: '22' // People & Blogs
+                    },
+                    status: {
+                        privacyStatus: 'unlisted' // Keeps it private!
+                    }
+                },
+                onProgress: (msg) => { e.target.innerText = msg; },
+                onComplete: (responseString) => {
+                    const responseData = JSON.parse(responseString);
+                    youtubeVideoId = responseData.id;
+                    e.target.innerText = "Finalizing Link...";
+                    finalizeSaveAndClose(videoUrl, youtubeVideoId).catch(console.error);
+                },
+                onError: (err) => {
+                    console.error("Upload error:", err);
+                    alert("Failed to upload video to YouTube.");
+                    e.target.innerText = "Publish Memory";
+                    e.target.disabled = false;
+                }
+            });
+            await uploader.upload();
+          } catch(err) {
+            console.error("Uploader exception:", err);
+          }
+        },
+      });
+
+      // Request token (triggers popup)
+      tokenClient.requestAccessToken({prompt: 'consent'});
+      
+    } else {
+      await finalizeSaveAndClose(videoUrl, null);
     }
-    
-    const mem = {
-      id: 'm_' + Date.now(),
-      title,
-      desc: document.getElementById('up-desc').value,
-      category: document.getElementById('up-cat').value,
-      year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
-      rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData,
-      videoUrl: videoUrl,
-      dateAdded: Date.now(),
-      uploadedBy: appState.currentProfile
-    };
-    
-    await saveMemoryToDB(mem);
-    appState.memories.unshift(mem);
-    const modalEl = document.getElementById('uploadModal');
-    modalEl.classList.remove('open');
-    setTimeout(() => {
-      modalEl.remove();
-      render();
-    }, 600);
   };
 };
 
@@ -915,9 +1020,14 @@ window.openDetailModal = (id) => {
   modal.className = 'upload-modal';
   modal.id = 'detailModal';
   
-  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>` : 
-      `<img src="${m.thumbnail}">`;
+  let mediaHtml = `<img src="${m.thumbnail}">`;
+  if (appState.settings.autoPlayPreviews) {
+     if (m.youtubeVideoId) {
+        mediaHtml = `<iframe src="https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=0&mute=1&loop=1&playlist=${m.youtubeVideoId}&modestbranding=1&rel=0" frameborder="0" style="width:100%; height:130%; transform:translateY(-15%); pointer-events:none;"></iframe>`;
+     } else if (m.videoUrl) {
+        mediaHtml = `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>`;
+     }
+  }
 
   modal.innerHTML = `
     <div class="detail-modal">
@@ -978,7 +1088,7 @@ window.downloadVideo = () => {
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
   const m = appState.memories.find(i => i.id === id);
-  if(!m || !m.videoUrl) return alert("Video file not available for playback.");
+  if(!m || (!m.videoUrl && !m.youtubeVideoId)) return alert("Video file not available for playback.");
   
   // Track Continue Watching
   if(!appState.continueWatching.includes(id)) {
@@ -995,11 +1105,21 @@ window.playVideo = (id) => {
   c.className = 'playback-overlay';
   c.id = 'playbackOverlay';
   
+  // Conditionally render YouTube iframe or native video tag
+  let mainPlayerHtml = '';
+  if (m.youtubeVideoId) {
+    mainPlayerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;" 
+      src="https://www.youtube.com/embed/${m.youtubeVideoId}?autoplay=1&controls=1&rel=0&showinfo=0&modestbranding=1" 
+      frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    mainPlayerHtml = `<video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>`;
+  }
+
   // Play Netflix initial animation before playing video
   c.innerHTML = `
     <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();">🡠</div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%;"></video>
-    <video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>
+    ${mainPlayerHtml}
   `;
   document.body.appendChild(c);
   
@@ -1020,8 +1140,12 @@ window.playVideo = (id) => {
     }
     
     // Auto play when transition is done
-    const pPromise = mainPlayer.play();
-    if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+    if (m.youtubeVideoId) {
+       // iframe will autoplay via URL parameter
+    } else {
+       const pPromise = mainPlayer.play();
+       if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+    }
   };
   
   // Try autoplaying intro, else wait
