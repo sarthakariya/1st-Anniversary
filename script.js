@@ -642,8 +642,46 @@ function createProfileSelection() {
 function loginProfile(pf, p) {
   appState.currentProfile = pf.name;
   localStorage.setItem('sarthak_netflix_profile', pf.name);
-  transitionView('intro');
-  setTimeout(() => { transitionView('dashboard'); }, 4000);
+  appState.view = 'dashboard';
+  app.innerHTML = '';
+  
+  const dashboard = createDashboard();
+  app.appendChild(dashboard);
+  
+  // Dashboard emerges from shadows
+  dashboard.style.opacity = '0';
+  
+  // Create Intro Overlay
+  const introContainer = document.createElement('div');
+  introContainer.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:99999; display:flex; align-items:center; justify-content:center; transition:opacity 0.6s ease;";
+  introContainer.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline style="width:100%; height:100%; object-fit:contain;"></video>`;
+  document.body.appendChild(introContainer);
+  
+  const video = introContainer.querySelector('video');
+  video.onended = () => {
+    introContainer.style.opacity = '0';
+    setTimeout(() => {
+      animate(dashboard, { opacity: [0, 1] }, { duration: 1.0, ease: "easeOut" });
+      const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
+      if (elements.length > 0) {
+          animate(
+            elements, 
+            { y: [40, 0], opacity: [0, 1] }, 
+            { duration: 1.0, delay: stagger(0.15, { startDelay: 0.1 }), ease: "easeOut" }
+          );
+      }
+      introContainer.remove();
+    }, 600);
+  };
+  
+  // Fallback in case video fails
+  setTimeout(() => {
+    if(introContainer.parentNode) {
+      introContainer.style.opacity = '0';
+      setTimeout(() => introContainer.remove(), 600);
+      dashboard.style.opacity = '1';
+    }
+  }, 4500);
 }
 
 function showPinModal(pf, pElement) {
@@ -876,9 +914,13 @@ function createNavbar() {
       <div class="nav-logo" onclick="setCategory('Home')">
         <img id="nav-logo-img" style="height: 35px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links" style="gap: 25px; margin-left: 20px; position:relative;">
+      <ul class="nav-links" style="gap: 35px; margin-left: 30px; position:relative;">
         <div class="nav-line" id="navLine"></div>
-        ${mainTabs.map(cat => `<li data-cat="${cat}" class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('')}</li>`).join('')}
+        ${mainTabs.map(cat => {
+          let catContent = cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
+          if(cat === 'Home') catContent = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` + catContent;
+          return `<li data-cat="${cat}" class="${appState.activeCategory === cat ? 'active' : ''}" style="display:flex; align-items:center;" onclick="setCategory('${cat}')">${catContent}</li>`;
+        }).join('')}
       </ul>
       <div class="nav-right">
         <div class="search-container" id="searchContainer">
@@ -926,7 +968,29 @@ window.currentHeroIndex = window.currentHeroIndex || 0;
 window.shuffleHero = () => {
   const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
   if(vids.length > 0) window.currentHeroIndex = (window.currentHeroIndex + 1) % Math.min(5, vids.length);
-  render();
+  
+  const currentHero = document.querySelector('.hero-billboard');
+  if(currentHero) {
+    const newHero = createHero();
+    newHero.style.position = 'absolute';
+    newHero.style.top = '0';
+    newHero.style.left = '0';
+    newHero.style.zIndex = '11';
+    newHero.style.opacity = '0';
+    newHero.style.transition = 'opacity 0.8s ease';
+    
+    currentHero.parentNode.insertBefore(newHero, currentHero.nextSibling);
+    
+    // slight delay to allow video to start buffering
+    setTimeout(() => {
+      newHero.style.opacity = '1';
+      setTimeout(() => {
+        newHero.style.position = 'relative';
+        newHero.style.zIndex = '';
+        currentHero.remove();
+      }, 800);
+    }, 100);
+  }
 };
 
 function createHero() {
@@ -1139,10 +1203,14 @@ function createRow(title, memories, index = 0) {
         const img = entry.target;
         if (entry.isIntersecting) {
           if (img.dataset.src && (!img.src || img.src.includes('data:image'))) {
-            if (window.requestIdleCallback) {
-              requestIdleCallback(() => { img.src = img.dataset.src; });
-            } else {
+            const loadImg = () => {
               img.src = img.dataset.src;
+              img.decode().catch(() => {});
+            };
+            if (window.requestIdleCallback) {
+              requestIdleCallback(loadImg);
+            } else {
+              loadImg();
             }
           }
         } else {
@@ -1298,13 +1366,13 @@ window.openUploadModal = () => {
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
           <div style="display:flex; gap:10px;">
-            <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="flex:1; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'">
-            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:4px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
+            <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
           </div>
         </div>
         
         <div id="up-preview-container" style="display: none; text-align:center;">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
         </div>
 
         <div class="floating-input-group">
@@ -1320,36 +1388,36 @@ window.openUploadModal = () => {
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
-            <select id="up-cat" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none;">
-              <option value="Dates">Dates</option>
-              <option value="My Fav">My Fav</option>
-              <option value="Celebrations">Celebrations</option>
-              <option value="Romance">Romance</option>
-              <option value="Our Time">Our Time</option>
-              <option value="Documentaries">Documentaries</option>
+            <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+              <option value="Dates" style="background:#141414;">Dates</option>
+              <option value="My Fav" style="background:#141414;">My Fav</option>
+              <option value="Celebrations" style="background:#141414;">Celebrations</option>
+              <option value="Romance" style="background:#141414;">Romance</option>
+              <option value="Our Time" style="background:#141414;">Our Time</option>
+              <option value="Documentaries" style="background:#141414;">Documentaries</option>
             </select>
           </div>
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
-            <input type="date" id="up-date" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:11px; border-radius:4px; color:white; outline:none;" value="${new Date().toISOString().split('T')[0]}">
+            <input type="date" id="up-date" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'" value="${new Date().toISOString().split('T')[0]}">
           </div>
         </div>
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Maturity Rating</label>
-          <select id="up-rating" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none;">
-            <option value="U/A 7+">U/A 7+</option>
-            <option value="U/A 13+">U/A 13+</option>
-            <option value="U/A 16+">U/A 16+</option>
-            <option value="U/A 18+" selected>U/A 18+</option>
-            <option value="A">A</option>
+          <select id="up-rating" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+            <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
+            <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
+            <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
+            <option value="U/A 18+" selected style="background:#141414;">U/A 18+</option>
+            <option value="A" style="background:#141414;">A</option>
           </select>
         </div>
       </div>
       
       <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end;">
-        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:4px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
-        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:4px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
+        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:8px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
       </div>
     </div>
   `;
@@ -1474,7 +1542,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`) : 
+      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
@@ -1494,16 +1562,16 @@ window.openDetailModal = (id, e, editMode = false) => {
             <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black;">✓ Save</button>
             
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
-              ${inMyList ? '✓' : '＋'}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
             </div>
             <div class="circ-play-btn" onclick="likeMemory('${m.id}')" title="Like">
-              👍
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
             </div>
             <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
-              ⬇
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             </div>
-            <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="background: rgba(229, 9, 20, 0.4); border-color: rgba(229, 9, 20, 0.8);">
-              🗑
+            <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
           </div>
         </div>
@@ -1521,10 +1589,10 @@ window.openDetailModal = (id, e, editMode = false) => {
             <input type="file" id="dm-thumb-input" accept="image/*" style="font-size:14px;">
           </div>
         </div>
-        <div class="detail-right">
-          <div><span class="white">Cast:</span> Sarthak, Reechita</div>
-          <div style="margin-top:10px;"><span class="white">Genres:</span> ${m.category}, Emotional</div>
-          <div style="margin-top:10px;"><span class="white">This Show Is:</span> Romantic, Exciting</div>
+        <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+          <div><span style="color:#777;">Cast:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Sarthak</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Reechita</span></div>
+          <div style="margin-top:10px;"><span style="color:#777;">Genres:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Romance</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Emotional</span></div>
+          <div style="margin-top:10px;"><span style="color:#777;">This Show Is:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Heartfelt</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Intimate</span></div>
         </div>
       </div>
     </div>
@@ -1692,11 +1760,12 @@ window.playVideo = (id) => {
   // Setup main player later to prevent YouTube autoplaying before intro ends
   let playerHtml = '';
   if (isYouTube) {
-    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>`;
+    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:auto;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>`;
   } else {
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content;">
-        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; max-width:100cqw; aspect-ratio:16/9; object-fit:cover; cursor:pointer; will-change: transform;"></video>
+        <video src="${url}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:0; pointer-events:none;"></video>
+        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100cqw; aspect-ratio:16/9; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
@@ -1758,7 +1827,7 @@ window.playVideo = (id) => {
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
     
@@ -2000,27 +2069,60 @@ document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}
 // Moments functions
 window.openBulkUploadModal = () => {
   const m = document.createElement('div');
-  m.className = 'modal-overlay';
+  m.className = 'upload-modal';
   m.id = 'bulkUploadModal';
   m.innerHTML = `
-    <div class="modal-box" style="text-align:center;">
-      <h2 style="margin-bottom:20px; font-weight:bold;">Add Photos</h2>
-      <input type="file" id="bulk-upload-input" multiple accept="image/*" class="form-control" style="margin-bottom:20px; border-radius:4px; padding:10px;">
-      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
-        <button class="btn btn-secondary" style="border-radius: 4px;" onclick="document.getElementById('bulkUploadModal').remove()">Cancel</button>
-        <button class="btn btn-primary" id="bulk-upload-save" style="border-radius: 4px;">Upload & Save</button>
+    <div class="upload-modal-content">
+      <div class="upload-close" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">&times;</div>
+      <h2 style="margin-bottom:30px; font-weight:700; color:white; font-size:28px; letter-spacing:-0.5px;">Add Photos</h2>
+      
+      <div id="drop-zone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 25px; background: rgba(0,0,0,0.2); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;" onmouseenter="this.style.borderColor='rgba(255,255,255,0.5)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.2)'">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" style="margin-bottom:20px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <div style="color: rgba(255,255,255,0.8); font-size: 16px;">Click to select or drag photos here</div>
+        <div id="file-count" style="color: #e50914; font-size: 14px; margin-top: 10px; font-weight: 500;"></div>
+      </div>
+      <input type="file" id="bulk-upload-input" multiple accept="image/*" style="display:none;">
+      
+      <div style="display: flex; gap: 15px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:12px 24px; border-radius:6px; cursor:pointer;" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(()=>dm.remove(),300)">Cancel</button>
+        <button id="bulk-upload-save" style="background:#e50914; border:none; color:white; padding:12px 30px; font-weight:600; border-radius:6px; cursor:pointer;" disabled>Upload Photos</button>
       </div>
     </div>
   `;
   document.body.appendChild(m);
+  
   setTimeout(() => m.classList.add('open'), 10);
 
-  document.getElementById('bulk-upload-save').onclick = async () => {
-    const input = document.getElementById('bulk-upload-input');
+  const input = document.getElementById('bulk-upload-input');
+  const dropZone = document.getElementById('drop-zone');
+  const saveBtn = m.querySelector('#bulk-upload-save');
+  const countDisp = m.querySelector('#file-count');
+  
+  const handleFiles = (files) => {
+    if(files && files.length > 0) {
+      countDisp.innerText = files.length + ' photo' + (files.length>1?'s':'') + ' selected';
+      saveBtn.disabled = false;
+    }
+  };
+
+  dropZone.onclick = () => input.click();
+  input.onchange = (e) => handleFiles(e.target.files);
+  
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = 'rgba(255,255,255,0.05)'; };
+  dropZone.ondragleave = (e) => { e.preventDefault(); dropZone.style.background = 'rgba(0,0,0,0.2)'; };
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.style.background = 'rgba(0,0,0,0.2)';
+    if(e.dataTransfer.files) {
+       input.files = e.dataTransfer.files;
+       handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  saveBtn.onclick = async () => {
     if (!input.files || input.files.length === 0) return;
-    
-    document.getElementById('bulk-upload-save').innerText = 'Uploading...';
-    
+    saveBtn.innerText = 'Uploading...';
+    saveBtn.disabled = true;
     appState.activeCategory = 'Moments';
     
     const maxFiles = Array.from(input.files);
@@ -2049,8 +2151,8 @@ window.openBulkUploadModal = () => {
     }
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-    m.remove();
-    render();
+    m.style.opacity = '0';
+    setTimeout(() => { m.remove(); render(); }, 400);
   };
 };
 
