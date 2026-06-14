@@ -577,33 +577,7 @@ function createStartupScreen() {
 }
 
 // Web Audio Synthesizer
-let audioCtx;
-window.playHoverSound = () => {
-  try {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
-    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-    
-    gain.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.05, audioCtx.currentTime + 0.05);
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
-  } catch (err) {
-    console.log("Audio not supported or allowed yet");
-  }
-};
+window.playHoverSound = () => {};
 
 function createProfileSelection() {
   const c = document.createElement('div');
@@ -637,7 +611,7 @@ function createProfileSelection() {
   appState.profiles.forEach((pf) => {
     const p = document.createElement('div');
     p.className = 'profile-card';
-    p.onmouseenter = window.playHoverSound;
+    p.onmouseenter = null;
     if(isManageMode) p.classList.add('manage-mode');
     
     p.style.setProperty('--stagger', delay++);
@@ -669,8 +643,7 @@ function createProfileSelection() {
 }
 
 function loginProfile(pf, p) {
-  // Sound ripple
-  window.playHoverSound();
+  // Sound ripple removed
   const rect = p.getBoundingClientRect();
   const ripple = document.createElement('div');
   ripple.style.position = 'fixed';
@@ -1185,7 +1158,8 @@ function createRow(title, memories, index = 0) {
             v.autoplay = true;
             v.loop = true;
             v.className = 'media-card-hover-video';
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;border-radius:4px;';
+            v.setAttribute('fetchpriority', 'high');
+            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2;border-radius:4px;';
             card.appendChild(v);
             v.play().catch(e => console.log('Autoplay prevented'));
           }
@@ -1205,14 +1179,11 @@ function createRow(title, memories, index = 0) {
       }
     };
 
-    const matchScore = m.title ? Math.max(85, 100 - (m.title.length % 15)) : 98;
     card.innerHTML += `
       <div class="card-info">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-          ${m.title}
-          <div class="circ-play-btn" onclick="playTrailer(event, '${m.id}')" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <span style="font-size: 16px; font-weight:600; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">${m.title}</span>
         </div>
-        <div class="card-meta"><span class="match-rate">${matchScore}% Match</span> <span style="color:#fff">${m.year || '2025'}</span></div>
       </div>
     `;
     fragment.appendChild(card);
