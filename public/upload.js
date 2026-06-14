@@ -38,6 +38,13 @@ window.openUploadModal = () => {
               </select>
             </div>
           </div>
+          <div style="margin-top: 20px;">
+            <label style="display:flex; justify-content:space-between; color:#aaa; margin-bottom:5px; font-size:14px;">
+              <span>Match Intensity</span>
+              <span id="up-match-val" style="color: #46d369; font-weight: bold;">99% Romantic Match</span>
+            </label>
+            <input type="range" id="up-match" min="1" max="100" value="99" style="width:100%;" oninput="document.getElementById('up-match-val').innerText = this.value + '% Romantic Match';">
+          </div>
         </div>
         
         <div style="display:flex; flex-direction:column; gap: 20px;">
@@ -67,6 +74,7 @@ window.openUploadModal = () => {
     const cat = document.getElementById('up-cat').value;
     const year = document.getElementById('up-year').value.trim() || new Date().getFullYear().toString();
     const rating = document.getElementById('up-rating').value;
+    const matchRate = document.getElementById('up-match').value || 99;
     
     // File/URL handling logic mapped from original
     const videoFile = document.getElementById('up-video').files[0];
@@ -115,6 +123,7 @@ window.openUploadModal = () => {
       category: cat,
       year,
       rating,
+      matchRate,
       thumbnail: thumbData,
       videoUrl: extractedVideoId,
       dateAdded: Date.now(),

@@ -890,9 +890,28 @@ window.openManageProfiles = () => {
 function createNavbar() {
   const nav = document.createElement('nav');
   nav.className = 'navbar';
+  
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  
   window.addEventListener('scroll', () => {
-    if(window.scrollY > 10) nav.classList.add('scrolled');
-    else nav.classList.remove('scrolled');
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const velY = Math.abs(window.scrollY - lastScrollY);
+        lastScrollY = window.scrollY;
+        if(window.scrollY > 10) {
+          nav.classList.add('scrolled');
+          const shadowBlur = Math.min(20 + velY * 0.5, 60);
+          const shadowSpread = Math.min(velY * 0.2, 20);
+          nav.style.boxShadow = `0px 4px ${shadowBlur}px ${shadowSpread}px rgba(0,0,0,0.8)`;
+        } else {
+          nav.classList.remove('scrolled');
+          nav.style.boxShadow = 'none';
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
   });
 
     const currentPf = appState.profiles.find(p => p.name === appState.currentProfile);
@@ -979,7 +998,7 @@ function createHero() {
     if (isYouTube) {
       backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.35);"></iframe>`;
     } else {
-      backgroundVideoHtml = `<video class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
+      backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : 'volume="0"'} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
   }
 
@@ -992,10 +1011,6 @@ function createHero() {
     <div class="hero-overlay" style="z-index: 5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5;">
-      <div class="hero-original">
-        <div class="n-series">N</div>
-        <div class="series-tag">S E R I E S</div>
-      </div>
       <div class="hero-title">${heroMem.title}</div>
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
@@ -1030,6 +1045,24 @@ function createHero() {
     window.addEventListener('mousemove', resetIdleTimer);
     window.addEventListener('keydown', resetIdleTimer);
     resetIdleTimer();
+    
+    // Volume Fade Loop Timer for native video
+    setTimeout(() => {
+      const nv = document.getElementById('hero-native-video');
+      if (nv && !nv.muted) {
+        nv.volume = 0;
+        let vol = 0;
+        const rampInterval = setInterval(() => {
+          vol += 0.05; // 5 steps to 0.25
+          if (vol >= 0.25) {
+            nv.volume = 0.25;
+            clearInterval(rampInterval);
+          } else {
+            nv.volume = vol;
+          }
+        }, 600); // 5 steps * 600ms = 3000ms
+      }
+    }, 100);
   }
   return c;
 }
@@ -1519,7 +1552,7 @@ window.openDetailModal = (id, e, editMode = false) => {
       <div class="detail-body">
         <div class="detail-left">
           <div class="detail-meta">
-            99% Match <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
+            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
@@ -1620,9 +1653,17 @@ window.playVideo = (id) => {
   const detailModal = document.getElementById('detailModal');
   if(detailModal) detailModal.remove();
   
-  const c = document.createElement('div');
-  c.className = 'playback-overlay';
-  c.id = 'playbackOverlay';
+  let c = document.getElementById('playbackOverlay');
+  if (!c) {
+    c = document.createElement('div');
+    c.className = 'playback-overlay';
+    c.id = 'playbackOverlay';
+    document.body.appendChild(c);
+  }
+  
+  c.style.display = 'block';
+  c.style.transform = 'translateY(0)';
+  c.style.opacity = '1';
   
   // Play Netflix initial animation before playing video
   const isYouTube = url && !url.includes('/') && !url.includes('blob:');
@@ -1630,11 +1671,11 @@ window.playVideo = (id) => {
   // Setup main player later to prevent YouTube autoplaying before intro ends
   let playerHtml = '';
   if (isYouTube) {
-    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="" allow="autoplay; fullscreen"></iframe>`;
+    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>`;
   } else {
     playerHtml = `
-      <div id="video-container" style="position:relative; width:100%; height:100%; display:none; background:black; contain: content;">
-        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; height:100%; cursor:pointer; object-fit:cover; will-change: transform;"></video>
+      <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content;">
+        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; max-width:100cqw; aspect-ratio:16/9; object-fit:cover; cursor:pointer; will-change: transform;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
@@ -1666,8 +1707,24 @@ window.playVideo = (id) => {
     </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
+    
+    <!-- Next up countdown overlay -->
+    <div id="next-up-overlay" style="display:none; position:absolute; bottom: 80px; right: 80px; z-index:10005; align-items:center; gap: 15px;">
+      <div style="text-align: right; color: white;">
+        <div style="font-size: 14px; font-weight: bold; color: #aaa;">Up Next</div>
+        <div id="next-up-title" style="font-size: 18px; font-weight: bold;">Title</div>
+      </div>
+      <div style="position: relative; width: 60px; height: 60px; cursor: pointer;" id="next-up-btn">
+        <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform: rotate(-90deg);">
+           <circle cx="50" cy="50" r="45" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="5"></circle>
+           <circle id="next-up-ring" cx="50" cy="50" r="45" fill="transparent" stroke="#e50914" stroke-width="5" stroke-dasharray="283" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.1s linear;"></circle>
+        </svg>
+        <div style="position:absolute; top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;">▶</div>
+      </div>
+    </div>
   `;
-  document.body.appendChild(c);
+  // don't appendChild here since we attached it at the top
+
   
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
@@ -1675,7 +1732,7 @@ window.playVideo = (id) => {
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&fs=1&playsinline=1&vq=hd1080`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3`;
     }
     mainPlayer.style.display = 'block';
     
@@ -1832,36 +1889,22 @@ window.playVideo = (id) => {
       if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
         const idx = appState.memories.findIndex(i => i.id === id);
         if (idx >= 0 && idx < appState.memories.length - 1) {
-          if (!document.getElementById('next-ep-queue')) {
-            const nextMem = appState.memories[idx + 1];
-            const qBox = document.createElement('div');
-            qBox.id = 'next-ep-queue';
-            qBox.style.cssText = 'position:absolute; bottom:12%; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
-            qBox.innerHTML = `
-              <div>
-                <div style="font-size:14px; color:#ccc; margin-bottom:5px;">Playing Next</div>
-                <div style="font-size:16px; font-weight:bold;">${nextMem.title}</div>
-              </div>
-              <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
-                <svg width="40" height="40" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
-                  <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4" fill="none" />
-                  <circle id="next-ep-timer-circle" cx="20" cy="20" r="18" stroke="#e50914" stroke-width="4" fill="none" stroke-dasharray="113" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.1s linear;" />
-                </svg>
-                ▶
-              </div>
-            `;
-            qBox.onclick = () => {
-               document.getElementById('playbackOverlay').remove();
+          const nextMem = appState.memories[idx + 1];
+          const timerDiv = document.getElementById('next-up-overlay');
+          if (timerDiv.style.display === 'none') {
+            document.getElementById('next-up-title').innerText = nextMem.title;
+            timerDiv.style.display = 'flex';
+            document.getElementById('next-up-btn').onclick = () => {
+               document.getElementById('playback-back-btn').click();
                playVideo(nextMem.id);
             };
-            c.appendChild(qBox);
           }
           
-          const circle = document.getElementById('next-ep-timer-circle');
+          const circle = document.getElementById('next-up-ring');
           const remains = mainPlayer.duration - mainPlayer.currentTime;
-          if(circle) {
-            const offset = 113 - ((remains / 5) * 113);
-            circle.style.strokeDashoffset = offset + '';
+          if (circle) {
+             const offset = 283 - ((remains / 5) * 283);
+             circle.style.strokeDashoffset = offset.toString();
           }
         }
       }
@@ -1871,7 +1914,6 @@ window.playVideo = (id) => {
       if(appState.settings.autoPlayNextEpisode) {
         const idx = appState.memories.findIndex(i => i.id === id);
         if(idx >= 0 && idx < appState.memories.length - 1) {
-          document.getElementById('playbackOverlay').remove();
           playVideo(appState.memories[idx + 1].id);
         }
       }
@@ -1890,10 +1932,12 @@ window.playVideo = (id) => {
      c.style.transform = 'translateY(100%)';
      c.style.opacity = '0';
      setTimeout(() => {
-       if (document.getElementById('playbackOverlay')) {
-         document.getElementById('playbackOverlay').remove();
-         // we don't necessarily need to render() again since dashboard is already behind it.
+       if (mainPlayer) {
+         mainPlayer.src = ""; // cleanup
+         if (typeof mainPlayer.load === 'function') mainPlayer.load();
        }
+       c.innerHTML = ''; // fully unmount internal elements
+       c.style.display = 'none';
      }, 400);
   };
   
@@ -1923,6 +1967,9 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    if(appState.screen === 'dashboard') {
+      render();
+    }
   }, 150);
 });
 
