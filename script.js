@@ -341,9 +341,9 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <video id="startup-vid" src="/netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); z-index:2; cursor:pointer; flex-direction: column;">
-      <img src="/Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
+      <img src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
       <div style="background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <h1 style="color:white; font-size:16px; font-weight: 500; letter-spacing: 1px; margin: 0; display: flex; align-items: center; gap: 10px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg> Click anywhere to start
@@ -666,7 +666,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="/Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 20px;">
         ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
@@ -1082,6 +1082,15 @@ window.openDetailModal = (id) => {
       v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
     }
   });
+
+  // Pause hover videos
+  const hoverVids = document.querySelectorAll('.media-card-hover-video');
+  hoverVids.forEach(v => {
+    if (v.tagName === 'VIDEO') v.pause();
+    else if (v.tagName === 'IFRAME') {
+      v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+    }
+  });
   
   const modal = document.createElement('div');
   modal.className = 'detail-overlay';
@@ -1211,7 +1220,7 @@ window.playVideo = (id) => {
 
   c.innerHTML = `
     <div class="playback-back" id="playback-back-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white; font-size: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&#8592;</div>
-    <video src="/netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
   `;
   document.body.appendChild(c);
