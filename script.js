@@ -524,7 +524,7 @@ window.editProfile = (pfId) => {
 function createIntroScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  c.innerHTML = `<video src="./netflix-intro.mp4" playsinline autoplay style="object-fit:cover; width:100%; height:100%;"></video>`;
+  c.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline></video>`;
   return c;
 }
 
@@ -778,6 +778,11 @@ window.openUploadModal = () => {
       <div class="form-group">
         <label>YouTube Video Link</label>
         <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="font-family: monospace;">
+        <button id="up-fetch" class="btn btn-secondary" style="margin-top: 5px; width: 100%; font-size: 14px;">Fetch Video Metadata</button>
+      </div>
+      
+      <div class="form-group" style="text-align: center; display: none;" id="up-preview-container">
+        <img id="up-thumb-preview" src="" style="max-height: 150px; border-radius: 4px; border: 1px solid #333;">
       </div>
 
       <div class="form-group">
@@ -821,10 +826,10 @@ window.openUploadModal = () => {
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('open'), 10);
   
-  document.getElementById('up-publish').onclick = async (e) => {
-    const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
-    
+  let currentThumbData = '';
+  let extractedVideoId = '';
+
+  document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
     if (!link) return alert("Please paste a YouTube link first.");
 
@@ -838,6 +843,38 @@ window.openUploadModal = () => {
     }
 
     if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
+    
+    extractedVideoId = videoId;
+    document.getElementById('up-fetch').innerText = "Fetching...";
+    
+    try {
+      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
+      if (oembedRes.ok) {
+        const data = await oembedRes.json();
+        if (data.title) document.getElementById('up-title').value = data.title;
+        if (data.thumbnail_url) {
+          currentThumbData = data.thumbnail_url;
+          document.getElementById('up-thumb-preview').src = currentThumbData;
+          document.getElementById('up-preview-container').style.display = 'block';
+        }
+      } else {
+         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+         document.getElementById('up-thumb-preview').src = currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
+      }
+    } catch(err) {
+         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+         document.getElementById('up-thumb-preview').src = currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
+    }
+    
+    document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
+  };
+  
+  document.getElementById('up-publish').onclick = async (e) => {
+    const title = document.getElementById('up-title').value.trim();
+    if(!title) return alert("Title required");
+    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
@@ -849,8 +886,8 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg',
-      videoUrl: videoId,
+      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/hqdefault.jpg'),
+      videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
