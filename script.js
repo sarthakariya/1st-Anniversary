@@ -341,9 +341,9 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="startup-vid" src="/netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); z-index:2; cursor:pointer; flex-direction: column;">
-      <img src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
+      <img src="/Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
       <div style="background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <h1 style="color:white; font-size:16px; font-weight: 500; letter-spacing: 1px; margin: 0; display: flex; align-items: center; gap: 10px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg> Click anywhere to start
@@ -439,10 +439,10 @@ function createProfileSelection() {
 }
 
 function loginProfile(pf, p) {
-  p.classList.add('flip-active');
+  p.classList.add('glass-pulse');
   setTimeout(() => {
-    p.innerHTML = `<div class="profile-avatar-wrapper" style="transform: rotateY(180deg);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
-  }, 300);
+    p.innerHTML = `<div class="profile-avatar-wrapper glass-loading-wrapper" style="backdrop-filter: blur(10px);"><div class="loading-spinner"></div></div><div class="profile-name">${pf.name}</div>`;
+  }, 200);
   
   setTimeout(() => {
     appState.currentProfile = pf.name;
@@ -666,7 +666,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="/Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 20px;">
         ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
@@ -727,7 +727,7 @@ function createHero() {
   } else {
     c.innerHTML = `
       <div class="hero-video-wrapper">
-        <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero">
+        <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high">
       </div>
     `;
   }
@@ -748,7 +748,7 @@ function createHero() {
       </div>
     </div>
     <div class="hero-controls">
-      <div class="mute-btn" onclick="appState.isHeroMuted = !(appState.isHeroMuted !== false); render();" title="Toggle Mute">
+      <div class="mute-btn" id="hero-mute-btn" onclick="toggleHeroMute()" title="Toggle Mute">
         ${(appState.isHeroMuted !== false) ? 
          `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>` :
          `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>`}
@@ -765,71 +765,160 @@ function createRow(title, memories) {
   row.innerHTML = `<div class="row-header">${title}</div><div class="row-content"></div>`;
   
   const rc = row.querySelector('.row-content');
-  memories.forEach(m => {
-    const card = document.createElement('div');
-    card.className = 'media-card';
-    card.onclick = () => openDetailModal(m.id);
-    
-    // Fallback if videoUrl exists and autoPlay is on
-    card.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">`;
-    
-    // Hover Video Preview Support
-    card.onmouseenter = () => {
-      card.hoverTimeout = setTimeout(() => {
-        if(m.videoUrl && appState.settings.autoPlayPreviews) {
-          const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
-          
-          if (isYouTube) {
-            const v = document.createElement('iframe');
-            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3`;
-            v.className = 'media-card-hover-video';
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2;';
-            card.appendChild(v);
-          } else {
-            const v = document.createElement('video');
-            let srcUrl = m.videoUrl;
-            if (m.videoFile && !srcUrl.startsWith('blob:')) {
-              srcUrl = URL.createObjectURL(m.videoFile);
-              m.videoUrl = srcUrl;
-            }
-            v.src = srcUrl;
-            v.muted = true;
-            v.autoplay = true;
-            v.loop = true;
-            v.className = 'media-card-hover-video';
-            
-            card.appendChild(v);
-            v.play().catch(e => console.log('Autoplay prevented'));
-          }
-        }
-      }, 2000);
-    };
 
-    card.onmouseleave = () => {
-      clearTimeout(card.hoverTimeout);
-      const v = card.querySelector('.media-card-hover-video');
-      if(v) v.remove();
-    };
-
-    const matchScore = m.title ? Math.max(85, 100 - (m.title.length % 15)) : 98;
-
-    card.innerHTML += `
-      <div class="card-info">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-          ${m.title}
-          <div class="circ-play-btn" onclick="playTrailer(event, '${m.id}')" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
-        </div>
-        <div class="card-meta"><span class="match-rate">${matchScore}% Match</span> <span style="color:#fff">${m.year || '2025'}</span></div>
-      </div>
-    `;
-    rc.appendChild(card);
+  // Swipe scrolling handler
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+  
+  rc.addEventListener('mousedown', (e) => {
+    isDown = true;
+    rc.classList.add('active');
+    startX = e.pageX - rc.offsetLeft;
+    scrollLeft = rc.scrollLeft;
   });
+  rc.addEventListener('mouseleave', () => {
+    isDown = false;
+    rc.classList.remove('active');
+  });
+  rc.addEventListener('mouseup', () => {
+    isDown = false;
+    rc.classList.remove('active');
+  });
+  rc.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - rc.offsetLeft;
+    const walk = (x - startX) * 2; // scroll-fast
+    rc.scrollLeft = scrollLeft - walk;
+  });
+
+  // Touch passive listeners
+  const touchStartHandler = (e) => {
+    isDown = true;
+    startX = e.touches[0].pageX - rc.offsetLeft;
+    scrollLeft = rc.scrollLeft;
+  };
+  const touchMoveHandler = (e) => {
+    if (!isDown) return;
+    const x = e.touches[0].pageX - rc.offsetLeft;
+    const walk = (x - startX) * 2;
+    rc.scrollLeft = scrollLeft - walk;
+  };
+
+  rc.addEventListener('touchstart', touchStartHandler, { passive: true });
+  rc.addEventListener('touchmove', touchMoveHandler, { passive: true });
+  rc.addEventListener('touchend', () => { isDown = false; }, { passive: true });
+  
+  // Document Fragment and for-loop for Zero-Delay rendering
+  const loadCards = () => {
+    if (rc.children.length > 0) return; // already loaded
+    
+    // Process heavy DOM operation off main thread using requestIdleCallback
+    const buildDomTree = () => {
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < memories.length; i++) {
+        const m = memories[i];
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        card.onclick = () => openDetailModal(m.id);
+        
+        card.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
+        
+        card.onmouseenter = () => {
+          card.hoverTimeout = setTimeout(() => {
+            if(m.videoUrl && appState.settings.autoPlayPreviews) {
+              const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+              if (isYouTube) {
+                const v = document.createElement('iframe');
+                v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3`;
+                v.className = 'media-card-hover-video';
+                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2;';
+                card.appendChild(v);
+              } else {
+                const v = document.createElement('video');
+                let srcUrl = m.videoUrl;
+                if (m.videoFile && !srcUrl.startsWith('blob:')) {
+                  srcUrl = URL.createObjectURL(m.videoFile);
+                  m.videoUrl = srcUrl;
+                }
+                v.src = srcUrl;
+                v.muted = true;
+                v.autoplay = true;
+                v.loop = true;
+                v.className = 'media-card-hover-video';
+                card.appendChild(v);
+                v.play().catch(e => console.log('Autoplay prevented'));
+              }
+            }
+          }, 2000);
+        };
+
+        card.onmouseleave = () => {
+          clearTimeout(card.hoverTimeout);
+          const v = card.querySelector('.media-card-hover-video');
+          if(v) v.remove();
+        };
+
+        const matchScore = m.title ? Math.max(85, 100 - (m.title.length % 15)) : 98;
+        card.innerHTML += `
+          <div class="card-info">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+              ${m.title}
+              <div class="circ-play-btn" onclick="playTrailer(event, '${m.id}')" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+            </div>
+            <div class="card-meta"><span class="match-rate">${matchScore}% Match</span> <span style="color:#fff">${m.year || '2025'}</span></div>
+          </div>
+        `;
+        fragment.appendChild(card);
+      }
+      rc.appendChild(fragment);
+    };
+
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(buildDomTree);
+    } else {
+      setTimeout(buildDomTree, 0);
+    }
+  };
+
+  const unloadCards = () => {
+    rc.innerHTML = '';
+  };
+
+  // Intersection Observer for unloading hidden rows
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        loadCards();
+      } else {
+        unloadCards();
+      }
+    });
+  }, { rootMargin: "300px" });
+
+  observer.observe(row);
   return row;
 }
 
 window.playTrailer = (e, id) => {
   e.stopPropagation();
   playVideo(id);
+};
+
+window.toggleHeroMute = () => {
+  if (appState.isHeroMuted === undefined) appState.isHeroMuted = true;
+  appState.isHeroMuted = !appState.isHeroMuted;
+  const vids = document.querySelectorAll('.hero-video');
+  const btn = document.getElementById('hero-mute-btn');
+  vids.forEach(v => {
+    if (v.tagName === 'VIDEO') v.muted = appState.isHeroMuted;
+  });
+  if (btn) {
+     btn.innerHTML = (appState.isHeroMuted !== false) ? 
+       `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>` :
+       `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>`;
+  }
 };
 
 // === UPLOAD FEATURE ===
@@ -984,6 +1073,15 @@ window.openDetailModal = (id) => {
   if(!m) return;
   
   const inMyList = appState.myList.includes(id);
+
+  // Pause hero video
+  const heroVids = document.querySelectorAll('.hero-video');
+  heroVids.forEach(v => {
+    if (v.tagName === 'VIDEO') v.pause();
+    else if (v.tagName === 'IFRAME') {
+      v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+    }
+  });
   
   const modal = document.createElement('div');
   modal.className = 'detail-overlay';
@@ -998,7 +1096,7 @@ window.openDetailModal = (id) => {
   modal.innerHTML = `
     <div class="detail-modal">
       <div class="modal-controls">
-        <button class="modal-close-btn" onclick="document.getElementById('detailModal').remove()">&times;</button>
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { dm.remove(); render(); }, 300);">&times;</button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
@@ -1083,12 +1181,37 @@ window.playVideo = (id) => {
   if (isYouTube) {
     playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="https://www.youtube.com/embed/${url}?autoplay=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&fs=1&playsinline=1&vq=hd1080" allow="autoplay; fullscreen"></iframe>`;
   } else {
-    playerHtml = `<video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>`;
+    playerHtml = `
+      <div id="video-container" style="position:relative; width:100%; height:100%; display:none; background:black;">
+        <video src="${url}" id="fsyPlayer" style="width:100%; height:100%; cursor:pointer;"></video>
+        <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
+          <div style="display:flex; align-items:center; gap:15px; width: 100%;">
+            <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
+            <input type="range" id="seek-bar" value="0" step="0.1" style="flex:1; cursor:pointer; accent-color: var(--netflix-red, #e50914); height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;">
+            <span id="time-remaining" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:25px; margin-top: 10px;">
+            <button id="play-pause-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Play/Pause (Space)">
+              <svg id="icon-play" width="36" height="36" viewBox="0 0 24 24" fill="white" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="icon-pause" width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button id="mute-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Mute/Unmute (M)">
+              <svg id="icon-vol-up" width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+              <svg id="icon-vol-off" width="32" height="32" viewBox="0 0 24 24" fill="white" style="display:none;"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+            </button>
+            <div style="flex:1;"></div>
+            <button id="fullscreen-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Fullscreen (F)">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   c.innerHTML = `
-    <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();" style="z-index: 10000; position:absolute;">🡠</div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <div class="playback-back" id="playback-back-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white; font-size: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&#8592;</div>
+    <video src="/netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
   `;
   document.body.appendChild(c);
@@ -1124,7 +1247,125 @@ window.playVideo = (id) => {
   }
   
   if (!isYouTube) {
+    const videoContainer = document.getElementById('video-container');
+    const controls = document.getElementById('video-controls');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const seekBar = document.getElementById('seek-bar');
+    const timeCurrent = document.getElementById('time-current');
+    const timeRemaining = document.getElementById('time-remaining');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const iconVolUp = document.getElementById('icon-vol-up');
+    const iconVolOff = document.getElementById('icon-vol-off');
+
+    const formatTime = (time) => {
+      if (isNaN(time)) return '0:00';
+      const maxSeconds = Math.floor(time);
+      const minutes = Math.floor(maxSeconds / 60);
+      const seconds = maxSeconds % 60;
+      return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+    };
+
+    const updatePlayPause = () => {
+      if (mainPlayer.paused) {
+        iconPlay.style.display = 'block';
+        iconPause.style.display = 'none';
+      } else {
+        iconPlay.style.display = 'none';
+        iconPause.style.display = 'block';
+      }
+    };
+
+    const togglePlay = () => {
+      if (mainPlayer.paused) mainPlayer.play();
+      else mainPlayer.pause();
+    };
+
+    const toggleMute = () => {
+      mainPlayer.muted = !mainPlayer.muted;
+      if (mainPlayer.muted) {
+        iconVolUp.style.display = 'none';
+        iconVolOff.style.display = 'block';
+      } else {
+        iconVolUp.style.display = 'block';
+        iconVolOff.style.display = 'none';
+      }
+    };
+
+    playPauseBtn.onclick = togglePlay;
+    mainPlayer.onclick = togglePlay;
+    mainPlayer.onplay = updatePlayPause;
+    mainPlayer.onpause = updatePlayPause;
+    muteBtn.onclick = toggleMute;
+
+    fullscreenBtn.onclick = () => {
+      if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    };
+
+    mainPlayer.onloadedmetadata = () => {
+      seekBar.max = mainPlayer.duration;
+      timeRemaining.textContent = formatTime(mainPlayer.duration);
+    };
+
+    seekBar.addEventListener('input', () => {
+      mainPlayer.currentTime = seekBar.value;
+    });
+
+    let hideControlsTimeout;
+    const showControls = () => {
+      controls.style.opacity = '1';
+      document.body.style.cursor = 'default';
+      clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = setTimeout(() => {
+        if (!mainPlayer.paused) {
+          controls.style.opacity = '0';
+          document.body.style.cursor = 'none';
+        }
+      }, 3000);
+    };
+
+    videoContainer.onmousemove = showControls;
+    videoContainer.onmouseleave = () => {
+      if (!mainPlayer.paused) controls.style.opacity = '0';
+    };
+
+    window.addEventListener('keydown', function(e) {
+      if(document.getElementById('playbackOverlay')) {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlay();
+          showControls();
+        } else if (e.key === 'm' || e.key === 'M') {
+          toggleMute();
+          showControls();
+        } else if (e.code === 'ArrowRight') {
+          mainPlayer.currentTime += 5;
+          showControls();
+        } else if (e.code === 'ArrowLeft') {
+          mainPlayer.currentTime -= 5;
+          showControls();
+        } else if (e.key === 'f' || e.key === 'F') {
+           fullscreenBtn.click();
+        }
+      }
+    });
+
     mainPlayer.ontimeupdate = () => {
+      seekBar.value = mainPlayer.currentTime;
+      timeCurrent.textContent = formatTime(mainPlayer.currentTime);
+      timeRemaining.textContent = formatTime(mainPlayer.duration - mainPlayer.currentTime);
+      
+      const percent = (mainPlayer.currentTime / mainPlayer.duration) * 100;
+      seekBar.style.background = `linear-gradient(to right, var(--netflix-red, #e50914) ${percent}%, rgba(255,255,255,0.3) ${percent}%)`;
+
       if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
         const idx = appState.memories.findIndex(i => i.id === id);
         if (idx >= 0 && idx < appState.memories.length - 1) {
@@ -1132,11 +1373,11 @@ window.playVideo = (id) => {
             const nextMem = appState.memories[idx + 1];
             const qBox = document.createElement('div');
             qBox.id = 'next-ep-queue';
-            qBox.style.cssText = 'position:absolute; bottom:5vw; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
+            qBox.style.cssText = 'position:absolute; bottom:12%; right:4vw; background:rgba(0,0,0,0.8); padding:15px; display:flex; align-items:center; gap:20px; border-radius:4px; z-index:20005; cursor:pointer; color:white;';
             qBox.innerHTML = `
               <div>
-                <div style="font-size:1vw; color:#ccc; margin-bottom:5px;">Playing Next</div>
-                <div style="font-size:1.2vw; font-weight:bold;">${nextMem.title}</div>
+                <div style="font-size:14px; color:#ccc; margin-bottom:5px;">Playing Next</div>
+                <div style="font-size:16px; font-weight:bold;">${nextMem.title}</div>
               </div>
               <div style="position:relative; width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
                 <svg width="40" height="40" style="position:absolute; top:0; left:0; transform:rotate(-90deg);">
@@ -1165,7 +1406,6 @@ window.playVideo = (id) => {
   
     mainPlayer.onended = () => {
       if(appState.settings.autoPlayNextEpisode) {
-        // Find next memory
         const idx = appState.memories.findIndex(i => i.id === id);
         if(idx >= 0 && idx < appState.memories.length - 1) {
           document.getElementById('playbackOverlay').remove();
@@ -1174,6 +1414,16 @@ window.playVideo = (id) => {
       }
     };
   }
+
+  // Handle closing player efficiently
+  document.getElementById('playback-back-btn').onclick = () => {
+     if (mainPlayer) {
+       mainPlayer.src = "";
+       mainPlayer.load();
+     }
+     document.getElementById('playbackOverlay').remove();
+     render();
+  };
 };
 
 // Initialize
