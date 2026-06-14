@@ -35,13 +35,14 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(229, 9, 20, 0.15) 0%, #141414 70%);
+  background: radial-gradient(circle at center, rgba(229, 9, 20, 0.25) 0%, rgba(229, 9, 20, 0.1) 40%, #141414 85%);
 }
 .profile-selection h1 {
-  font-size: 3.5vw;
+  font-size: 3vw;
   font-weight: 500;
   color: #fff;
   margin-bottom: 2em;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 .profiles-list {
   display: flex;
@@ -64,36 +65,34 @@ body {
   transform: rotateY(180deg);
 }
 .profile-avatar {
-  width: 10vw;
-  height: 10vw;
-  max-width: 150px;
-  max-height: 150px;
-  min-width: 84px;
-  min-height: 84px;
+  width: 9vw;
+  height: 9vw;
+  max-width: 140px;
+  max-height: 140px;
+  min-width: 80px;
+  min-height: 80px;
   border-radius: 4px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   box-sizing: border-box;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), outline 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
   box-shadow: 0px 4px 15px rgba(0,0,0,0.5);
-  outline: 4px solid transparent;
-  outline-offset: 4px;
 }
 .profile-card:hover .profile-avatar {
-  outline-color: #e5e5e5;
-  transform: scale(1.1);
+  transform: scale(1.05); /* very subtle scale, less bouncing */
+  box-shadow: 0px 10px 25px rgba(0,0,0,0.8); /* premium depth, removes outline */
 }
 .profile-name {
-  margin-top: 15px;
-  color: #fff;
-  font-size: 1.6vw;
-  font-weight: 700;
+  margin-top: 10px;
+  color: #808080;
+  font-size: 1.2vw;
+  font-weight: 400;
   transition: color 0.3s ease, font-weight 0.3s ease;
 }
 .profile-card:hover .profile-name {
   color: #fff;
-  font-weight: 900;
+  font-weight: 500;
 }
 
 /* Manage Profiles */
@@ -645,7 +644,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: #181818;
   width: 900px;
   max-width: 95%;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 0 30px rgba(0,0,0,0.9);
   overflow: hidden;
 }
@@ -735,3 +734,49 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .empty-dashboard h2 { color: white; font-size: 2.5vw; margin: 20px 0 10px 0; }
 
+/* Pin Overlay UI */
+.pin-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+.pin-container {
+  text-align: center;
+  animation: fadeZoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.pin-container h2 {
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.pin-container p {
+  font-size: 16px;
+  color: #aaa;
+  margin-bottom: 30px;
+}
+.pin-inputs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.pin-in {
+  width: 40px;
+  height: 50px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 24px;
+  text-align: center;
+  transition: border-color 0.3s;
+}
+.pin-in:focus {
+  outline: none;
+  border-color: #fff;
+  background: rgba(255,255,255,0.2);
+}
