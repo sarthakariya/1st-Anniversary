@@ -15,7 +15,7 @@ const initialProfiles = [
 ];
 
 let appState = {
-  view: sessionStorage.getItem('skip_intro') === 'true' ? 'profiles' : 'startup', 
+  view: 'startup', 
   currentProfile: null,
   activeCategory: 'Home',
   searchQuery: '',
@@ -238,11 +238,44 @@ window.handleSearch = (e) => {
   window.refreshRowsView();
 };
 
+window.toggleSearch = () => {
+  const container = document.getElementById('searchContainer');
+  const input = document.getElementById('searchInput');
+  if (container.classList.contains('active')) {
+    if (appState.searchQuery) {
+      appState.searchQuery = '';
+      input.value = '';
+      window.refreshRowsView();
+    }
+    container.classList.remove('active');
+  } else {
+    container.classList.add('active');
+    setTimeout(() => input.focus(), 100);
+  }
+};
+
 window.setCategory = (cat) => {
   if (appState.activeCategory === cat) return;
   appState.activeCategory = cat;
   appState.searchQuery = '';
-  render();
+  
+  // Update Nav visual
+  document.querySelectorAll('.nav-links li').forEach(li => {
+    li.classList.remove('active');
+    if (li.getAttribute('data-cat') === cat) {
+      li.classList.add('active');
+      const line = document.getElementById('navLine');
+      if (line) {
+        line.style.width = li.offsetWidth + 'px';
+        line.style.transform = `translateX(${li.offsetLeft}px)`;
+      }
+    }
+  });
+  
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.value = '';
+  
+  window.refreshRowsView();
 };
 
 window.toggleNotifications = () => {
@@ -388,6 +421,31 @@ window.refreshRowsView = (rcNode, heroNode) => {
   requestAnimationFrame(() => {
     rc.style.opacity = '1';
     rc.style.transform = 'translateY(0)';
+    
+    // Scramble Cipher Animation
+    const chars = '!<>-_\\\\/[]{}—=+*^?#________';
+    rc.querySelectorAll('.scramble-text').forEach(el => {
+      const targetText = el.getAttribute('data-text');
+      if (!targetText) return;
+      let frame = 0;
+      const duration = 20; // ~450ms at 60fps
+      const runScramble = () => {
+        if (frame >= duration) {
+           el.innerText = targetText;
+           return;
+        }
+        let scrambled = '';
+        for (let i = 0; i < targetText.length; i++) {
+           if (targetText[i] === ' ') scrambled += ' ';
+           else if (Math.random() < (frame / duration)) scrambled += targetText[i];
+           else scrambled += chars[Math.floor(Math.random() * chars.length)];
+        }
+        el.innerText = scrambled;
+        frame++;
+        requestAnimationFrame(runScramble);
+      };
+      runScramble();
+    });
   });
   }, 300);
 };
@@ -485,7 +543,13 @@ function createStartupScreen() {
       if (hasPlayed) return;
       hasPlayed = true;
       overlay.style.display = 'none';
-      vid.play().catch(e => console.log("Autoplay blocked, needs click"));
+      vid.play().catch(e => {
+        console.log("Autoplay blocked");
+        vid.muted = true;
+        vid.play();
+      });
+      // Force exactly 4 seconds
+      setTimeout(vid.onended, 4000);
     };
     vid.onended = () => {
       vid.remove();
@@ -497,7 +561,6 @@ function createStartupScreen() {
       
       setTimeout(() => {
          appState.currentProfile = null;
-         sessionStorage.setItem('skip_intro', 'true');
          transitionView('profiles');
       }, 900);
     };
@@ -579,8 +642,9 @@ function createProfileSelection() {
     
     p.style.setProperty('--stagger', delay++);
     p.innerHTML = `
-      <div class="profile-avatar-wrapper">
+      <div class="profile-avatar-wrapper" style="position:relative;">
         <div class="profile-avatar" style="background-image: url('${pf.avatar}')"></div>
+        ${!isManageMode ? '<svg class="profile-outline-svg" width="100%" height="100%" style="position:absolute; top:0; left:0; z-index:5; pointer-events:none; border-radius:4px;"><rect x="2" y="2" width="calc(100% - 4px)" height="calc(100% - 4px)" rx="4" ry="4" stroke="white" stroke-width="4" fill="none" class="profile-outline-rect" /></svg>' : ''}
         ${isManageMode ? '<div class="edit-overlay"><svg viewBox="0 0 24 24" fill="white" width="24" height="24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>' : ''}
       </div>
       <div class="profile-name">${pf.name}</div>
@@ -868,8 +932,9 @@ function createNavbar() {
       <div class="nav-logo" onclick="setCategory('Home')">
         <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links" style="gap: 25px; margin-left: 20px;">
-        ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('')}</li>`).join('')}
+      <ul class="nav-links" style="gap: 25px; margin-left: 20px; position:relative;">
+        <div class="nav-line" id="navLine"></div>
+        ${mainTabs.map(cat => `<li data-cat="${cat}" class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('')}</li>`).join('')}
       </ul>
       <div class="nav-right">
         <div class="search-container" id="searchContainer">
@@ -902,6 +967,14 @@ function createNavbar() {
         </div>
       </div>
     `;
+    setTimeout(() => {
+      const activeLi = nav.querySelector('.nav-links li.active');
+      const line = nav.querySelector('#navLine');
+      if (activeLi && line) {
+        line.style.width = activeLi.offsetWidth + 'px';
+        line.style.transform = `translateX(${activeLi.offsetLeft}px)`;
+      }
+    }, 100);
   return nav;
 }
 
@@ -1019,7 +1092,7 @@ function createRow(title, memories, index = 0) {
   row.className = 'row';
   row.style.setProperty('--row-index', index);
   row.innerHTML = `
-    <div class="row-header">${title}</div>
+    <div class="row-header scramble-text" data-text="${title}">${title}</div>
     <div class="slider-arrow slider-left" style="display:none; position:absolute; left:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center;">‹</div>
     <div class="row-content" style="position:relative;"></div>
     <div class="slider-arrow slider-right" style="position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center; display: flex;">›</div>
@@ -1120,7 +1193,7 @@ function createRow(title, memories, index = 0) {
                 const v = document.createElement('iframe');
                 v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1`;
                 v.className = 'media-card-hover-video';
-                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.35);';
+                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; border-radius:4px;';
                 card.appendChild(v);
               } else {
                 const v = document.createElement('video');
@@ -1134,6 +1207,7 @@ function createRow(title, memories, index = 0) {
                 v.autoplay = true;
                 v.loop = true;
                 v.className = 'media-card-hover-video';
+                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;border-radius:4px;';
                 card.appendChild(v);
                 v.play().catch(e => console.log('Autoplay prevented'));
               }
@@ -1249,14 +1323,14 @@ window.openUploadModal = () => {
           <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
         </div>
 
-        <div>
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Title</label>
-          <input type="text" id="up-title" placeholder="A Beautiful Memory" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'">
+        <div class="floating-input-group">
+          <input type="text" id="up-title" required>
+          <label for="up-title">Title</label>
         </div>
 
-        <div>
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
-          <textarea id="up-desc" rows="3" placeholder="Write about the memory..." style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none; resize:vertical; font-family:inherit; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'"></textarea>
+        <div class="floating-input-group">
+          <textarea id="up-desc" rows="3" required></textarea>
+          <label for="up-desc">Description</label>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
@@ -1539,6 +1613,8 @@ window.playVideo = (id) => {
   const m = appState.memories.find(i => i.id === id);
   if(!m || !m.videoUrl) return alert("Video file not available for playback.");
   
+  document.body.style.overflow = 'hidden';
+  
   // Track Continue Watching
   if(!appState.continueWatching.includes(id)) {
     appState.continueWatching.unshift(id);
@@ -1591,7 +1667,9 @@ window.playVideo = (id) => {
   }
 
   c.innerHTML = `
-    <div class="playback-back" id="playback-back-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white; font-size: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&#8592;</div>
+    <div class="playback-back close-btn" id="playback-back-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
   `;
@@ -1801,6 +1879,7 @@ window.playVideo = (id) => {
 
   // Handle closing player efficiently
   const closePlayer = () => {
+     document.body.style.overflow = '';
      if (mainPlayer) {
        mainPlayer.src = "";
        if (typeof mainPlayer.load === 'function') mainPlayer.load();
