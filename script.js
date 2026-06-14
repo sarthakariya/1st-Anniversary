@@ -15,7 +15,7 @@ const initialProfiles = [
 ];
 
 let appState = {
-  view: 'startup', 
+  view: sessionStorage.getItem('skip_intro') === 'true' ? 'profiles' : 'startup', 
   currentProfile: null,
   activeCategory: 'Home',
   searchQuery: '',
@@ -28,6 +28,28 @@ let appState = {
   memories: null,
   profiles: null
 };
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'netflix_state' || e.key === 'netflix_memories') {
+    appState.memories = JSON.parse(sessionStorage.getItem('netflix_memories') || 'null');
+    const newState = JSON.parse(sessionStorage.getItem('netflix_state') || '{}');
+    if(newState.myList) appState.myList = newState.myList;
+    if(newState.continueWatching) appState.continueWatching = newState.continueWatching;
+    if(newState.settings) appState.settings = newState.settings;
+    if(newState.profiles) appState.profiles = newState.profiles;
+    
+    // Smooth layout reflow
+    const dashboard = document.querySelector('.dashboard-container');
+    if (dashboard) {
+      dashboard.style.opacity = '0.5';
+      setTimeout(() => {
+        window.refreshRowsView();
+        dashboard.style.transition = 'opacity 0.4s ease';
+        dashboard.style.opacity = '1';
+      }, 300);
+    }
+  }
+});
 
 // Seed Data
 const initialMemories = [
@@ -42,7 +64,22 @@ const initialMemories = [
   }
 ];
 
-// Initialize from local memory if missing in db initially
+// Global Error Boundary
+window.addEventListener('error', (event) => {
+  console.error("Caught by ErrorBoundary:", event.error);
+  document.body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#141414;color:white;font-family:Helvetica,Arial,sans-serif;text-align:center;padding:20px;">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="#e50914" style="margin-bottom:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <h1 style="font-size:32px;margin-bottom:10px;">Something went wrong.</h1>
+      <p style="font-size:18px;color:#999;margin-bottom:30px;max-width:400px;">We're having trouble playing this right now. Please try again or refresh the page.</p>
+      <button onclick="window.location.reload()" style="background:#e50914;color:white;border:none;padding:12px 30px;font-size:18px;font-weight:bold;border-radius:4px;cursor:pointer;">Reload</button>
+    </div>
+  `;
+});
+window.addEventListener('unhandledrejection', (event) => {
+  console.error("Unhandled Rejection:", event.reason);
+  // Unhandled rejections don't always crash the UI, but we log them.
+});
 const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // We do NOT set appState.currentProfile = savedProfile here
 // to force the user to select the profile every time.
@@ -183,9 +220,17 @@ function internalRender() {
 window.render = render;
 
 window.logoutProfile = () => {
-  localStorage.removeItem('sarthak_netflix_profile');
-  appState.currentProfile = null;
-  transitionView('profiles');
+  const c = document.querySelector('.dashboard-container');
+  if (c) {
+    c.style.transition = 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s';
+    c.style.transform = 'scale(0.85) translateY(-20px)';
+    c.style.opacity = '0';
+  }
+  setTimeout(() => {
+    localStorage.removeItem('sarthak_netflix_profile');
+    appState.currentProfile = null;
+    transitionView('profiles');
+  }, 500);
 };
 
 window.handleSearch = (e) => {
@@ -201,9 +246,15 @@ window.refreshRowsView = (rcNode, heroNode) => {
   const rc = rcNode || document.querySelector('.slider-container');
   const hero = heroNode || document.getElementById('hero-section');
   if(!rc) return;
-  rc.innerHTML = '';
   
-  // Show skeletons while data is null
+  rc.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  rc.style.opacity = '0';
+  rc.style.transform = 'translateY(10px)';
+  
+  setTimeout(() => {
+    rc.innerHTML = '';
+    
+    // Show skeletons while data is null
   if (appState.memories === null) {
     if(hero) hero.style.display = 'block'; // Keep hero area while loading
     for (let i = 0; i < 3; i++) {
@@ -320,6 +371,13 @@ window.refreshRowsView = (rcNode, heroNode) => {
       rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
     }
   }
+  
+  // Fade back in
+  requestAnimationFrame(() => {
+    rc.style.opacity = '1';
+    rc.style.transform = 'translateY(0)';
+  });
+  }, 300);
 };
 
 window.toggleSetting = (settingKey) => {
@@ -414,12 +472,13 @@ function createStartupScreen() {
       vid.remove();
       bleedOverlay.style.display = 'flex';
       setTimeout(() => {
-        bleedText.style.transform = 'scale(50)';
+        bleedText.style.transform = 'scale(60)';
         bleedText.style.opacity = '0';
       }, 50);
       
       setTimeout(() => {
          appState.currentProfile = null;
+         sessionStorage.setItem('skip_intro', 'true');
          transitionView('profiles');
       }, 900);
     };
@@ -851,21 +910,21 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.1);"></iframe>`;
+      backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.35);"></iframe>`;
     } else {
       backgroundVideoHtml = `<video class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
   }
 
   c.innerHTML = `
-    <div class="hero-video-wrapper">
-      <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover;">
+    <div class="hero-video-wrapper" style="background: black;">
+      <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
       ${backgroundVideoHtml}
-      <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:3; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
+      <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
     </div>
-    <div class="hero-overlay"></div>
-    <div class="hero-overlay-bottom"></div>
-    <div class="hero-info">
+    <div class="hero-overlay" style="z-index: 5;"></div>
+    <div class="hero-overlay-bottom" style="z-index: 5;"></div>
+    <div class="hero-info" style="z-index: 5;">
       <div class="hero-original">
         <div class="n-series">N</div>
         <div class="series-tag">S E R I E S</div>
@@ -874,10 +933,10 @@ function createHero() {
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
         <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">▶ Play</button>
-        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}')">ⓘ More Info</button>
+        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}', event)">ⓘ More Info</button>
       </div>
     </div>
-    <div class="hero-controls">
+    <div class="hero-controls" style="z-index: 5;">
       <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
         <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
       </div>
@@ -889,6 +948,22 @@ function createHero() {
       <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
   `;
+
+  let idleTimer;
+  const resetIdleTimer = () => {
+    clearTimeout(idleTimer);
+    const imgOverlay = c.querySelector('#hero-img-overlay');
+    if (imgOverlay) imgOverlay.style.opacity = '1';
+    idleTimer = setTimeout(() => {
+      if (imgOverlay) imgOverlay.style.opacity = '0';
+    }, 4000);
+  };
+  
+  if (backgroundVideoHtml) {
+    window.addEventListener('mousemove', resetIdleTimer);
+    window.addEventListener('keydown', resetIdleTimer);
+    resetIdleTimer();
+  }
   return c;
 }
 
@@ -955,6 +1030,11 @@ function createRow(title, memories, index = 0) {
         const m = memories[i];
         const card = document.createElement('div');
         card.className = 'media-card';
+        if (m.id === window.justUploadedId) {
+          card.classList.add('just-uploaded');
+          setTimeout(() => card.classList.remove('just-uploaded'), 2500);
+          window.justUploadedId = null;
+        }
         card.onclick = (e) => openDetailModal(m.id, e);
         
         card.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
@@ -965,9 +1045,9 @@ function createRow(title, memories, index = 0) {
               const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
               if (isYouTube) {
                 const v = document.createElement('iframe');
-                v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3`;
+                v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1`;
                 v.className = 'media-card-hover-video';
-                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2;';
+                v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.35);';
                 card.appendChild(v);
               } else {
                 const v = document.createElement('video');
@@ -1214,6 +1294,7 @@ window.openUploadModal = () => {
 
     await saveMemoryToDB(mem);
     appState.memories.unshift(mem);
+    window.justUploadedId = mem.id;
     const modalEl = document.getElementById('uploadModal');
     modalEl.classList.remove('open');
     setTimeout(() => {
@@ -1263,8 +1344,8 @@ window.openDetailModal = (id, e) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline></video>`) : 
-      `<img src="${m.thumbnail}">`;
+      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`) : 
+      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
@@ -1646,13 +1727,29 @@ window.playVideo = (id) => {
   }
 
   // Handle closing player efficiently
-  document.getElementById('playback-back-btn').onclick = () => {
+  const closePlayer = () => {
      if (mainPlayer) {
        mainPlayer.src = "";
        mainPlayer.load();
      }
-     document.getElementById('playbackOverlay').remove();
-     render();
+     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';
+     c.style.transform = 'translateY(100%)';
+     c.style.opacity = '0';
+     setTimeout(() => {
+       if (document.getElementById('playbackOverlay')) {
+         document.getElementById('playbackOverlay').remove();
+         render();
+       }
+     }, 400);
+  };
+  
+  document.getElementById('playback-back-btn').onclick = closePlayer;
+  
+  // Click background to close
+  c.onclick = (e) => {
+    if (e.target.id === 'playbackOverlay' || e.target.id === 'video-container') {
+      closePlayer();
+    }
   };
 };
 

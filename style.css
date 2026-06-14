@@ -222,9 +222,8 @@ body {
   transition: background-color 0.4s;
 }
 .navbar.scrolled {
-  background-color: rgba(20, 20, 20, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: #141414;
+  transition: background-color 0.4s ease;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .nav-logo, .nav-logo-text {
@@ -537,6 +536,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   padding: 20px 0;
   scroll-snap-type: x mandatory;
   contain: content;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .media-card {
   flex: 0 0 calc(100% / 6 - 8px);
@@ -594,6 +595,21 @@ input:checked + .slider:before { transform: translateX(20px); }
   font-size: 14px;
   font-weight: bold;
 }
+@keyframes uploadFlashFlare {
+  0% { left: -100%; opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { left: 100%; opacity: 0; }
+}
+.media-card.just-uploaded::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: -100%; width: 50%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+  transform: skewX(-20deg);
+  animation: uploadFlashFlare 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.5s;
+  pointer-events: none;
+  z-index: 10;
+}
 .card-meta {
   font-size: 10px;
   color: #46d369;
@@ -625,7 +641,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .upload-modal {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.8);
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(25px) saturate(160%);
+  -webkit-backdrop-filter: blur(25px) saturate(160%);
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
@@ -705,10 +723,16 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
 }
 
+@keyframes expandFullscreen {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Playback Modal (Full Screen Video) */
 .playback-overlay {
   position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
   background: #000; z-index: 20000;
+  animation: expandFullscreen 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 .playback-overlay video {
   width: 100%; height: 100%; object-fit: contain;
