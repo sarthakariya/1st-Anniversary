@@ -190,8 +190,8 @@ function internalRender() {
       if (cards.length > 0) {
         animate(
           cards, 
-          { y: [30, 0], opacity: [0, 1], scale: [0.95, 1] }, 
-          { duration: 0.6, delay: stagger(0.15, { startDelay: 0.1 }), ease: "easeOut" }
+          { y: [-150, 0], opacity: [0, 1], scale: [0.95, 1] }, 
+          { duration: 0.6, delay: stagger(0.15, { startDelay: 0.1 }), ease: [0.34, 1.56, 0.64, 1] }
         );
       }
     }, 50);
@@ -238,6 +238,13 @@ window.handleSearch = (e) => {
   window.refreshRowsView();
 };
 
+window.setCategory = (cat) => {
+  if (appState.activeCategory === cat) return;
+  appState.activeCategory = cat;
+  appState.searchQuery = '';
+  render();
+};
+
 window.toggleNotifications = () => {
   document.getElementById('notifPanel').classList.toggle('active');
 };
@@ -279,6 +286,11 @@ window.refreshRowsView = (rcNode, heroNode) => {
     );
     if(mems.length) rc.appendChild(createRow('Search Results', mems));
     else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
+    
+    requestAnimationFrame(() => {
+      rc.style.opacity = '1';
+      rc.style.transform = 'translateY(0)';
+    });
     return;
   }
   
@@ -435,7 +447,14 @@ window.toggleMyList = (id, event) => {
     appState.myList.push(id);
   }
   saveStateList('myList', appState.myList);
-  render();
+  
+  if (event && event.currentTarget) {
+    const btn = event.currentTarget;
+    btn.innerHTML = appState.myList.includes(id) ? '✓' : '＋';
+    btn.title = appState.myList.includes(id) ? 'Remove from List' : 'Add to My List';
+  }
+  
+  window.refreshRowsView();
 };
 
 function createStartupScreen() {
@@ -610,33 +629,27 @@ function loginProfile(pf, p) {
     ripple.style.opacity = '0';
   }, 10);
   
-  setTimeout(() => { ripple.remove(); }, 800);
-
-  // 3D Matrix flip
+  setTimeout(() => { ripple.remove(); }, 800);  // Simple Pulse Effect
   const wrapper = p.querySelector('.profile-avatar-wrapper');
   if(wrapper) {
-    wrapper.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-    wrapper.style.transform = 'rotateY(180deg) scale(1.1)';
+    wrapper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    wrapper.style.transform = 'scale(1.15)';
+    wrapper.style.boxShadow = '0 0 20px rgba(229, 9, 20, 0.6)';
+    wrapper.style.border = '2px solid #e50914';
   }
   
   setTimeout(() => {
-    if(wrapper) {
-      wrapper.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;transform:rotateY(180deg);background:radial-gradient(circle, #e50914 0%, #83050b 100%);border-radius:4px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>`;
-    }
-  }, 250); // half way through flip
-  
-  setTimeout(() => {
     p.style.transition = 'transform 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.5s';
-    p.style.transform = 'translateY(100vh)';
+    p.style.transform = 'scale(2) translateZ(100px)';
     p.style.opacity = '0';
-  }, 1200);
+  }, 600);
   
   setTimeout(() => {
     appState.currentProfile = pf.name;
     localStorage.setItem('sarthak_netflix_profile', pf.name);
     transitionView('intro');
     setTimeout(() => { transitionView('dashboard'); }, 1200);
-  }, 1600);
+  }, 1000);
 }
 
 function showPinModal(pf, pElement) {
@@ -856,7 +869,7 @@ function createNavbar() {
         <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 20px;">
-        ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
+        ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('')}</li>`).join('')}
       </ul>
       <div class="nav-right">
         <div class="search-container" id="searchContainer">
@@ -967,13 +980,73 @@ function createHero() {
   return c;
 }
 
+// 3D Parallax Tilt & Magnetic Buttons
+window.addEventListener('mousemove', (e) => {
+  // Magnetic Buttons
+  document.querySelectorAll('.btn').forEach(btn => {
+    const rect = btn.getBoundingClientRect();
+    const bx = rect.left + rect.width / 2;
+    const by = rect.top + rect.height / 2;
+    const dist = Math.hypot(e.clientX - bx, e.clientY - by);
+    if (dist < 80) {
+      const pullX = (e.clientX - bx) * 0.2;
+      const pullY = (e.clientY - by) * 0.2;
+      btn.style.transform = `translate(${pullX}px, ${pullY}px) scale(1.05)`;
+    } else {
+      btn.style.transform = `translate(0, 0) scale(1)`;
+    }
+  });
+  
+  // 3D Parallax Tilt for Hovered Cards
+  document.querySelectorAll('.media-card:hover').forEach(card => {
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const rotateX = ((e.clientY - cy) / rect.height) * -15; // Max 15deg tilt
+    const rotateY = ((e.clientX - cx) / rect.width) * 15;
+    card.style.transform = `scale(1.35) translateY(-10px) perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  });
+});
+
+document.addEventListener('mouseout', (e) => {
+  if (e.target.classList && e.target.classList.contains('media-card')) {
+    e.target.style.transform = '';
+  }
+});
+
 function createRow(title, memories, index = 0) {
   const row = document.createElement('div');
   row.className = 'row';
   row.style.setProperty('--row-index', index);
-  row.innerHTML = `<div class="row-header">${title}</div><div class="row-content"></div>`;
+  row.innerHTML = `
+    <div class="row-header">${title}</div>
+    <div class="slider-arrow slider-left" style="display:none; position:absolute; left:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center;">‹</div>
+    <div class="row-content" style="position:relative;"></div>
+    <div class="slider-arrow slider-right" style="position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center; display: flex;">›</div>
+  `;
+  row.style.position = 'relative';
   
   const rc = row.querySelector('.row-content');
+  const arrowLeft = row.querySelector('.slider-left');
+  const arrowRight = row.querySelector('.slider-right');
+  
+  const handleScrollClick = (dir) => {
+    const parentWidth = rc.getBoundingClientRect().width;
+    const maxScroll = rc.scrollWidth - parentWidth;
+    let newScroll = rc.scrollLeft + (dir * (parentWidth * 0.8));
+    if (newScroll < 0) newScroll = 0;
+    if (newScroll > maxScroll) newScroll = maxScroll;
+    
+    rc.scrollTo({ left: newScroll, behavior: 'smooth' });
+  };
+  
+  arrowLeft.onclick = () => handleScrollClick(-1);
+  arrowRight.onclick = () => handleScrollClick(1);
+  
+  rc.addEventListener('scroll', () => {
+    arrowLeft.style.display = rc.scrollLeft > 0 ? 'flex' : 'none';
+    arrowRight.style.display = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'flex' : 'none';
+  });
 
   // Swipe scrolling handler
   let isDown = false;
@@ -1258,12 +1331,12 @@ window.openUploadModal = () => {
           document.getElementById('up-preview-container').style.display = 'block';
         }
       } else {
-         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
          document.getElementById('up-thumb-preview').src = currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
       }
     } catch(err) {
-         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
          document.getElementById('up-thumb-preview').src = currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
     }
@@ -1286,7 +1359,7 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/hqdefault.jpg'),
+      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'),
       videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
@@ -1305,7 +1378,7 @@ window.openUploadModal = () => {
 };
 
 // === DETAIL MODAL ===
-window.openDetailModal = (id, e) => {
+window.openDetailModal = (id, e, editMode = false) => {
   const m = appState.memories.find(i => i.id === id);
   if(!m) return;
   
@@ -1730,15 +1803,16 @@ window.playVideo = (id) => {
   const closePlayer = () => {
      if (mainPlayer) {
        mainPlayer.src = "";
-       mainPlayer.load();
+       if (typeof mainPlayer.load === 'function') mainPlayer.load();
      }
+     if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
      c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';
      c.style.transform = 'translateY(100%)';
      c.style.opacity = '0';
      setTimeout(() => {
        if (document.getElementById('playbackOverlay')) {
          document.getElementById('playbackOverlay').remove();
-         render();
+         // we don't necessarily need to render() again since dashboard is already behind it.
        }
      }, 400);
   };
