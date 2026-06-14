@@ -92,7 +92,7 @@ window.openUploadModal = () => {
     if (ytUrl) {
       const match = ytUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
       extractedVideoId = (match && match[1]) ? match[1] : ytUrl;
-      thumbData = \`https://img.youtube.com/vi/\${extractedVideoId}/hqdefault.jpg\`;
+      thumbData = `https://img.youtube.com/vi/${extractedVideoId}/hqdefault.jpg`;
     } else if (videoFile) {
       if (videoFile.size > 10 * 1024 * 1024) {
          // Create local URL for large files instead of loading all in memory

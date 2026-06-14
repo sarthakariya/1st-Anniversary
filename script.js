@@ -381,6 +381,16 @@ window.refreshRowsView = (rcNode, heroNode) => {
         const div = document.createElement('div');
         div.className = 'media-card';
         div.style.flex = "unset";
+        div.onmouseenter = () => {
+          const r = div.getBoundingClientRect();
+          if (r.left < 50) {
+            div.style.transformOrigin = 'left center';
+          } else if (window.innerWidth - r.right < 50) {
+            div.style.transformOrigin = 'right center';
+          } else {
+            div.style.transformOrigin = 'center center';
+          }
+        };
         div.onclick = () => { 
           if (!appState.memories.find(mem => mem.id === m.id)) {
             appState.memories.push(m);
@@ -389,11 +399,9 @@ window.refreshRowsView = (rcNode, heroNode) => {
         };
         div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
         <div class="card-info">
-          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-            <div>${m.title}</div>
-            <div class="circ-play-btn" style="background:white; color:black; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; padding-left:2px;" title="Play Trailer">▶</div>
+          <div class="card-title" style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <span style="font-size: 16px; font-weight:600; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">${m.title}</span>
           </div>
-          <div class="card-meta"><span class="match-rate">100% Match</span> <span style="color:#fff">${m.year || '2024'}</span></div>
         </div>`;
         grid.appendChild(div);
       });
@@ -1066,27 +1074,62 @@ function createRow(title, memories, index = 0) {
   let isDown = false;
   let startX;
   let scrollLeft;
+  let velX = 0;
+  let momentumID;
+  let lastTimestamp;
+  let lastX;
+  
+  const beginMomentumLoop = () => {
+    rc.classList.remove('active');
+    cancelAnimationFrame(momentumID);
+    
+    // Elastic Snap is handled by CSS scroll-snap-type when we remove 'active'.
+    // If velocity is high enough, we bleed it. Since scroll-snap kicks in,
+    // we let browser physics handle the final snap, but the prompt asks for
+    // explicit friction calculations.
+    
+    const momentumLoop = () => {
+      // velocity *= 0.94; scrollLeft += velocity;
+      velX *= 0.94;
+      rc.scrollLeft -= velX;
+      
+      if (Math.abs(velX) > 0.5) {
+        momentumID = requestAnimationFrame(momentumLoop);
+      } else {
+        velX = 0;
+      }
+    };
+    momentumID = requestAnimationFrame(momentumLoop);
+  };
   
   rc.addEventListener('mousedown', (e) => {
     isDown = true;
     rc.classList.add('active');
+    cancelAnimationFrame(momentumID);
     startX = e.pageX - rc.offsetLeft;
     scrollLeft = rc.scrollLeft;
+    lastX = e.pageX;
   });
   rc.addEventListener('mouseleave', () => {
+    if(!isDown) return;
     isDown = false;
-    rc.classList.remove('active');
+    beginMomentumLoop();
   });
   rc.addEventListener('mouseup', () => {
+    if(!isDown) return;
     isDown = false;
-    rc.classList.remove('active');
+    beginMomentumLoop();
   });
   rc.addEventListener('mousemove', (e) => {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - rc.offsetLeft;
-    const walk = (x - startX) * 2; // scroll-fast
+    const walk = (x - startX) * 2; 
     rc.scrollLeft = scrollLeft - walk;
+    
+    // Calculate velocity
+    velX = e.pageX - lastX;
+    lastX = e.pageX;
   });
 
   // Touch passive listeners
@@ -1137,6 +1180,15 @@ function createRow(title, memories, index = 0) {
     card.innerHTML = `<img data-src="${m.thumbnail}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}">`;
     
     card.onmouseenter = () => {
+      const r = card.getBoundingClientRect();
+      if (r.left < 50) {
+        card.style.transformOrigin = 'left center';
+      } else if (window.innerWidth - r.right < 50) {
+        card.style.transformOrigin = 'right center';
+      } else {
+        card.style.transformOrigin = 'center center';
+      }
+
       card.hoverTimeout = setTimeout(() => {
         if(m.videoUrl && appState.settings.autoPlayPreviews) {
           const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
@@ -1737,7 +1789,7 @@ window.playVideo = (id) => {
           backBtn.style.opacity = '0';
           document.body.style.cursor = 'none';
         }
-      }, 3000);
+      }, 6000);
     };
 
     videoContainer.onmousemove = showControls;
