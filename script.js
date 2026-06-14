@@ -26,7 +26,7 @@ let appState = {
   myList: [],
   continueWatching: [],
   memories: null,
-  profiles: [...initialProfiles]
+  profiles: null
 };
 
 // Seed Data
@@ -95,6 +95,8 @@ async function saveStateList(key, data) {
 function render() {
   const app = document.getElementById('app');
   if(!app) return;
+  if (appState.view === 'startup' && app.querySelector('.intro-container')) return;
+  
   app.innerHTML = '';
   if (appState.view === 'startup') app.appendChild(createStartupScreen());
   else if (appState.view === 'profiles') {
@@ -341,7 +343,7 @@ function createStartupScreen() {
   c.innerHTML = `
     <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); z-index:2; cursor:pointer; flex-direction: column;">
-      <svg viewBox="0 0 111 30" width="150" style="margin-bottom: 25px;"><path fill="#e50914" d="M105.062 14.28L111 30c-1.75-.25-3.499-.563-5.28-.845l-3.345-8.686-3.437 7.969c-1.687-.282-3.344-.376-5.031-.595l6.031-13.75L94.468 0h5.063l3.062 7.874L105.875 0h5.124l-5.937 14.28zM90.47 0h-4.594v27.25c1.5.094 3.062.156 4.594.343V0zm-8.563 26.937c-4.187-.281-8.375-.53-12.656-.625V0h4.687v21.875l7.969.343v4.719zM64.905 0h-4.563v30c1.531-.093 3.031-.186 4.563-.312V0zm-8.375 14.437L51.906 0h-5.031l6.75 16.593L46.875 30h5.188l5.062-11.688L61.813 30h4.812l-6.75-12.781.031-2.782zM43.063 4.593h-5.594V0h15.937v4.594h-5.75v25.405c-1.5.032-3.094.063-4.594.094V4.593zM25.751 0h4.625l-.031 29.842c-1.563 0-3.125-.031-4.688-.063V14.187h-8.062v15.531c-1.594-.031-3.219-.063-4.813-.094V0h4.813v9.687h8.062V0zm-15.344 0h-4.687L.188 16.126V0H-4.5v30h4.375L5.75 14.032V30h4.688V0z"/></svg>
+      <img src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
       <div style="background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <h1 style="color:white; font-size:16px; font-weight: 500; letter-spacing: 1px; margin: 0; display: flex; align-items: center; gap: 10px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg> Click anywhere to start
@@ -388,6 +390,21 @@ function createProfileSelection() {
   `;
   const list = c.querySelector('.profiles-list');
   
+  if (appState.profiles === null) {
+    for(let i=0; i<3; i++) {
+        const skel = document.createElement('div');
+        skel.className = 'profile-card';
+        skel.innerHTML = `
+          <div class="profile-avatar-wrapper">
+             <div class="profile-avatar skeleton-card" style="border-radius: 4px;"></div>
+          </div>
+          <div class="profile-name" style="width: 80px; height: 16px; background: #333; margin-top: 15px; border-radius: 4px; animation: shimmer 1.5s infinite linear; background-image: linear-gradient(90deg, #1c1c1c 25%, #262626 50%, #1c1c1c 75%); background-size: 400% 100%;"></div>
+        `;
+        list.appendChild(skel);
+    }
+    return c;
+  }
+  
   let delay = 0;
   appState.profiles.forEach((pf) => {
     const p = document.createElement('div');
@@ -407,7 +424,7 @@ function createProfileSelection() {
       if(isManageMode) {
         window.editProfile(pf.id);
       } else {
-        const secretCode = localStorage.getItem('sarthak_netflix_code');
+        const secretCode = sessionStorage.getItem('sarthak_netflix_code');
         if (secretCode !== '25072025') {
           showPinModal(pf, p);
           return;
@@ -443,14 +460,14 @@ function showPinModal(pf, pElement) {
       <h2>Profile Lock is on.</h2>
       <p>Enter your PIN to access this profile.</p>
       <div class="pin-inputs">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
-        <input type="password" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" maxlength="1" class="pin-in">
       </div>
       <div class="pin-error" style="color: #e50914; margin-top: 15px; font-size: 14px; opacity: 0; transition: opacity 0.3s;">Incorrect PIN. Please try again.</div>
       <button class="btn btn-secondary mt-4" style="margin-top: 30px;" onclick="document.querySelector('.pin-overlay').remove()">Cancel</button>
@@ -464,17 +481,26 @@ function showPinModal(pf, pElement) {
   inputs.forEach((inEl, idx) => {
     inEl.addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
-      if (e.target.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+      e.target.dataset.val = e.target.value;
+      if (e.target.value) {
+        e.target.type = 'text';
+        setTimeout(() => {
+          if (e.target.value && e.target.dataset.val) e.target.type = 'password';
+        }, 1000);
+        if (idx < inputs.length - 1) inputs[idx + 1].focus();
+      } else {
+        e.target.type = 'text';
+      }
       
-      const val = Array.from(inputs).map(i => i.value).join('');
+      const val = Array.from(inputs).map(i => i.dataset.val || '').join('');
       if (val.length === 8) {
         if (val === '25072025') {
-          localStorage.setItem('sarthak_netflix_code', '25072025');
+          sessionStorage.setItem('sarthak_netflix_code', '25072025');
           overlay.remove();
           loginProfile(pf, pElement);
         } else {
           overlay.querySelector('.pin-error').style.opacity = '1';
-          inputs.forEach(i => i.value = '');
+          inputs.forEach(i => { i.value = ''; i.dataset.val = ''; i.type = 'text'; });
           inputs[0].focus();
         }
       } else {
@@ -640,9 +666,9 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" width="111" style="cursor: pointer; position: relative; top: -5px;" src="">
+        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links">
+      <ul class="nav-links" style="gap: 25px; margin-left: 20px;">
         ${mainTabs.map(cat => `<li class="${appState.activeCategory === cat ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</li>`).join('')}
       </ul>
       <div class="nav-right">
@@ -687,9 +713,11 @@ function createHero() {
   const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
+    const isMuted = appState.isHeroMuted !== false; // default true
+    const muteStr = isMuted ? "1" : "0";
     const mediaNode = isYouTube 
-      ? `<iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3" style="pointer-events:none;border:none;"></iframe>` 
-      : `<video class="hero-video" src="${heroMem.videoUrl}" autoplay muted loop playsinline></video>`;
+      ? `<iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${muteStr}&modestbranding=1&rel=0&iv_load_policy=3" style="pointer-events:none;border:none;"></iframe>` 
+      : `<video class="hero-video" src="${heroMem.videoUrl}" autoplay ${isMuted ? 'muted' : ''} loop playsinline></video>`;
       
     c.innerHTML = `
       <div class="hero-video-wrapper">
@@ -720,12 +748,12 @@ function createHero() {
       </div>
     </div>
     <div class="hero-controls">
-      <div class="mute-btn" onclick="toggleSetting('autoPlayPreviews')" title="Toggle Autoplay Previews">
-        ${appState.settings.autoPlayPreviews ? 
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>` : 
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`}
+      <div class="mute-btn" onclick="appState.isHeroMuted = !(appState.isHeroMuted !== false); render();" title="Toggle Mute">
+        ${(appState.isHeroMuted !== false) ? 
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>` :
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>`}
       </div>
-      <div class="maturity-rating">${heroMem.rating}</div>
+      <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
   `;
   return c;
@@ -774,7 +802,7 @@ function createRow(title, memories) {
             v.play().catch(e => console.log('Autoplay prevented'));
           }
         }
-      }, 600);
+      }, 2000);
     };
 
     card.onmouseleave = () => {
@@ -958,7 +986,7 @@ window.openDetailModal = (id) => {
   const inMyList = appState.myList.includes(id);
   
   const modal = document.createElement('div');
-  modal.className = 'upload-modal';
+  modal.className = 'detail-overlay';
   modal.id = 'detailModal';
   
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
@@ -977,13 +1005,17 @@ window.openDetailModal = (id) => {
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
           <div class="detail-title">${m.title}</div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" onclick="playVideo('${m.id}')">▶ Play</button>
-            <button class="btn btn-secondary" onclick="toggleMyList('${m.id}', event)">
-              ${inMyList ? '✓ Remove from List' : '＋ Add to My List'}
-            </button>
-            <button class="btn btn-secondary" onclick="downloadVideo('${m.id}')" title="Download for Offline Viewing">⬇</button>
-            <button class="btn btn-secondary" onclick="shareVideo('${m.id}')">🔗 Share</button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-primary" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">▶ Play</button>
+            <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
+              ${inMyList ? '✓' : '＋'}
+            </div>
+            <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download for Offline Viewing">
+              ⬇
+            </div>
+            <div class="circ-play-btn" onclick="shareVideo('${m.id}')" title="Share">
+              🔗
+            </div>
           </div>
         </div>
       </div>
@@ -1049,7 +1081,7 @@ window.playVideo = (id) => {
   
   let playerHtml = '';
   if (isYouTube) {
-    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="https://www.youtube.com/embed/${url}?autoplay=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1" allow="autoplay; fullscreen"></iframe>`;
+    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="https://www.youtube.com/embed/${url}?autoplay=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&fs=1&playsinline=1&vq=hd1080" allow="autoplay; fullscreen"></iframe>`;
   } else {
     playerHtml = `<video src="${url}" controls id="fsyPlayer" style="display:none; width:100%; height:100%; background:black;"></video>`;
   }
