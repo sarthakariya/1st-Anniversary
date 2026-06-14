@@ -119,6 +119,22 @@ async function saveStateList(key, data) {
 };
 
 function render() {
+  try {
+    internalRender();
+  } catch (err) {
+    console.error("Rendering Error:", err);
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#141414;color:white;font-family:Helvetica,Arial,sans-serif;text-align:center;padding:20px;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="#e50914" style="margin-bottom:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <h1 style="font-size:32px;margin-bottom:10px;">Something went wrong.</h1>
+        <p style="font-size:18px;color:#999;margin-bottom:30px;max-width:400px;">We're having trouble playing this right now. Please try again or refresh the page.</p>
+        <button onclick="window.location.reload()" style="background:#e50914;color:white;border:none;padding:12px 30px;font-size:18px;font-weight:bold;border-radius:4px;cursor:pointer;">Reload</button>
+      </div>
+    `;
+  }
+}
+
+function internalRender() {
   const app = document.getElementById('app');
   if(!app) return;
   if (appState.view === 'startup' && app.querySelector('.intro-container')) return;
@@ -792,6 +808,7 @@ function createHero() {
           v.autoplay = true;
           v.loop = true;
           v.playsInline = true;
+          v.setAttribute('fetchpriority', 'high');
           v.className = 'hero-video media-card-hover-video';
           v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;';
           wrapper.appendChild(v);
@@ -821,7 +838,7 @@ function createHero() {
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
         <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">▶ Play</button>
-        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}', true)">✎ Edit Details</button>
+        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}')">ⓘ More Info</button>
       </div>
     </div>
     <div class="hero-controls">
@@ -989,7 +1006,15 @@ window.toggleHeroMute = () => {
   const vids = document.querySelectorAll('.hero-video');
   const btn = document.getElementById('hero-mute-btn');
   vids.forEach(v => {
-    if (v.tagName === 'VIDEO') v.muted = appState.isHeroMuted;
+    if (v.tagName === 'VIDEO') {
+      v.muted = appState.isHeroMuted;
+    } else if (v.tagName === 'IFRAME') {
+      v.contentWindow.postMessage(JSON.stringify({
+         event: "command",
+         func: appState.isHeroMuted ? "mute" : "unMute",
+         args: []
+      }), "*");
+    }
   });
   if (btn) {
      btn.innerHTML = (appState.isHeroMuted !== false) ? 
@@ -1005,61 +1030,74 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content">
-      <button class="upload-close" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
-      <div class="upload-title">Add New Memory</div>
-      
-      <div style="margin-bottom: 15px; padding: 15px; background: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914;">
-        <p style="margin: 0 0 10px 0; font-size: 14px; text-shadow: none;">Please upload your video to YouTube Studio first.</p>
-        <button class="btn btn-secondary" style="width:100%" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload?d=ud&filter=%5B%5D&sort=%7B%22columnType%22%3A%22date%22%2C%22sortOrder%22%3A%22DESCENDING%22%7D', '_blank')">
-          🡥 Open YouTube Studio to Upload
-        </button>
-      </div>
-
-      <div class="form-group">
-        <label>YouTube Video Link</label>
-        <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="font-family: monospace;">
-        <button id="up-fetch" class="btn btn-secondary" style="margin-top: 5px; width: 100%; font-size: 14px;">Fetch Video Metadata</button>
+    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0;">
+      <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
+        <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
+        <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       </div>
       
-      <div class="form-group" style="text-align: center; display: none;" id="up-preview-container">
-        <img id="up-thumb-preview" src="" style="max-height: 150px; border-radius: 4px; border: 1px solid #333;">
-      </div>
-
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" id="up-title" placeholder="A Beautiful Memory">
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea id="up-desc" rows="3" placeholder="Write about the memory..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Category</label>
-        <select id="up-cat">
-          <option value="Dates">Dates</option>
-          <option value="My Fav">My Fav</option>
-          <option value="Celebrations">Celebrations</option>
-          <option value="Romance">Romance</option>
-          <option value="Our Time">Our Time</option>
-          <option value="Documentaries">Documentaries</option>
-        </select>
-      </div>
-      
-      <div style="display:flex; gap:15px">
-        <div class="form-group" style="flex:1">
-          <label>Date / Year</label>
-          <input type="date" id="up-date">
+      <div style="padding: 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:25px;">
+        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.15); border-left: 3px solid #e50914; border-radius: 4px;">
+          <p style="margin: 0 0 10px 0; font-size: 13px; color: #ccc;">Please upload your video to YouTube Studio first.</p>
+          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 8px 15px; border-radius:4px; font-size:13px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
+            🡥 Open YouTube Studio
+          </button>
         </div>
-        <div class="form-group" style="flex:1">
-          <label>Maturity Rating</label>
-          <input type="text" id="up-rating" value="U/A 13+">
+
+        <div>
+          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="flex:1; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'">
+            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:4px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
+          </div>
+        </div>
+        
+        <div id="up-preview-container" style="display: none; text-align:center;">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        </div>
+
+        <div>
+          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Title</label>
+          <input type="text" id="up-title" placeholder="A Beautiful Memory" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'">
+        </div>
+
+        <div>
+          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
+          <textarea id="up-desc" rows="3" placeholder="Write about the memory..." style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none; resize:vertical; font-family:inherit; transition: border 0.3s;" onfocus="this.style.border='1px solid #fff'" onblur="this.style.border='1px solid rgba(255,255,255,0.1)'"></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+          <div>
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
+            <select id="up-cat" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none;">
+              <option value="Dates">Dates</option>
+              <option value="My Fav">My Fav</option>
+              <option value="Celebrations">Celebrations</option>
+              <option value="Romance">Romance</option>
+              <option value="Our Time">Our Time</option>
+              <option value="Documentaries">Documentaries</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
+            <input type="date" id="up-date" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:11px; border-radius:4px; color:white; outline:none;" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Maturity Rating</label>
+          <select id="up-rating" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:4px; color:white; outline:none;">
+            <option value="U/A 7+">U/A 7+</option>
+            <option value="U/A 13+" selected>U/A 13+</option>
+            <option value="U/A 16+">U/A 16+</option>
+            <option value="A">A</option>
+          </select>
         </div>
       </div>
       
-      <div class="actions">
-        <button class="btn btn-secondary" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
-        <button class="btn btn-primary" id="up-publish">Publish Memory</button>
+      <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end;">
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:4px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
+        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:4px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
       </div>
     </div>
   `;
@@ -1192,10 +1230,9 @@ window.openDetailModal = (id, editMode = false) => {
           <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
           <div style="display:flex; gap:10px; align-items:center;">
             <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">▶ Play</button>
+            <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 20px; font-size: 16px;">✎ Edit Info</button>
             <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black;">✓ Save</button>
-            <div class="circ-play-btn" id="dm-edit-btn" onclick="toggleDetailEdit()" title="Edit Display Details">
-              ✎
-            </div>
+            
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               ${inMyList ? '✓' : '＋'}
             </div>
@@ -1322,8 +1359,8 @@ window.playVideo = (id) => {
     playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none;" src="https://www.youtube.com/embed/${url}?autoplay=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&fs=1&playsinline=1&vq=hd1080" allow="autoplay; fullscreen"></iframe>`;
   } else {
     playerHtml = `
-      <div id="video-container" style="position:relative; width:100%; height:100%; display:none; background:black;">
-        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; height:100%; cursor:pointer; object-fit:cover;"></video>
+      <div id="video-container" style="position:relative; width:100%; height:100%; display:none; background:black; contain: content;">
+        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; height:100%; cursor:pointer; object-fit:cover; will-change: transform;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>

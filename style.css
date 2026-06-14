@@ -215,7 +215,10 @@ body {
   transition: background-color 0.4s;
 }
 .navbar.scrolled {
-  background-color: #141414;
+  background-color: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .nav-logo, .nav-logo-text {
   cursor: pointer;
@@ -357,12 +360,14 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-video-wrapper {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
+  contain: content;
 }
 .hero-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   opacity: 0.8;
+  will-change: transform;
 }
 .hero-overlay {
   position: absolute;
@@ -552,7 +557,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 0;
   position: absolute;
   bottom: 0; left: 0; width: 100%;
-  background: linear-gradient(0deg, rgba(0,0,0,0.9), transparent);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 10px;
   border-radius: 0 0 4px 4px;
   z-index: 2;
@@ -611,15 +618,20 @@ input:checked + .slider:before { transform: translateX(20px); }
   pointer-events: auto;
 }
 .upload-modal-content {
-  background: #181818;
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-left: 1px solid rgba(255,255,255,0.1);
   width: 100%; max-width: 500px;
-  padding: 30px;
+  padding: 40px 30px;
   position: relative;
   height: 100vh;
   overflow-y: auto;
-  box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+  box-shadow: -10px 0 40px rgba(0,0,0,0.5);
   transform: translateX(100%);
-  transition: transform 0.6s cubic-bezier(0.25, 1.5, 0.5, 1);
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  flex-direction: column;
 }
 .upload-modal.open .upload-modal-content {
   transform: translateX(0);
@@ -706,11 +718,14 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* Detailed Information Modal */
 .detail-modal {
-  background: #181818;
+  background: rgba(24, 24, 24, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
   width: 900px;
   max-width: 95%;
-  border-radius: 4px;
-  box-shadow: 0 0 30px rgba(0,0,0,0.9);
+  border-radius: 8px; /* Slightly softer corners for glassmorphism */
+  box-shadow: 0 8px 32px rgba(0,0,0,0.8);
   overflow: hidden;
   position: relative;
   transform: scale(0.9);
