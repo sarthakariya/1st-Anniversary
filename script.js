@@ -51,6 +51,18 @@ const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
 async function loadData() {
+  const cachedState = sessionStorage.getItem('netflix_state');
+  const cachedMemories = sessionStorage.getItem('netflix_memories');
+  if (cachedState && cachedMemories) {
+    const data = JSON.parse(cachedState);
+    if(data.myList) appState.myList = data.myList;
+    if(data.continueWatching) appState.continueWatching = data.continueWatching;
+    if(data.settings) appState.settings = data.settings;
+    if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
+    appState.memories = JSON.parse(cachedMemories);
+    return;
+  }
+
   const stateDoc = await getDoc(doc(db, 'user_state', 'household'));
   if (stateDoc.exists()) {
     const data = stateDoc.data();
@@ -70,6 +82,14 @@ async function loadData() {
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
   appState.memories = memSnapshot.docs.map(d => d.data());
+  
+  sessionStorage.setItem('netflix_state', JSON.stringify({
+    myList: appState.myList,
+    continueWatching: appState.continueWatching,
+    settings: appState.settings,
+    profiles: appState.profiles
+  }));
+  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
 
   if (appState.currentProfile) {
     const pfData = appState.profiles.find(p => p.name === appState.currentProfile);
@@ -87,6 +107,12 @@ async function saveMemoryToDB(memory) {
 
 async function saveStateList(key, data) {
   appState[key] = data;
+  sessionStorage.setItem('netflix_state', JSON.stringify({
+    myList: appState.myList,
+    continueWatching: appState.continueWatching,
+    settings: appState.settings,
+    profiles: appState.profiles
+  }));
   await setDoc(doc(db, 'user_state', 'household'), {
     [key]: data
   }, { merge: true });
@@ -247,7 +273,7 @@ window.refreshRowsView = (rcNode, heroNode) => {
           }
           openDetailModal(m.id); 
         };
-        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}">
+        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
         <div class="card-info">
           <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
             <div>${m.title}</div>
@@ -377,6 +403,35 @@ function createStartupScreen() {
   return c;
 }
 
+// Web Audio Synthesizer
+let audioCtx;
+window.playHoverSound = () => {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
+    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.05, audioCtx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+  } catch (err) {
+    console.log("Audio not supported or allowed yet");
+  }
+};
+
 function createProfileSelection() {
   const c = document.createElement('div');
   c.className = 'profile-selection';
@@ -409,6 +464,7 @@ function createProfileSelection() {
   appState.profiles.forEach((pf) => {
     const p = document.createElement('div');
     p.className = 'profile-card';
+    p.onmouseenter = window.playHoverSound;
     if(isManageMode) p.classList.add('manage-mode');
     
     p.style.setProperty('--stagger', delay++);
@@ -712,24 +768,45 @@ function createHero() {
   const heroMem = appState.memories[0] || initialMemories[0];
   const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
+  c.innerHTML = `
+    <div class="hero-video-wrapper">
+      <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+  `;
+  
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
-    const isMuted = appState.isHeroMuted !== false; // default true
-    const muteStr = isMuted ? "1" : "0";
-    const mediaNode = isYouTube 
-      ? `<iframe class="hero-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${muteStr}&modestbranding=1&rel=0&iv_load_policy=3" style="pointer-events:none;border:none;"></iframe>` 
-      : `<video class="hero-video" src="${heroMem.videoUrl}" autoplay ${isMuted ? 'muted' : ''} loop playsinline></video>`;
-      
-    c.innerHTML = `
-      <div class="hero-video-wrapper">
-        ${mediaNode}
-      </div>
-    `;
-  } else {
-    c.innerHTML = `
-      <div class="hero-video-wrapper">
-        <img class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high">
-      </div>
-    `;
+    c.onmouseenter = () => {
+      c.hoverTimeout = setTimeout(() => {
+        const isMuted = appState.isHeroMuted !== false;
+        const wrapper = c.querySelector('.hero-video-wrapper');
+        if (isYouTube) {
+          const v = document.createElement('iframe');
+          v.src = `https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3`;
+          v.className = 'hero-video media-card-hover-video';
+          v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2;';
+          wrapper.appendChild(v);
+        } else {
+          const v = document.createElement('video');
+          v.src = heroMem.videoUrl;
+          v.muted = isMuted;
+          v.autoplay = true;
+          v.loop = true;
+          v.playsInline = true;
+          v.className = 'hero-video media-card-hover-video';
+          v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;';
+          wrapper.appendChild(v);
+          v.play().catch(e => console.log('Autoplay prevented'));
+        }
+      }, 2000);
+    };
+    c.onmouseleave = () => {
+      clearTimeout(c.hoverTimeout);
+      const v = c.querySelector('.media-card-hover-video');
+      if (v) {
+         if (v.tagName === 'VIDEO') { v.src = ''; v.load(); }
+         v.remove();
+      }
+    };
   }
   
   c.innerHTML += `
@@ -744,7 +821,7 @@ function createHero() {
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
         <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">▶ Play</button>
-        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}')">ⓘ More Info</button>
+        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}', true)">✎ Edit Details</button>
       </div>
     </div>
     <div class="hero-controls">
@@ -1068,7 +1145,7 @@ window.openUploadModal = () => {
 };
 
 // === DETAIL MODAL ===
-window.openDetailModal = (id) => {
+window.openDetailModal = (id, editMode = false) => {
   const m = appState.memories.find(i => i.id === id);
   if(!m) return;
   
@@ -1111,9 +1188,14 @@ window.openDetailModal = (id) => {
         ${mediaHtml}
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
-          <div class="detail-title">${m.title}</div>
+          <div class="detail-title" id="dm-title">${m.title}</div>
+          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
           <div style="display:flex; gap:10px; align-items:center;">
-            <button class="btn btn-primary" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">▶ Play</button>
+            <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">▶ Play</button>
+            <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black;">✓ Save</button>
+            <div class="circ-play-btn" id="dm-edit-btn" onclick="toggleDetailEdit()" title="Edit Display Details">
+              ✎
+            </div>
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               ${inMyList ? '✓' : '＋'}
             </div>
@@ -1131,7 +1213,8 @@ window.openDetailModal = (id) => {
           <div class="detail-meta">
             99% Match <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
           </div>
-          <div class="detail-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
+          <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
+          <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
         </div>
         <div class="detail-right">
           <div><span class="white">Cast:</span> Sarthak, Reechita</div>
@@ -1141,8 +1224,56 @@ window.openDetailModal = (id) => {
     </div>
   `;
   document.body.appendChild(modal);
+  
+  if (editMode) {
+     toggleDetailEdit();
+  }
   setTimeout(() => modal.classList.add('open'), 10);
 }
+
+window.toggleDetailEdit = () => {
+  const title = document.getElementById('dm-title');
+  const titleEdit = document.getElementById('dm-title-edit');
+  const desc = document.getElementById('dm-desc');
+  const descEdit = document.getElementById('dm-desc-edit');
+  const playBtn = document.getElementById('dm-play-btn');
+  const saveBtn = document.getElementById('dm-save-btn');
+  const editBtn = document.getElementById('dm-edit-btn');
+  
+  if(title.classList.contains('hidden')) {
+    // Cancel or just simple toggle backward
+    title.classList.remove('hidden');
+    desc.classList.remove('hidden');
+    playBtn.classList.remove('hidden');
+    editBtn.classList.remove('hidden');
+    titleEdit.classList.add('hidden');
+    descEdit.classList.add('hidden');
+    saveBtn.classList.add('hidden');
+  } else {
+    title.classList.add('hidden');
+    desc.classList.add('hidden');
+    playBtn.classList.add('hidden');
+    editBtn.classList.add('hidden');
+    titleEdit.classList.remove('hidden');
+    descEdit.classList.remove('hidden');
+    saveBtn.classList.remove('hidden');
+    titleEdit.focus();
+  }
+};
+
+window.saveDetailEdit = async (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if (m) {
+    m.title = document.getElementById('dm-title-edit').value;
+    m.desc = document.getElementById('dm-desc-edit').value;
+    await saveMemoryToDB(m);
+    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    document.getElementById('dm-title').innerText = m.title;
+    document.getElementById('dm-desc').innerText = m.desc;
+    render();
+  }
+  toggleDetailEdit();
+};
 
 window.shareVideo = (id) => {
   const link = window.location.origin + window.location.pathname + "?v=" + id;
@@ -1192,7 +1323,7 @@ window.playVideo = (id) => {
   } else {
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:none; background:black;">
-        <video src="${url}" id="fsyPlayer" style="width:100%; height:100%; cursor:pointer;"></video>
+        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="width:100%; height:100%; cursor:pointer; object-fit:cover;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
@@ -1445,3 +1576,14 @@ loadData().catch(e => {
   // Re-render to show updated data if we are already on a view that needs it
   render();
 });
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+  }, 150);
+});
+
+// Init VH value
+document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);

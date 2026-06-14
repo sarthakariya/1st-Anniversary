@@ -513,6 +513,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   scroll-behavior: smooth;
   padding: 20px 0;
   scroll-snap-type: x mandatory;
+  contain: content;
 }
 .media-card {
   flex: 0 0 calc(100% / 6 - 8px);
@@ -556,6 +557,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 0 0 4px 4px;
   z-index: 2;
   transition: opacity 0.4s ease 0.1s;
+  backface-visibility: hidden;
 }
 .media-card:hover .card-info {
   opacity: 1;
