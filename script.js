@@ -44,10 +44,8 @@ const initialMemories = [
 
 // Initialize from local memory if missing in db initially
 const savedProfile = localStorage.getItem('sarthak_netflix_profile');
-if (savedProfile) {
-  appState.currentProfile = savedProfile;
-  appState.view = 'dashboard';
-}
+// We do NOT set appState.currentProfile = savedProfile here
+// to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
@@ -341,7 +339,7 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <video id="startup-vid" src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.8); z-index:2; cursor:pointer;">
       <h1 style="color:white; font-size:24px; font-family:inherit;">Click anywhere to start</h1>
     </div>
@@ -526,7 +524,7 @@ window.editProfile = (pfId) => {
 function createIntroScreen() {
   const c = document.createElement('div');
   c.className = 'intro-container';
-  c.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline></video>`;
+  c.innerHTML = `<video src="./netflix-intro.mp4" playsinline autoplay style="object-fit:cover; width:100%; height:100%;"></video>`;
   return c;
 }
 
@@ -780,11 +778,6 @@ window.openUploadModal = () => {
       <div class="form-group">
         <label>YouTube Video Link</label>
         <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="font-family: monospace;">
-        <button id="up-fetch" class="btn btn-secondary" style="margin-top: 5px; width: 100%; font-size: 14px;">Extract Thumbnail</button>
-      </div>
-      
-      <div class="form-group" style="text-align: center; display: none;" id="up-preview-container">
-        <img id="up-thumb-preview" src="" style="max-height: 150px; border-radius: 4px; border: 1px solid #333;">
       </div>
 
       <div class="form-group">
@@ -828,10 +821,10 @@ window.openUploadModal = () => {
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('open'), 10);
   
-  let currentThumbData = '';
-  let extractedVideoId = '';
-
-  document.getElementById('up-fetch').onclick = async () => {
+  document.getElementById('up-publish').onclick = async (e) => {
+    const title = document.getElementById('up-title').value.trim();
+    if(!title) return alert("Title required");
+    
     const link = document.getElementById('up-yt-link').value.trim();
     if (!link) return alert("Please paste a YouTube link first.");
 
@@ -845,17 +838,6 @@ window.openUploadModal = () => {
     }
 
     if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
-    
-    extractedVideoId = videoId;
-    currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
-    document.getElementById('up-thumb-preview').src = currentThumbData;
-    document.getElementById('up-preview-container').style.display = 'block';
-  };
-  
-  document.getElementById('up-publish').onclick = async (e) => {
-    const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
-    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
@@ -867,8 +849,8 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/hqdefault.jpg'),
-      videoUrl: extractedVideoId,
+      thumbnail: 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg',
+      videoUrl: videoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
@@ -990,7 +972,7 @@ window.playVideo = (id) => {
 
   c.innerHTML = `
     <div class="playback-back" onclick="document.getElementById('playbackOverlay').remove(); render();" style="z-index: 10000; position:absolute;">🡠</div>
-    <video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
   `;
   document.body.appendChild(c);
