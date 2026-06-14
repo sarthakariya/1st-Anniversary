@@ -84,7 +84,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // We do NOT set appState.currentProfile = savedProfile here
 // to force the user to select the profile every time.
 
-const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Anniversary Gallery'];
+const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
 const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
 
 async function loadData() {
@@ -343,7 +343,7 @@ window.refreshRowsView = (rcNode, heroNode) => {
       const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
       if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
     });
-  } else if (appState.activeCategory === 'Anniversary Gallery') {
+  } else if (appState.activeCategory === 'Moments') {
     // Show local array instantly to feel responsive, then fetch from firestore
     const fetchAndRenderGallery = async () => {
       let galleryItems = [];
@@ -372,7 +372,17 @@ window.refreshRowsView = (rcNode, heroNode) => {
       
       const wrapper = document.createElement('div');
       wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
-      wrapper.innerHTML = `<h2 style="font-size: 1.4vw; font-weight: 700; margin-bottom: 20px;">Anniversary Selection (Firestore)</h2>`;
+      
+      const headerBox = document.createElement('div');
+      headerBox.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
+      headerBox.innerHTML = `
+        <h2 style="font-size: 1.4vw; font-weight: 700; margin: 0;">Moments</h2>
+        <div>
+          <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px; margin-right: 10px;" onclick="startMomentsSlideshow()">▶ Play as Video</button>
+          <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openBulkUploadModal()">＋ Add Photos</button>
+        </div>
+      `;
+      wrapper.appendChild(headerBox);
       
       const grid = document.createElement('div');
       grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
@@ -533,7 +543,6 @@ function createStartupScreen() {
     </div>
     <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); z-index:2; cursor:pointer; flex-direction: column;">
-      <img src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix" style="width: 200px; margin-bottom: 30px;">
       <div style="background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
         <h1 style="color:white; font-size:16px; font-weight: 500; letter-spacing: 1px; margin: 0; display: flex; align-items: center; gap: 10px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg> Click anywhere to start
@@ -651,50 +660,10 @@ function createProfileSelection() {
 }
 
 function loginProfile(pf, p) {
-  // Sound ripple removed
-  const rect = p.getBoundingClientRect();
-  const ripple = document.createElement('div');
-  ripple.style.position = 'fixed';
-  ripple.style.top = (rect.top + rect.height/2) + 'px';
-  ripple.style.left = (rect.left + rect.width/2) + 'px';
-  ripple.style.width = '10px';
-  ripple.style.height = '10px';
-  ripple.style.background = 'transparent';
-  ripple.style.border = '2px solid rgba(229, 9, 20, 0.8)';
-  ripple.style.borderRadius = '50%';
-  ripple.style.transform = 'translate(-50%, -50%)';
-  ripple.style.pointerEvents = 'none';
-  ripple.style.zIndex = '9999';
-  ripple.style.transition = 'all 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
-  document.body.appendChild(ripple);
-  
-  setTimeout(() => {
-    ripple.style.width = '200vw';
-    ripple.style.height = '200vw';
-    ripple.style.opacity = '0';
-  }, 10);
-  
-  setTimeout(() => { ripple.remove(); }, 800);  // Simple Pulse Effect
-  const wrapper = p.querySelector('.profile-avatar-wrapper');
-  if(wrapper) {
-    wrapper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-    wrapper.style.transform = 'scale(1.15)';
-    wrapper.style.boxShadow = '0 0 20px rgba(229, 9, 20, 0.6)';
-    wrapper.style.border = '2px solid #e50914';
-  }
-  
-  setTimeout(() => {
-    p.style.transition = 'transform 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.5s';
-    p.style.transform = 'scale(2) translateZ(100px)';
-    p.style.opacity = '0';
-  }, 600);
-  
-  setTimeout(() => {
-    appState.currentProfile = pf.name;
-    localStorage.setItem('sarthak_netflix_profile', pf.name);
-    transitionView('intro');
-    setTimeout(() => { transitionView('dashboard'); }, 1200);
-  }, 1000);
+  appState.currentProfile = pf.name;
+  localStorage.setItem('sarthak_netflix_profile', pf.name);
+  transitionView('intro');
+  setTimeout(() => { transitionView('dashboard'); }, 4000);
 }
 
 function showPinModal(pf, pElement) {
@@ -1153,16 +1122,20 @@ function createRow(title, memories, index = 0) {
     isDown = false;
     beginMomentumLoop();
   });
+  let rAF;
   rc.addEventListener('mousemove', (e) => {
     if (!isDown) return;
     e.preventDefault();
-    const x = e.pageX - rc.offsetLeft;
-    const walk = (x - startX) * 2; 
-    rc.scrollLeft = scrollLeft - walk;
-    
-    // Calculate velocity
-    velX = e.pageX - lastX;
-    lastX = e.pageX;
+    if(rAF) cancelAnimationFrame(rAF);
+    rAF = requestAnimationFrame(() => {
+      const x = e.pageX - rc.offsetLeft;
+      const walk = (x - startX) * 2; 
+      rc.scrollLeft = scrollLeft - walk;
+      
+      // Calculate velocity
+      velX = e.pageX - lastX;
+      lastX = e.pageX;
+    });
   });
 
   // Touch passive listeners
@@ -1540,11 +1513,8 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               ${inMyList ? '✓' : '＋'}
             </div>
-            <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download for Offline Viewing">
-              ⬇
-            </div>
-            <div class="circ-play-btn" onclick="shareVideo('${m.id}')" title="Share">
-              🔗
+            <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="background: rgba(229, 9, 20, 0.4); border-color: rgba(229, 9, 20, 0.8);">
+              🗑
             </div>
           </div>
         </div>
@@ -1556,6 +1526,11 @@ window.openDetailModal = (id, e, editMode = false) => {
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
+          
+          <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
+            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Replace Thumbnail Image</div>
+            <input type="file" id="dm-thumb-input" accept="image/*" style="font-size:14px;">
+          </div>
         </div>
         <div class="detail-right">
           <div><span class="white">Cast:</span> Sarthak, Reechita</div>
@@ -1580,9 +1555,9 @@ window.toggleDetailEdit = () => {
   const playBtn = document.getElementById('dm-play-btn');
   const saveBtn = document.getElementById('dm-save-btn');
   const editBtn = document.getElementById('dm-edit-btn');
+  const thumbEdit = document.getElementById('dm-thumb-edit');
   
   if(title.classList.contains('hidden')) {
-    // Cancel or just simple toggle backward
     title.classList.remove('hidden');
     desc.classList.remove('hidden');
     playBtn.classList.remove('hidden');
@@ -1590,6 +1565,7 @@ window.toggleDetailEdit = () => {
     titleEdit.classList.add('hidden');
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
+    thumbEdit.classList.add('hidden');
   } else {
     title.classList.add('hidden');
     desc.classList.add('hidden');
@@ -1598,6 +1574,7 @@ window.toggleDetailEdit = () => {
     titleEdit.classList.remove('hidden');
     descEdit.classList.remove('hidden');
     saveBtn.classList.remove('hidden');
+    thumbEdit.classList.remove('hidden');
     titleEdit.focus();
   }
 };
@@ -1607,13 +1584,43 @@ window.saveDetailEdit = async (id) => {
   if (m) {
     m.title = document.getElementById('dm-title-edit').value;
     m.desc = document.getElementById('dm-desc-edit').value;
-    await saveMemoryToDB(m);
+
+    const fileInput = document.getElementById('dm-thumb-input');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      await new Promise(resolve => {
+        reader.onload = (e) => {
+          m.thumbnail = e.target.result;
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    try { await saveMemoryToDB(m); } catch(err) {}
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
     document.getElementById('dm-title').innerText = m.title;
     document.getElementById('dm-desc').innerText = m.desc;
+    // update thumbnail visually
+    const previewImg = document.getElementById('detailModal').querySelector('.detail-hero img');
+    if (previewImg) previewImg.src = m.thumbnail;
+
     render();
   }
   toggleDetailEdit();
+};
+
+window.deleteMemory = async (id) => {
+  if (confirm("Are you sure you want to delete this memory?")) {
+    appState.memories = appState.memories.filter(m => m.id !== id);
+    appState.myList = appState.myList.filter(lId => lId !== id);
+    try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
+    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    saveStateList('myList', appState.myList);
+    document.getElementById('detailModal').remove();
+    render();
+  }
 };
 
 window.shareVideo = (id) => {
@@ -1729,17 +1736,17 @@ window.playVideo = (id) => {
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
   
+  // Request fullscreen automatically as early as possible
+  if (c.requestFullscreen) {
+    c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
+  }
+  
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     if (isYouTube) {
       mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3`;
     }
-    mainPlayer.style.display = 'block';
-    
-    // Request fullscreen automatically on playback start
-    if (c.requestFullscreen) {
-      c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
-    }
+    mainPlayer.style.display = 'flex';
     
     // Auto play when transition is done
     if (!isYouTube) {
@@ -1975,3 +1982,135 @@ window.addEventListener('resize', () => {
 
 // Init VH value
 document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+
+// Moments functions
+window.openBulkUploadModal = () => {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'bulkUploadModal';
+  m.innerHTML = `
+    <div class="modal-box" style="text-align:center;">
+      <h2 style="margin-bottom:20px; font-weight:bold;">Add Photos</h2>
+      <input type="file" id="bulk-upload-input" multiple accept="image/*" class="form-control" style="margin-bottom:20px; border-radius:4px; padding:10px;">
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+        <button class="btn btn-secondary" style="border-radius: 4px;" onclick="document.getElementById('bulkUploadModal').remove()">Cancel</button>
+        <button class="btn btn-primary" id="bulk-upload-save" style="border-radius: 4px;">Upload & Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  setTimeout(() => m.classList.add('open'), 10);
+
+  document.getElementById('bulk-upload-save').onclick = async () => {
+    const input = document.getElementById('bulk-upload-input');
+    if (!input.files || input.files.length === 0) return;
+    
+    document.getElementById('bulk-upload-save').innerText = 'Uploading...';
+    
+    appState.activeCategory = 'Moments';
+    
+    const maxFiles = Array.from(input.files);
+    for(let file of maxFiles) {
+      const reader = new FileReader();
+      await new Promise(resolve => {
+        reader.onload = async (e) => {
+          const newMem = {
+            id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
+            title: file.name.split('.')[0] || 'Photo',
+            desc: '',
+            category: 'Moments',
+            year: new Date().getFullYear().toString(),
+            rating: 'PG-13',
+            matchRate: 99,
+            thumbnail: e.target.result,
+            videoUrl: '', // Just an image
+            dateAdded: Date.now()
+          };
+          appState.memories.push(newMem);
+          try { await saveMemoryToDB(newMem); } catch(err){}
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    m.remove();
+    render();
+  };
+};
+
+window.startMomentsSlideshow = () => {
+  const mems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
+  if (mems.length === 0) return alert('Add photos to Moments first.');
+
+  let c = document.getElementById('playbackOverlay');
+  if (!c) {
+    c = document.createElement('div');
+    c.className = 'playback-overlay';
+    c.id = 'playbackOverlay';
+    document.body.appendChild(c);
+  }
+  
+  c.style.display = 'block';
+  c.style.transform = 'translateY(0)';
+  c.style.opacity = '1';
+
+  // Request fullscreen
+  if (c.requestFullscreen) {
+    c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
+  }
+
+  let currentIndex = 0;
+  
+  c.innerHTML = `
+    <div class="playback-back close-btn" id="ss-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </div>
+    <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
+       <img id="ss-image" src="${mems[0].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
+    </div>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+  `;
+
+  const imgEl = document.getElementById('ss-image');
+  const duration = 3500;
+  let slideshowInterval;
+  
+  const startSlideshowLoop = () => {
+    document.getElementById('introPlayer').style.display = 'none';
+    slideshowInterval = setInterval(() => {
+      imgEl.style.opacity = '0';
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % mems.length;
+        imgEl.src = mems[currentIndex].thumbnail;
+        imgEl.style.opacity = '1';
+      }, 1500); // Wait for fade out to complete
+    }, duration);
+  };
+
+  const introPlayer = document.getElementById('introPlayer');
+  if (introPlayer) {
+    if(introPlayer.play() !== undefined) {
+      introPlayer.play().catch(() => startSlideshowLoop());
+    }
+    introPlayer.onended = startSlideshowLoop;
+    introPlayer.onerror = startSlideshowLoop;
+  } else {
+    startSlideshowLoop();
+  }
+
+  const closePlayer = () => {
+     clearInterval(slideshowInterval);
+     if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
+     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';
+     c.style.transform = 'translateY(100%)';
+     c.style.opacity = '0';
+     setTimeout(() => {
+       c.innerHTML = '';
+       c.style.display = 'none';
+     }, 400);
+  };
+  
+  document.getElementById('ss-close-btn').onclick = closePlayer;
+};
