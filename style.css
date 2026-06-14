@@ -560,7 +560,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* Rows */
 .slider-container {
   padding: 0 4% 10vw 4%;
-  margin-top: -5vh; /* overlap bottom gradient */
+  margin-top: -12vw; /* overlap bottom gradient */
   position: relative;
   z-index: 10;
 }

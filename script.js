@@ -346,28 +346,8 @@ window.refreshRowsView = (rcNode, heroNode) => {
   } else if (appState.activeCategory === 'Moments') {
     // Show local array instantly to feel responsive, then fetch from firestore
     const fetchAndRenderGallery = async () => {
-      let galleryItems = [];
-      try {
-        const querySnapshot = await getDocs(collection(db, 'memories'));
-        querySnapshot.forEach(doc => {
-          galleryItems.push({ id: doc.id, ...doc.data() });
-        });
-      } catch(err) {
-        console.error("Error fetching memories", err);
-      }
+      let galleryItems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
       
-      if(galleryItems.length === 0) {
-        galleryItems = [
-          { id: 'g_1', title: 'Our First Sunset', year: '2023', thumbnail: 'https://images.unsplash.com/photo-1516589177380-50528f117c0a?w=800&auto=format&fit=crop', desc: 'A beautiful evening by the beach.', category: 'Romance' },
-          { id: 'g_2', title: 'Paris Getaway', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1502602898657-3e907a5ea071?w=800&auto=format&fit=crop', desc: 'Candlelight dinner with the Eiffel Tower glowing in the background.', category: 'Romance' },
-          { id: 'g_3', title: 'Snowy Retreat', year: '2024', thumbnail: 'https://images.unsplash.com/photo-1518556488771-b0db37b34baf?w=800&auto=format&fit=crop', desc: 'Our first Christmas in the snow cabin.', category: 'Celebrations' }
-        ];
-        // optional: save to db
-        for(let g of galleryItems) {
-           try { await setDoc(doc(db, 'memories', g.id), g); } catch(er){}
-        }
-      }
-
       rc.innerHTML = '';
       
       const wrapper = document.createElement('div');
@@ -427,11 +407,11 @@ window.refreshRowsView = (rcNode, heroNode) => {
         const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
         if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
       });
-      rc.appendChild(createRow('Recent Additions', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
+      rc.appendChild(createRow('Recent Additions', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
     }
     // For Dates
     if (appState.activeCategory === 'Dates') {
-      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
+      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
     }
   }
   
@@ -816,11 +796,6 @@ function createIntroScreen() {
 }
 
 function createDashboard() {
-  setTimeout(() => {
-    const icon = document.querySelector('link[rel="icon"]');
-    const img = document.getElementById('nav-logo-img');
-    if(icon && img) img.src = icon.href;
-  }, 50);
   const c = document.createElement('div');
   c.appendChild(createNavbar());
   
@@ -899,7 +874,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 30px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 35px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 20px; position:relative;">
         <div class="nav-line" id="navLine"></div>
@@ -923,7 +898,7 @@ function createNavbar() {
           </div>
         </div>
 
-        <button class="add-memory-btn" onclick="openUploadModal()">＋ Add Memory</button>
+        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : 'openUploadModal()'}">＋ ${appState.activeCategory === 'Moments' ? 'Add Photos' : 'Add Memory'}</button>
         <div class="profile-dropdown">
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
           <div class="dropdown-menu">
@@ -949,7 +924,8 @@ function createNavbar() {
 
 window.currentHeroIndex = window.currentHeroIndex || 0;
 window.shuffleHero = () => {
-  window.currentHeroIndex = (window.currentHeroIndex + 1) % Math.min(5, appState.memories.length);
+  const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
+  if(vids.length > 0) window.currentHeroIndex = (window.currentHeroIndex + 1) % Math.min(5, vids.length);
   render();
 };
 
@@ -957,15 +933,16 @@ function createHero() {
   const c = document.createElement('div');
   c.className = 'hero-billboard';
   
-  if(appState.memories.length === 0) return c;
-  const heroMem = appState.memories[window.currentHeroIndex] || appState.memories[0];
+  const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
+  if(vids.length === 0) return c;
+  const heroMem = vids[window.currentHeroIndex % vids.length] || vids[0];
   const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
   let backgroundVideoHtml = '';
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
-    const isMuted = appState.isHeroMuted !== false;
+    const isMuted = appState.isHeroMuted === true;
     if (isYouTube) {
-      backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(1.35);"></iframe>`;
+      backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(3.5);"></iframe>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : 'volume="0"'} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -992,7 +969,7 @@ function createHero() {
         <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
       </div>
       <div class="mute-btn" id="hero-mute-btn" onclick="toggleHeroMute()" title="Toggle Mute">
-        ${(appState.isHeroMuted !== false) ? 
+        ${(appState.isHeroMuted === true) ? 
          `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>` :
          `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>`}
       </div>
@@ -1161,13 +1138,20 @@ function createRow(title, memories, index = 0) {
       entries.forEach(entry => {
         const img = entry.target;
         if (entry.isIntersecting) {
-          if (img.dataset.src) {
-            img.src = img.dataset.src;
-            img.removeAttribute('data-src');
+          if (img.dataset.src && (!img.src || img.src.includes('data:image'))) {
+            if (window.requestIdleCallback) {
+              requestIdleCallback(() => { img.src = img.dataset.src; });
+            } else {
+              img.src = img.dataset.src;
+            }
+          }
+        } else {
+          if (img.src && !img.src.includes('data:image') && img.dataset.src) {
+             img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
           }
         }
       });
-    }, { rootMargin: "200px" });
+    }, { rootMargin: "600px" });
   }
 
   const fragment = document.createDocumentFragment();
@@ -1200,7 +1184,7 @@ function createRow(title, memories, index = 0) {
           const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
           if (isYouTube) {
             const v = document.createElement('iframe');
-            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1`;
+            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080`;
             v.className = 'media-card-hover-video';
             v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; border-radius:4px;';
             card.appendChild(v);
@@ -1268,7 +1252,7 @@ window.playTrailer = (e, id) => {
 };
 
 window.toggleHeroMute = () => {
-  if (appState.isHeroMuted === undefined) appState.isHeroMuted = true;
+  if (appState.isHeroMuted === undefined) appState.isHeroMuted = false;
   appState.isHeroMuted = !appState.isHeroMuted;
   const vids = document.querySelectorAll('.hero-video');
   const btn = document.getElementById('hero-mute-btn');
@@ -1284,7 +1268,7 @@ window.toggleHeroMute = () => {
     }
   });
   if (btn) {
-     btn.innerHTML = (appState.isHeroMuted !== false) ? 
+     btn.innerHTML = (appState.isHeroMuted === true) ? 
        `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>` :
        `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z"/></svg>`;
   }
@@ -1399,11 +1383,10 @@ window.openUploadModal = () => {
       if (oembedRes.ok) {
         const data = await oembedRes.json();
         if (data.title) document.getElementById('up-title').value = data.title;
-        if (data.thumbnail_url) {
-          currentThumbData = data.thumbnail_url;
-          document.getElementById('up-thumb-preview').src = currentThumbData;
-          document.getElementById('up-preview-container').style.display = 'block';
-        }
+        // Always prefer maxresdefault for crystal clear thumbnails
+        currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+        document.getElementById('up-thumb-preview').src = currentThumbData;
+        document.getElementById('up-preview-container').style.display = 'block';
       } else {
          currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
          document.getElementById('up-thumb-preview').src = currentThumbData;
@@ -1491,7 +1474,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`) : 
+      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<video src="${m.videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
@@ -1512,6 +1495,12 @@ window.openDetailModal = (id, e, editMode = false) => {
             
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               ${inMyList ? '✓' : '＋'}
+            </div>
+            <div class="circ-play-btn" onclick="likeMemory('${m.id}')" title="Like">
+              👍
+            </div>
+            <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
+              ⬇
             </div>
             <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="background: rgba(229, 9, 20, 0.4); border-color: rgba(229, 9, 20, 0.8);">
               🗑
@@ -1535,6 +1524,7 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-right">
           <div><span class="white">Cast:</span> Sarthak, Reechita</div>
           <div style="margin-top:10px;"><span class="white">Genres:</span> ${m.category}, Emotional</div>
+          <div style="margin-top:10px;"><span class="white">This Show Is:</span> Romantic, Exciting</div>
         </div>
       </div>
     </div>
@@ -1620,6 +1610,30 @@ window.deleteMemory = async (id) => {
     saveStateList('myList', appState.myList);
     document.getElementById('detailModal').remove();
     render();
+  }
+};
+
+window.likeMemory = async (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if (!m) return;
+  m.likes = (m.likes || 0) + 1;
+  try { await saveMemoryToDB(m); } catch(err){}
+  alert('Liked! Total likes: ' + m.likes);
+};
+
+window.downloadVideo = (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if (!m || !m.videoUrl) return alert('Video not available to download.');
+  
+  if (m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:')) {
+    // It's a YouTube video
+    window.open(`https://www.ssyoutube.com/watch?v=${m.videoUrl}`, '_blank');
+  } else {
+    // It's a native video
+    const a = document.createElement('a');
+    a.href = m.videoUrl;
+    a.download = m.title + '.mp4';
+    a.click();
   }
 };
 
@@ -1744,7 +1758,7 @@ window.playVideo = (id) => {
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080`;
     }
     mainPlayer.style.display = 'flex';
     
