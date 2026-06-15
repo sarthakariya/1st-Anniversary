@@ -11,9 +11,15 @@ function transitionView(v) {
   }
   
   try {
-    document.startViewTransition(() => {
+    appState.isTransitioning = true;
+    const transition = document.startViewTransition(() => {
       appState.view = v;
       render();
+    });
+    transition.ready.catch(() => {});
+    transition.updateCallbackDone.catch(() => {});
+    transition.finished.catch(() => {}).finally(() => {
+        appState.isTransitioning = false;
     });
   } catch(e) {
     appState.view = v;
@@ -41,6 +47,7 @@ let appState = {
     autoPlayNextEpisode: true
   },
   myList: [],
+  likedList: [],
   continueWatching: [],
   memories: null,
   profiles: null
@@ -51,6 +58,7 @@ window.addEventListener('storage', (e) => {
     appState.memories = JSON.parse(sessionStorage.getItem('netflix_memories') || 'null');
     const newState = JSON.parse(sessionStorage.getItem('netflix_state') || '{}');
     if(newState.myList) appState.myList = newState.myList;
+    if(newState.likedList) appState.likedList = newState.likedList;
     if(newState.continueWatching) appState.continueWatching = newState.continueWatching;
     if(newState.settings) appState.settings = newState.settings;
     if(newState.profiles) appState.profiles = newState.profiles;
@@ -126,12 +134,16 @@ async function loadData() {
     if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
   } else {
     appState.profiles = [...initialProfiles];
-    await setDoc(doc(db, 'user_state', 'household'), {
-      myList: appState.myList,
-      continueWatching: appState.continueWatching,
-      settings: appState.settings,
-      profiles: appState.profiles
-    });
+    try {
+      await setDoc(doc(db, 'user_state', 'household'), {
+        myList: appState.myList,
+        continueWatching: appState.continueWatching,
+        settings: appState.settings,
+        profiles: appState.profiles
+      });
+    } catch(err) {
+      console.warn("Could not save initial state", err);
+    }
   }
 
   const memSnapshot = await getDocs(collection(db, 'memories'));
@@ -156,7 +168,11 @@ async function loadData() {
 
 async function saveMemoryToDB(memory) {
   if(!memory.id) memory.id = "m_" + Date.now();
-  await setDoc(doc(db, 'memories', memory.id), memory);
+  try {
+    await setDoc(doc(db, 'memories', memory.id), memory);
+  } catch (err) {
+    console.warn("Failed to save memory to DB:", err);
+  }
 }
 
 async function saveStateList(key, data) {
@@ -167,9 +183,13 @@ async function saveStateList(key, data) {
     settings: appState.settings,
     profiles: appState.profiles
   }));
-  await setDoc(doc(db, 'user_state', 'household'), {
-    [key]: data
-  }, { merge: true });
+  try {
+    await setDoc(doc(db, 'user_state', 'household'), {
+      [key]: data
+    }, { merge: true });
+  } catch (err) {
+    console.warn("Failed to save state to DB:", err);
+  }
 };
 
 document.addEventListener('keydown', (e) => {
@@ -218,40 +238,44 @@ function internalRender() {
     const profs = createProfileSelection();
     app.appendChild(profs);
     
-    // Entrance Animation
-    profs.style.opacity = '0';
-    setTimeout(() => {
-      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: "easeOut" });
-      const cards = profs.querySelectorAll('.profile-card');
-      if (cards.length > 0) {
-        cards.forEach(c => c.style.animation = 'none'); // override css
-        animate(
-          cards, 
-          { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
-          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
-        );
-      }
-    }, 50);
+    // Entrance Animation (Skip if view transitioning)
+    if(!appState.isTransitioning) {
+        profs.style.opacity = '0';
+        setTimeout(() => {
+          animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: "easeOut" });
+          const cards = profs.querySelectorAll('.profile-card');
+          if (cards.length > 0) {
+            cards.forEach(c => c.style.animation = 'none'); // override css
+            animate(
+              cards, 
+              { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
+              { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
+            );
+          }
+        }, 50);
+    }
   }
   else if (appState.view === 'intro') app.appendChild(createIntroScreen());
   else if (appState.view === 'dashboard') {
     const dashboard = createDashboard();
     app.appendChild(dashboard);
     
-    // Entrance Animation
-    dashboard.style.opacity = '0';
-    setTimeout(() => {
-      animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
-      
-      const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
-      if (elements.length > 0) {
-          animate(
-            elements, 
-            { y: [40, 0], opacity: [0, 1] }, 
-            { duration: 0.7, delay: stagger(0.15, { startDelay: 0.2 }), ease: "easeOut" }
-          );
-      }
-    }, 50);
+    // Entrance Animation (Skip if view transitioning)
+    if(!appState.isTransitioning) {
+        dashboard.style.opacity = '0';
+        setTimeout(() => {
+          animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+          
+          const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
+          if (elements.length > 0) {
+              animate(
+                elements, 
+                { y: [40, 0], opacity: [0, 1] }, 
+                { duration: 0.7, delay: stagger(0.15, { startDelay: 0.2 }), ease: "easeOut" }
+              );
+          }
+        }, 50);
+    }
   }
 }
 window.render = render;
@@ -371,6 +395,11 @@ window.refreshRowsView = (rcNode, heroNode) => {
   if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
     const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
     if(cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+  }
+  
+  if (appState.likedList && appState.likedList.length > 0 && ['Home', 'Dates'].includes(appState.activeCategory)) {
+    const liked = appState.memories.filter(m => appState.likedList.includes(m.id));
+    if(liked.length) rc.appendChild(createRow('Liked Memories', liked, rowIndex++));
   }
   
   if (appState.activeCategory === 'My List') {
@@ -954,12 +983,11 @@ function createNavbar() {
           </div>
         </div>
 
-        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : (appState.activeCategory === 'My List' ? 'setCategory(\'Home\')' : 'openUploadModal()')}" title="${addButtonText}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-        <div class="profile-dropdown">
-          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
+        <div class="profile-dropdown" style="display:flex; align-items:center; margin-left: 20px; cursor: pointer;">
+          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; object-fit: cover; display: block; margin-right: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
           <div class="dropdown-menu">
+            <div class="dropdown-item" onclick="openUploadModal()">🎬 Add Memory</div>
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
             <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
             <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
@@ -1031,7 +1059,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false; // Default to true for autoplay compatibility
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%);border:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center;"><div style="position:relative;width:100vw;max-width:1920px;aspect-ratio:16/9;max-height:1080px;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe></div></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -1060,11 +1088,6 @@ function createHero() {
     <div class="hero-controls" style="z-index: 5;">
       <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
         <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-      </div>
-      <div class="mute-btn" id="hero-mute-btn" onclick="toggleHeroMute()" title="Toggle Mute">
-        ${(appState.isHeroMuted === true) ? 
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>` :
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`}
       </div>
       <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
@@ -1114,9 +1137,9 @@ function createRow(title, memories, index = 0) {
   row.style.setProperty('--row-index', index);
   row.innerHTML = `
     <div class="row-header scramble-text" data-text="${title}">${title}</div>
-    <div class="slider-arrow slider-left">‹</div>
+    <div class="slider-arrow slider-left"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><polyline points="15 18 9 12 15 6"></polyline></svg></div>
     <div class="row-content" style="position:relative;"></div>
-    <div class="slider-arrow slider-right">›</div>
+    <div class="slider-arrow slider-right"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
   `;
   row.style.position = 'relative';
   
@@ -1442,7 +1465,18 @@ window.openUploadModal = () => {
           <label for="up-desc">Description</label>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
+          <div>
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#c6ff00; margin-bottom:8px;">Thumbnail Style</label>
+            <div style="display:flex; background:rgba(0,0,0,0.4); border-radius: 8px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1);">
+              <div id="ai-toggle-youtube" style="flex:1; padding: 10px; text-align:center; font-size: 13px; cursor:pointer; background: rgba(255,255,255,0.1); color: white; font-weight:bold; transition: background 0.3s;" onclick="setAiToggle(false)">Use YouTube Default</div>
+              <div id="ai-toggle-ai" style="flex:1; padding: 10px; text-align:center; font-size: 13px; cursor:pointer; background: transparent; color: #888; transition: background 0.3s;" onclick="setAiToggle(true)">🌟 AI Movie Poster</div>
+            </div>
+            <input type="hidden" id="up-use-ai" value="false">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
             <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
@@ -1526,6 +1560,20 @@ window.openUploadModal = () => {
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
   
+  // AI toggle helper
+  window.setAiToggle = (useAi) => {
+    document.getElementById('up-use-ai').value = useAi ? "true" : "false";
+    const bgYoutube = useAi ? "transparent" : "rgba(255,255,255,0.1)";
+    const colorYoutube = useAi ? "#888" : "white";
+    const bgAi = useAi ? "rgba(255,255,255,0.1)" : "transparent";
+    const colorAi = useAi ? "white" : "#888";
+
+    document.getElementById('ai-toggle-youtube').style.background = bgYoutube;
+    document.getElementById('ai-toggle-youtube').style.color = colorYoutube;
+    document.getElementById('ai-toggle-ai').style.background = bgAi;
+    document.getElementById('ai-toggle-ai').style.color = colorAi;
+  };
+
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
     if(!title) return alert("Title required");
@@ -1534,6 +1582,33 @@ window.openUploadModal = () => {
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
+    const useAiThumb = document.getElementById('up-use-ai').value === "true";
+    let finalThumbnail = currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
+    
+    if(useAiThumb) {
+       e.target.innerText = "Generating AI Poster...";
+       try {
+         const aiRes = await fetch('/api/generate-poster', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             title: title,
+             description: document.getElementById('up-desc').value
+           })
+         });
+         const aiData = await aiRes.json();
+         if(aiData.imageUrl) {
+           finalThumbnail = aiData.imageUrl;
+         } else {
+           console.warn("AI Generation Failed: ", aiData.error);
+           alert("AI Generation failed. Falling back to default.");
+         }
+       } catch (err) {
+         console.error("AI fetch error:", err);
+         alert("AI generation request failed. Using default thumbnail.");
+       }
+    }
+
     const mem = {
       id: 'm_' + Date.now(),
       title,
@@ -1541,13 +1616,17 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'),
+      thumbnail: finalThumbnail,
       videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
 
-    await saveMemoryToDB(mem);
+    try {
+      await saveMemoryToDB(mem);
+    } catch(err) {
+      console.warn("Failed to save to DB:", err);
+    }
     appState.memories.unshift(mem);
     window.justUploadedId = mem.id;
     const modalEl = document.getElementById('uploadModal');
@@ -1573,6 +1652,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   }
   
   const inMyList = appState.myList.includes(id);
+  const isLiked = (appState.likedList || []).includes(id);
 
   // Pause hero video
   const heroVids = document.querySelectorAll('.hero-video');
@@ -1599,7 +1679,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
@@ -1627,8 +1707,8 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
             </div>
-            <div class="circ-play-btn" onclick="likeMemory('${m.id}')" title="Like">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', event)" title="${isLiked ? 'Unlike' : 'Like'}">
+              <svg width="20" height="20" viewBox="0 0 24 24" ${isLiked ? 'fill="#e50914" stroke="#e50914"' : 'fill="none" stroke="currentColor"'} stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
             </div>
             <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -1647,10 +1727,27 @@ window.openDetailModal = (id, e, editMode = false) => {
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
           
-          <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
-            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Replace Thumbnail Image</div>
-            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select New Image</button>
-            <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;">
+          <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px; display:flex; gap:15px; flex-direction:column;">
+            <div>
+              <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Date / Year</div>
+              <input type="date" id="dm-date-edit" value="${m.year || ''}" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:10px 15px; border-radius:4px; color:white; outline:none;">
+            </div>
+            <div>
+              <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Maturity Rating</div>
+              <select id="dm-rating-edit" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:10px 15px; border-radius:4px; color:white; outline:none;">
+                <option value="U/A 7+" ${m.rating === 'U/A 7+' ? 'selected' : ''} style="background:#141414;">U/A 7+</option>
+                <option value="U/A 13+" ${m.rating === 'U/A 13+' ? 'selected' : ''} style="background:#141414;">U/A 13+</option>
+                <option value="U/A 16+" ${m.rating === 'U/A 16+' ? 'selected' : ''} style="background:#141414;">U/A 16+</option>
+                <option value="U/A 18+" ${m.rating === 'U/A 18+' ? 'selected' : ''} style="background:#141414;">U/A 18+</option>
+                <option value="A" ${m.rating === 'A' ? 'selected' : ''} style="background:#141414;">A</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Replace Thumbnail Image</div>
+              <div id="dm-thumb-name" style="font-size:12px; color:#46d369; margin-bottom:5px;"></div>
+              <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select New Image</button>
+              <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files[0]) document.getElementById('dm-thumb-name').innerText = 'Selected: ' + this.files[0].name.substring(0,25) + '...'">
+            </div>
           </div>
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
@@ -1704,8 +1801,13 @@ window.toggleDetailEdit = () => {
 window.saveDetailEdit = async (id) => {
   const m = appState.memories.find(i => i.id === id);
   if (m) {
+    const saveBtn = document.getElementById('dm-save-btn');
+    saveBtn.innerText = "Saving...";
+    
     m.title = document.getElementById('dm-title-edit').value;
     m.desc = document.getElementById('dm-desc-edit').value;
+    if(document.getElementById('dm-date-edit')) m.year = document.getElementById('dm-date-edit').value;
+    if(document.getElementById('dm-rating-edit')) m.rating = document.getElementById('dm-rating-edit').value;
 
     const fileInput = document.getElementById('dm-thumb-input');
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -1724,13 +1826,18 @@ window.saveDetailEdit = async (id) => {
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
     document.getElementById('dm-title').innerText = m.title;
     document.getElementById('dm-desc').innerText = m.desc;
+    
     // update thumbnail visually
-    const previewImg = document.getElementById('detailModal').querySelector('.detail-hero img');
+    const previewImg = document.getElementById('detailModal').querySelector('.detail-header img');
     if (previewImg) previewImg.src = m.thumbnail;
 
-    render();
+    saveBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Saved!`;
+    setTimeout(() => {
+        render();
+        toggleDetailEdit();
+        saveBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save`;
+    }, 1000);
   }
-  toggleDetailEdit();
 };
 
 window.deleteMemory = async (id) => {
@@ -1745,12 +1852,23 @@ window.deleteMemory = async (id) => {
   }
 };
 
-window.likeMemory = async (id) => {
-  const m = appState.memories.find(i => i.id === id);
-  if (!m) return;
-  m.likes = (m.likes || 0) + 1;
-  try { await saveMemoryToDB(m); } catch(err){}
-  alert('Liked! Total likes: ' + m.likes);
+window.likeMemory = (id, event) => {
+  if (event) event.stopPropagation();
+  if (appState.likedList.includes(id)) {
+    appState.likedList = appState.likedList.filter(i => i !== id);
+  } else {
+    appState.likedList.push(id);
+  }
+  saveStateList('likedList', appState.likedList);
+  
+  if (event && event.currentTarget) {
+    const btn = event.currentTarget;
+    const isLiked = appState.likedList.includes(id);
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" ${isLiked ? 'fill="#e50914" stroke="#e50914"' : 'fill="none" stroke="currentColor"'} stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>`;
+    btn.title = isLiked ? 'Unlike' : 'Like';
+  }
+  
+  window.refreshRowsView();
 };
 
 window.downloadVideo = (id) => {
@@ -2252,6 +2370,7 @@ window.openBulkUploadModal = () => {
           progressBar.style.width = (done / maxFiles.length * 100) + '%';
           setTimeout(resolve, 10); // yield paint
         };
+        reader.onerror = resolve;
         reader.readAsDataURL(file);
       });
     }
