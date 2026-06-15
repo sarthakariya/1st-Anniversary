@@ -1358,7 +1358,7 @@ function createRow(title, memories, index = 0) {
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
-        <div class="hc-title line-clamp-3">${m.title}</div>
+        <div class="hc-title" style="font-size:16px; font-weight:700; margin-bottom:8px; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,0.8); opacity:0.9;">${m.title}</div>
         <div class="hc-buttons">
           <div class="hc-btn hc-play" title="Play">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -1498,14 +1498,13 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content centered-modal" style="display:flex; flex-direction:column; padding:0; background:#141414; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.8); border-radius:8px;">
+    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0; background:#141414; border:1px solid rgba(255,255,255,0.08); box-shadow: -10px 0 40px rgba(0,0,0,0.8); border-radius:4px 0 0 4px;">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
         <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       </div>
       
       <div style="padding: 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:25px;">
-        <!-- Error / Info state -->
         <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.1); backdrop-filter: blur(10px); border-radius: 4px;">
           <p style="margin: 0 0 10px 0; font-size: 13px; color: #ccc;">Please upload your video to YouTube Studio first.</p>
           <button style="background: transparent; border:none; color:#E5E5E5; padding: 0; font-size:14px; cursor:pointer; transition: color 0.2s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#E5E5E5'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
@@ -1515,16 +1514,16 @@ window.openUploadModal = () => {
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
-          <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
+          <div style="display:flex; position:relative;">
+            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; padding-right:70px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
+            <button id="up-fetch" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#888; border:none; padding:4px 10px; border-radius:4px; font-weight:600; cursor:pointer; transition: color 0.3s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#888'">Fetch</button>
+          </div>
         </div>
         
-        <div id="up-preview-container" style="position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); display:none; aspect-ratio: 16/9;" onmouseenter="document.getElementById('up-thumb-overlay').style.opacity='1'" onmouseleave="document.getElementById('up-thumb-overlay').style.opacity='0'">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(0.6);">
-          <div id="up-thumb-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; backdrop-filter:blur(2px);">
-            <label for="up-thumb-upload" style="background:rgba(229,9,20,0.9); color:white; padding:10px 20px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.4);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload Custom Thumbnail
-            </label>
+        <div id="up-preview-container" style="display: none; text-align:center; position: relative;">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <div style="margin-top: 10px;">
+            <label for="up-thumb-upload" style="background:#333; color:white; padding:8px 15px; border-radius:4px; font-size:12px; cursor:pointer;">Upload Custom Thumbnail</label>
             <input type="file" id="up-thumb-upload" accept="image/*" style="display:none;" onchange="
               const f = this.files[0];
               if(f) {
@@ -1544,23 +1543,49 @@ window.openUploadModal = () => {
           <input type="text" id="up-title" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
         </div>
 
-        <div style="margin-bottom:20px;">
+        <div style="position:relative; margin-bottom:20px;">
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
-          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
+          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; padding-bottom: 40px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
+          <div style="position:absolute; bottom:4px; left:4px; right:4px; padding:6px; background:rgba(0,0,0,0.4); border-radius:4px; display:flex;">
+            <button id="up-ai-btn" style="background:rgba(255,255,255,0.1); border:none; color:#ddd; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="
+              const btn = this;
+            const t = document.getElementById('up-title').value;
+            const vid = window.extractedVideoId || '';
+            if(!t) return alert('Enter title first or fetch video.');
+            btn.innerText = 'Analyzing...';
+            btn.disabled = true;
+            fetch('/api/analyze-video', {
+               method: 'POST', headers:{'Content-Type':'application/json'},
+               body: JSON.stringify({title: t, videoId: vid})
+            }).then(r=>r.json()).then(d=>{
+               if(d.description) {
+                 document.getElementById('up-desc').value = d.description;
+                 document.getElementById('up-desc').focus();
+               }
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            }).catch(()=>{
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            });
+          ">✨ AI Auto-Fill</button>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom: 20px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
             <select id="up-cat" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
-              <option value="Us" style="background:#141414;">Us</option>
-              <option value="Special Day" style="background:#141414;">Special Day</option>
+              <option value="Dates" style="background:#141414;">Dates</option>
+              <option value="My Fav" style="background:#141414;">My Fav</option>
               <option value="Celebrations" style="background:#141414;">Celebrations</option>
+              <option value="Romance" style="background:#141414;">Romance</option>
+              <option value="Our Time" style="background:#141414;">Our Time</option>
+              <option value="Documentaries" style="background:#141414;">Documentaries</option>
             </select>
           </div>
           <div>
-            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date (DD/MM/YYYY)</label>
-            <input type="text" id="up-date" placeholder="DD/MM/YYYY" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
+            <input type="date" id="up-date" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'" value="${new Date().toISOString().split('T')[0]}">
           </div>
         </div>
 
@@ -1584,13 +1609,6 @@ window.openUploadModal = () => {
   `;
   
   document.body.appendChild(modal);
-  
-  // Convert current date to DD/MM/YYYY
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, '0');
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  document.getElementById('up-date').value = `${dd}/${mm}/${today.getFullYear()}`;
-
   setTimeout(() => modal.classList.add('open'), 10);
   
   let currentThumbData = '';
@@ -1598,9 +1616,9 @@ window.openUploadModal = () => {
   window.extractedVideoId = '';
   window.currentThumbData = '';
 
-  document.getElementById('up-yt-link').addEventListener('input', async (e) => {
-    const link = e.target.value.trim();
-    if (!link) return;
+  document.getElementById('up-fetch').onclick = async () => {
+    const link = document.getElementById('up-yt-link').value.trim();
+    if (!link) return alert("Please paste a YouTube link first.");
 
     let videoId = '';
     const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -1611,11 +1629,11 @@ window.openUploadModal = () => {
       videoId = link.length === 11 ? link : null;
     }
 
-    if (!videoId) return;
+    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
     
     extractedVideoId = videoId;
-    window.extractedVideoId = videoId;
-
+    document.getElementById('up-fetch').innerText = "Fetching...";
+    
     try {
       const oembedRes = await fetch('/api/youtube-meta', {
          method: 'POST',
@@ -1624,38 +1642,36 @@ window.openUploadModal = () => {
       });
       if (oembedRes.ok) {
         const data = await oembedRes.json();
-        if (data.title && !document.getElementById('up-title').value) {
-          document.getElementById('up-title').value = data.title;
-        }
+        if (data.title) document.getElementById('up-title').value = data.title;
+        // Always prefer maxresdefault for crystal clear thumbnails
+        window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+        document.getElementById('up-thumb-preview').src = window.currentThumbData;
+        document.getElementById('up-preview-container').style.display = 'block';
+      } else {
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
       }
-    } catch(err) {}
-
-    window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-    document.getElementById('up-thumb-preview').src = window.currentThumbData;
-    document.getElementById('up-preview-container').style.display = 'block';
-  });
+    } catch(err) {
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
+    }
+    window.extractedVideoId = videoId;
+    extractedVideoId = videoId;
+    
+    document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
+  };
 
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
     if(!title) return netflixAlert("Title required");
-    
-    let link = document.getElementById('up-yt-link').value.trim();
-    if(!link && !window.extractedVideoId) return netflixAlert("Please provide a video link or ID.");
-
-    if (!window.extractedVideoId && link) {
-        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = link.match(regExp);
-        if (match && match[2].length === 11) {
-          window.extractedVideoId = match[2];
-        } else {
-          window.extractedVideoId = link; // Default to the raw URL or string
-        }
-    }
+    if(!extractedVideoId) return netflixAlert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    let finalThumbnail = window.currentThumbData || (window.extractedVideoId.length === 11 ? 'https://img.youtube.com/vi/' + window.extractedVideoId + '/maxresdefault.jpg' : '');
+    let finalThumbnail = window.currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
     
     const mem = {
       id: 'm_' + Date.now(),
@@ -1665,7 +1681,7 @@ window.openUploadModal = () => {
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
       thumbnail: finalThumbnail,
-      videoUrl: window.extractedVideoId,
+      videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
@@ -1730,19 +1746,9 @@ window.openDetailModal = (id, e, editMode = false) => {
   
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
-  let mediaHtml = m.videoUrl ? 
-      (isYouTube ? `
-        <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden;">
-          <iframe id="detail-yt-player" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&playlist=${m.videoUrl}&loop=1" style="position:absolute; top:50%; left:50%; width:150%; height:150%; transform:translate(-50%,-50%); border:none; pointer-events:none;"></iframe>
-          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 800)">
-        </div>` : 
-        `
-        <div style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden;">
-          <video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none;"></video>
-          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 500)">
-        </div>`
-      ) : 
-      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">`;
+  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
+      (isYouTube ? `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
@@ -1752,15 +1758,10 @@ window.openDetailModal = (id, e, editMode = false) => {
       <div class="detail-header">
         ${mediaHtml}
         <div class="detail-gradient"></div>
-        <div class="detail-blur"></div>
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${m.title}</div>
           <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
-        </div>
-      </div>
-      <div class="detail-body">
-        <div class="detail-left">
-          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 25px; margin-top: -15px;">
+          <div style="display:flex; gap:10px; align-items:center;">
             <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
             </button>
@@ -1784,6 +1785,10 @@ window.openDetailModal = (id, e, editMode = false) => {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-left">
           <div class="detail-meta">
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
             <span class="year">${m.year}</span> 

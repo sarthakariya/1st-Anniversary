@@ -17,7 +17,7 @@ async function startServer() {
         httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
       });
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Assume you are a creative writer for a Netflix-style streaming platform. You have to write a dramatic 2-3 sentence description for a memory video to be added to the platform.
 You are given the following context: ${title ? 'Title: ' + title : ''} ${videoUrl ? 'URL or ID: ' + videoUrl : ''}.
 
