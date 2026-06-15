@@ -548,6 +548,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .btn-primary:hover { 
   background-color: rgba(255,255,255,0.85); 
+  transform: scale(1.03);
 }
 .btn-secondary {
   background-color: rgba(109,109,110,0.7);
@@ -649,6 +650,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  contain: content;
 }
 .row-content.active {
   scroll-snap-type: none;
@@ -675,12 +677,15 @@ input:checked + .slider:before { transform: translateX(20px); }
   transform: translateZ(0); /* Hardware isolation */
   backface-visibility: hidden;
   isolation: isolate; /* Stacking context isolation */
+  transition: transform 0.4s cubic-bezier(0.5, 0, 0.1, 1), box-shadow 0.4s cubic-bezier(0.5, 0, 0.1, 1);
+  will-change: transform, opacity;
 }
 .media-card:hover {
   transform: scale(1.3) translate3d(0, 0, 0);
+  transition-delay: 0.2s;
   z-index: 99;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.75);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.8);
 }
 .media-card img {
   width: 100%; height: 100%;
@@ -699,21 +704,16 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 0 0 4px 4px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.75);
   opacity: 0;
+  transform: translateY(-20px);
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s cubic-bezier(0.5, 0, 0.1, 1), transform 0.25s cubic-bezier(0.5, 0, 0.1, 1);
   z-index: 10;
 }
 .media-card:hover .hover-chassis {
   opacity: 1;
+  transform: translateY(0);
   pointer-events: auto;
-  transition-delay: 1s;
-}
-.media-card:hover {
-  transform: scale(1.3) translate3d(0, 0, 0);
-  transition-delay: 1s;
-  z-index: 99;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.75);
+  transition-delay: 0.2s;
 }
 .hc-buttons { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
 .hc-btn {
@@ -730,6 +730,26 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .hc-play { background: white; color: black; }
 .hc-play:hover { background: #e6e6e6; }
+
+.round-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(42,42,42,0.6);
+  color: white; cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.5, 0, 0.1, 1);
+}
+.round-btn:hover {
+  background: rgba(255,255,255,0.2); border-color: white;
+}
+.thumb-btn.active svg {
+  fill: currentColor;
+}
+.thumb-btn:active {
+  transform: scale(1.2);
+  transition: transform 0.1s cubic-bezier(0.5, 0, 0.1, 1);
+}
 
 .hc-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 8px; font-weight: 500; }
 .hc-match { color: #46d369; font-weight: bold; }

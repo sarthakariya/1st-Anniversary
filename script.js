@@ -1520,8 +1520,8 @@ window.openUploadModal = () => {
           </div>
         </div>
         
-        <div id="up-preview-container" style="display: none; position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" onmouseenter="document.getElementById('up-thumb-overlay').style.opacity='1'" onmouseleave="document.getElementById('up-thumb-overlay').style.opacity='0'">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+        <div id="up-preview-container" style="position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" onmouseenter="document.getElementById('up-thumb-overlay').style.opacity='1'" onmouseleave="document.getElementById('up-thumb-overlay').style.opacity='0'">
+          <img id="up-thumb-preview" src="https://images.unsplash.com/photo-1616530940355-351fabd9524b?w=800&q=80" style="width: 100%; height: 200px; object-fit: cover; display: block; filter: brightness(0.6);">
           <div id="up-thumb-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; backdrop-filter:blur(2px);">
             <label for="up-thumb-upload" style="background:rgba(229,9,20,0.9); color:white; padding:10px 20px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.4);">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1670,12 +1670,24 @@ window.openUploadModal = () => {
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
     if(!title) return netflixAlert("Title required");
-    if(!extractedVideoId) return netflixAlert("Please fetch a valid YouTube link first.");
+    
+    let link = document.getElementById('up-yt-link').value.trim();
+    if(!link && !window.extractedVideoId) return netflixAlert("Please provide a video link or ID.");
+
+    if (!window.extractedVideoId && link) {
+        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = link.match(regExp);
+        if (match && match[2].length === 11) {
+          window.extractedVideoId = match[2];
+        } else {
+          window.extractedVideoId = link; // Default to the raw URL or string
+        }
+    }
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    let finalThumbnail = window.currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
+    let finalThumbnail = window.currentThumbData || (window.extractedVideoId.length === 11 ? 'https://img.youtube.com/vi/' + window.extractedVideoId + '/maxresdefault.jpg' : '');
     
     const mem = {
       id: 'm_' + Date.now(),
@@ -1685,7 +1697,7 @@ window.openUploadModal = () => {
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
       thumbnail: finalThumbnail,
-      videoUrl: extractedVideoId,
+      videoUrl: window.extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
@@ -1775,7 +1787,11 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${m.title}</div>
           <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
-          <div style="display:flex; gap:10px; align-items:center;">
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-left">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 25px; margin-top: -15px;">
             <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
             </button>
@@ -1799,10 +1815,6 @@ window.openDetailModal = (id, e, editMode = false) => {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="detail-body">
-        <div class="detail-left">
           <div class="detail-meta">
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
             <span class="year">${m.year}</span> 
