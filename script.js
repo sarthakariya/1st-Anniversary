@@ -602,7 +602,7 @@ function createStartupScreen() {
       overlay.style.display = 'none';
       vid.play().catch(e => {
         vid.muted = true;
-        vid.play();
+        vid.play().catch(() => {});
       });
       // Force exactly 4 seconds
       setTimeout(vid.onended, 4000);
@@ -2051,8 +2051,9 @@ window.playVideo = (id) => {
   
   // Try autoplaying intro, else wait
   if (introPlayer) {
-    if(introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => startMainVideo());
+    const playPromise = introPlayer.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => startMainVideo());
     }
     introPlayer.onended = startMainVideo;
     introPlayer.onerror = startMainVideo;
@@ -2093,7 +2094,7 @@ window.playVideo = (id) => {
     };
 
     const togglePlay = () => {
-      if (mainPlayer.paused) mainPlayer.play();
+      if (mainPlayer.paused) mainPlayer.play().catch(() => {});
       else mainPlayer.pause();
     };
 
@@ -2445,8 +2446,9 @@ window.startMomentsSlideshow = (startId) => {
 
   const introPlayer = document.getElementById('introPlayer');
   if (introPlayer) {
-    if(introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => startSlideshowLoop());
+    const playPromise = introPlayer.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => startSlideshowLoop());
     }
     introPlayer.onended = startSlideshowLoop;
     introPlayer.onerror = startSlideshowLoop;
