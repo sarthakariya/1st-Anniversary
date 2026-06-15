@@ -583,8 +583,11 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 0;
   animation: rowFadeIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   animation-delay: calc(var(--row-index, 0) * 0.15s);
-  content-visibility: auto;
-  contain-intrinsic-size: 300px;
+  position: relative;
+  z-index: 1;
+}
+.row:hover {
+  z-index: 10;
 }
 .row-header {
   font-size: 1.4vw;
@@ -592,15 +595,20 @@ input:checked + .slider:before { transform: translateX(20px); }
   font-weight: bold;
   margin-bottom: 0.5em;
   display: flex; align-items: center; gap: 10px;
+  padding: 0 4%;
+  position: relative;
+  z-index: 20;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 .row-content {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 60px 4%;
-  margin: -60px -4%;
+  padding: 5vw 4%;
+  margin-top: -4vw;
+  margin-bottom: -4vw;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -628,9 +636,10 @@ input:checked + .slider:before { transform: translateX(20px); }
   will-change: transform, box-shadow;
   scroll-snap-align: start;
   overflow: hidden;
-  transform: translate3d(0,0,0);
+  transform: translateZ(0); /* Hardware isolation */
   backface-visibility: hidden;
-  isolation: isolate;
+  isolation: isolate; /* Stacking context isolation */
+  contain: layout style; /* Limits restyle scope */
 }
 .media-card:hover {
   transform: scale(1.35) translate3d(0, 0, 0);
