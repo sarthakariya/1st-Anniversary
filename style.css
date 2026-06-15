@@ -643,13 +643,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 2vw 4%;
-  margin-top: -1.5vw;
-  margin-bottom: -1.5vw;
+  padding: 40px 4% 100px;
+  margin-top: -40px;
+  margin-bottom: -100px;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  contain: content;
 }
 .row-content.active {
   scroll-snap-type: none;
@@ -981,8 +980,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   border: 1px solid rgba(255,255,255,0.1);
   width: 1100px;
   max-width: 95%;
-  border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.9);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,1);
   max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
@@ -995,31 +994,39 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .detail-header {
   width: 100%;
-  aspect-ratio: 16/9;
-  max-height: 480px;
+  aspect-ratio: 16 / 9;
   position: relative;
   background: #000;
   overflow: hidden;
 }
-.detail-header video, .detail-header img {
+.detail-header video, .detail-header img, .detail-header iframe {
   width: 100%; height: 100%; object-fit: cover; background: #000;
 }
 .detail-gradient {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
-  background: linear-gradient(to top, #141414, transparent);
+  position: absolute; bottom: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(to top, #141414 0%, rgba(20,20,20,0.8) 20%, transparent 60%);
   z-index: 1;
 }
 .detail-title-btn {
-  position: absolute; bottom: 10%; left: 4%;
+  position: absolute; bottom: 8%; left: 4%; right: 4%;
   z-index: 10;
 }
 .detail-title {
   font-size: 32px; font-weight: bold; margin-bottom: 20px;
+  line-height: 1.2;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .detail-body {
-  padding: 40px 4% 6% 4%;
+  padding: 0 4% 6% 4%;
   display: flex; gap: 50px;
+  margin-top: -5px; /* pull up slightly */
+  background: #141414;
+  position: relative;
+  z-index: 10;
 }
 .detail-left {
   flex: 2;

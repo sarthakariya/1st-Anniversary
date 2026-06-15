@@ -1514,16 +1514,19 @@ window.openUploadModal = () => {
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
-          <div style="display:flex; position:relative;">
-            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; padding-right:70px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
-            <button id="up-fetch" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#888; border:none; padding:4px 10px; border-radius:4px; font-weight:600; cursor:pointer; transition: color 0.3s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#888'">Fetch</button>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="flex:1; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
+            <button id="up-fetch" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:0 20px; border-radius:4px; font-weight:600; cursor:pointer; transition: background 0.3s; white-space:nowrap;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'">Fetch</button>
           </div>
         </div>
         
-        <div id="up-preview-container" style="display: none; text-align:center; position: relative;">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-          <div style="margin-top: 10px;">
-            <label for="up-thumb-upload" style="background:#333; color:white; padding:8px 15px; border-radius:4px; font-size:12px; cursor:pointer;">Upload Custom Thumbnail</label>
+        <div id="up-preview-container" style="display: none; position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" onmouseenter="document.getElementById('up-thumb-overlay').style.opacity='1'" onmouseleave="document.getElementById('up-thumb-overlay').style.opacity='0'">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+          <div id="up-thumb-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; backdrop-filter:blur(2px);">
+            <label for="up-thumb-upload" style="background:rgba(229,9,20,0.9); color:white; padding:10px 20px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.4);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Custom Thumbnail
+            </label>
             <input type="file" id="up-thumb-upload" accept="image/*" style="display:none;" onchange="
               const f = this.files[0];
               if(f) {
@@ -1543,11 +1546,10 @@ window.openUploadModal = () => {
           <input type="text" id="up-title" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
         </div>
 
-        <div style="position:relative; margin-bottom:20px;">
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
-          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; padding-bottom: 40px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
-          <div style="position:absolute; bottom:4px; left:4px; right:4px; padding:6px; background:rgba(0,0,0,0.4); border-radius:4px; display:flex;">
-            <button id="up-ai-btn" style="background:rgba(255,255,255,0.1); border:none; color:#ddd; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="
+        <div style="margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888;">Description</label>
+            <button id="up-ai-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#ccc; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';" onmouseleave="this.style.background='transparent'; this.style.color='#ccc';" onclick="
               const btn = this;
             const t = document.getElementById('up-title').value;
             const vid = window.extractedVideoId || '';
@@ -1569,9 +1571,11 @@ window.openUploadModal = () => {
                btn.disabled = false;
             });
           ">✨ AI Auto-Fill</button>
+          </div>
+          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom: 20px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
             <select id="up-cat" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
@@ -1747,8 +1751,18 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
-      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
+      (isYouTube ? `
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden;">
+          <iframe id="detail-yt-player" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&playlist=${m.videoUrl}&loop=1" style="position:absolute; top:50%; left:50%; width:150%; height:150%; transform:translate(-50%,-50%); border:none; pointer-events:none;"></iframe>
+          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;">
+        </div>` : 
+        `
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden;">
+          <video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none;"></video>
+          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 500)">
+        </div>`
+      ) : 
+      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">`;
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
