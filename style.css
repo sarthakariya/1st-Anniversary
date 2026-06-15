@@ -79,6 +79,11 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
 }
 .profile-avatar-wrapper {
   position: relative;
@@ -100,7 +105,7 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   box-shadow: 0px 4px 15px rgba(0,0,0,0.5);
 }
 .profile-card:hover .profile-avatar {
-  transform: scale(1.15);
+  transform: scale(1.08);
   border-color: white;
   box-shadow: 0px 10px 25px rgba(0,0,0,0.8);
 }
@@ -364,7 +369,7 @@ input[type=range]:hover::-webkit-slider-thumb {
 }
 input:checked + .slider { background-color: #46d369; }
 input:checked + .slider:before { transform: translateX(20px); }
-.settings-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom:10px; border-bottom: 1px solid #333;}
+.settings-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .nav-links {
   display: flex;
   list-style: none;
@@ -406,17 +411,18 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: transparent;
   color: #fff;
   border: 1px solid #fff;
-  padding: 6px 16px;
-  border-radius: 4px;
+  padding: 8px 18px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, color 0.2s;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
 .add-memory-btn:hover {
   background: #fff;
   color: #141414;
   transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255,255,255,0.3);
 }
 .add-memory-btn:active {
   transform: scale(0.95);
@@ -485,16 +491,17 @@ input:checked + .slider:before { transform: translateX(20px); }
   align-items: center;
   justify-content: center;
   padding: 12px 30px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 1.1vw;
   font-weight: bold;
   cursor: pointer;
   border: none;
   gap: 10px;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s, background-color 0.2s, color 0.2s;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
 .btn:hover {
   transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 .btn:active {
   transform: scale(0.95);
@@ -653,20 +660,15 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  opacity: 0;
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 40%);
   padding: 10px;
   z-index: 15;
-  transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  pointer-events: none; /* Let clicks pass to card by default */
+  pointer-events: none;
 }
 .media-card .card-info .circ-play-btn {
   pointer-events: auto; /* Allow button to be clicked */
-}
-.media-card:hover .card-info {
-  opacity: 1;
 }
 .card-title {
   font-size: 14px;
@@ -946,11 +948,12 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* Search Bar */
 .search-container {
   display: flex; align-items: center; position: relative;
-  background: rgba(0,0,0,0); border: 1px solid transparent; transition: 0.3s;
-  margin-right: 15px;
+  background: rgba(0,0,0,0); border: 1px solid transparent; transition: all 0.3s ease;
+  margin-right: 15px; border-radius: 20px;
 }
-.search-container.active { background: rgba(0,0,0,0.7); border-color: #fff; }
-.search-icon { color: #fff; cursor: pointer; padding: 5px; display: flex; align-items: center; }
+.search-container.active { background: rgba(0,0,0,0.6); border-color: rgba(255,255,255,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.search-icon { color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; border-radius: 50%; transition: background 0.2s; }
+.search-icon:hover { background: rgba(255,255,255,0.1); }
 .search-input { width: 0; opacity: 0; background: transparent; border: none; color: #fff; transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; outline: none; padding: 0; font-family: inherit;}
 .search-container.active .search-input { width: 260px; padding: 5px 10px; opacity: 1; }
 

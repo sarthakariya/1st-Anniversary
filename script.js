@@ -204,13 +204,14 @@ function internalRender() {
     // Entrance Animation
     profs.style.opacity = '0';
     setTimeout(() => {
-      animate(profs, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: "easeOut" });
       const cards = profs.querySelectorAll('.profile-card');
       if (cards.length > 0) {
+        cards.forEach(c => c.style.animation = 'none'); // override css
         animate(
           cards, 
-          { opacity: [0, 1], scale: [0.8, 1] }, 
-          { duration: 0.6, delay: stagger(0.15, { startDelay: 0.1 }), ease: [0.34, 1.56, 0.64, 1] }
+          { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
+          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
         );
       }
     }, 50);
@@ -318,9 +319,9 @@ window.refreshRowsView = (rcNode, heroNode) => {
     if(hero) hero.style.display = 'block'; // Keep hero area while loading
     for (let i = 0; i < 3; i++) {
         const row = document.createElement('div');
-        row.className = 'row-container';
-        row.innerHTML = `<h2 class="row-title" style="color: #444;">Loading...</h2><div class="row-slider" style="display:flex; gap:8px;">
-          ${Array(6).fill('<div class="skeleton-card"></div>').join('')}
+        row.className = 'row';
+        row.innerHTML = `<h2 class="row-header" style="color: #444;">Loading...</h2><div class="row-content" style="display:flex; gap:8px;">
+          ${Array(6).fill('<div class="skeleton-card media-card"></div>').join('')}
         </div>`;
         rc.appendChild(row);
     }
@@ -998,6 +999,11 @@ function createHero() {
   const c = document.createElement('div');
   c.className = 'hero-billboard';
   
+  if (!appState.memories) {
+    c.innerHTML = `<div class="skeleton-card" style="width:100%; height:85vh; border-radius:0;"></div>`;
+    return c;
+  }
+
   const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
   if(vids.length === 0) return c;
   const heroMem = vids[window.currentHeroIndex % vids.length] || vids[0];
@@ -1007,7 +1013,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false; // Default to true for autoplay compatibility
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100cqw;height:56.25cqw;min-height:100cqh;min-width:177.77cqh;transform:translate(-50%, -50%) scale(1.15);border:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.15);border:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -1112,7 +1118,7 @@ function createRow(title, memories, index = 0) {
   rc.addEventListener('scroll', () => {
     arrowLeft.style.display = rc.scrollLeft > 0 ? 'flex' : 'none';
     arrowRight.style.display = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'flex' : 'none';
-  });
+  }, { passive: true });
 
   // Swipe scrolling handler
   let isDown = false;
@@ -1236,7 +1242,8 @@ function createRow(title, memories, index = 0) {
     card.onclick = (e) => openDetailModal(m.id, e);
     
     // Lazy load the thumbnail
-    card.innerHTML = `<img data-src="${m.thumbnail}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}">`;
+    const displayThumb = (m.thumbnail || '').replace('hqdefault.jpg', 'maxresdefault.jpg');
+    card.innerHTML = `<img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}">`;
     
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
@@ -2198,8 +2205,8 @@ window.openBulkUploadModal = () => {
     }
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-    m.style.opacity = '0';
-    setTimeout(() => { m.remove(); render(); }, 400);
+    modal.classList.remove('open');
+    setTimeout(() => { modal.remove(); render(); }, 400);
   };
 };
 
