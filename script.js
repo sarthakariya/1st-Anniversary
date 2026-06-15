@@ -155,6 +155,25 @@ async function saveStateList(key, data) {
   }, { merge: true });
 };
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
+    openModals.forEach(m => {
+      m.classList.remove('open');
+      setTimeout(() => { m.remove(); render(); }, 400);
+    });
+  }
+});
+document.addEventListener('click', (e) => {
+  const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
+  openModals.forEach(m => {
+    if (e.target === m) {
+      m.classList.remove('open');
+      setTimeout(() => { m.remove(); render(); }, 300);
+    }
+  });
+});
+
 function render() {
   try {
     internalRender();
@@ -190,7 +209,7 @@ function internalRender() {
       if (cards.length > 0) {
         animate(
           cards, 
-          { y: [-150, 0], opacity: [0, 1], scale: [0.95, 1] }, 
+          { opacity: [0, 1], scale: [0.8, 1] }, 
           { duration: 0.6, delay: stagger(0.15, { startDelay: 0.1 }), ease: [0.34, 1.56, 0.64, 1] }
         );
       }
@@ -518,9 +537,6 @@ function createStartupScreen() {
   c.className = 'intro-container';
   // Use the exact file provided by user for initial app load Netflix opening animation
   c.innerHTML = `
-    <div id="bleed-logo-container" style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; align-items:center; justify-content:center; background:black; z-index:9000;">
-      <h1 id="bleed-text" style="font-family: 'Bebas Neue', sans-serif; font-size: 10vw; color: #E50914; letter-spacing: 2px; transition: transform 1s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.3s; transform: scale(1);">NETFLIX</h1>
-    </div>
     <video id="startup-vid" src="./netflix-intro.mp4" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
     <div id="startup-click-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); z-index:2; cursor:pointer; flex-direction: column;">
       <div style="background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
@@ -533,15 +549,12 @@ function createStartupScreen() {
   setTimeout(() => {
     const vid = c.querySelector('#startup-vid');
     const overlay = c.querySelector('#startup-click-overlay');
-    const bleedOverlay = c.querySelector('#bleed-logo-container');
-    const bleedText = c.querySelector('#bleed-text');
     let hasPlayed = false;
     const playAnim = () => {
       if (hasPlayed) return;
       hasPlayed = true;
       overlay.style.display = 'none';
       vid.play().catch(e => {
-        console.log("Autoplay blocked");
         vid.muted = true;
         vid.play();
       });
@@ -549,20 +562,14 @@ function createStartupScreen() {
       setTimeout(vid.onended, 4000);
     };
     vid.onended = () => {
-      vid.remove();
-      bleedOverlay.style.display = 'flex';
-      setTimeout(() => {
-        bleedText.style.transform = 'scale(60)';
-        bleedText.style.opacity = '0';
-      }, 50);
-      
+      c.style.transition = 'opacity 0.6s ease';
+      c.style.opacity = '0';
       setTimeout(() => {
          appState.currentProfile = null;
          transitionView('profiles');
-      }, 900);
+      }, 600);
     };
     vid.onerror = () => {
-      console.log("Startup video failed to load, skipping to profiles mode.");
       appState.currentProfile = null;
       transitionView('profiles');
     };
@@ -650,38 +657,17 @@ function loginProfile(pf, p) {
   
   // Dashboard emerges from shadows
   dashboard.style.opacity = '0';
-  
-  // Create Intro Overlay
-  const introContainer = document.createElement('div');
-  introContainer.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:99999; display:flex; align-items:center; justify-content:center; transition:opacity 0.6s ease;";
-  introContainer.innerHTML = `<video src="https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4" autoplay playsinline style="width:100%; height:100%; object-fit:contain;"></video>`;
-  document.body.appendChild(introContainer);
-  
-  const video = introContainer.querySelector('video');
-  video.onended = () => {
-    introContainer.style.opacity = '0';
-    setTimeout(() => {
-      animate(dashboard, { opacity: [0, 1] }, { duration: 1.0, ease: "easeOut" });
-      const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
-      if (elements.length > 0) {
-          animate(
-            elements, 
-            { y: [40, 0], opacity: [0, 1] }, 
-            { duration: 1.0, delay: stagger(0.15, { startDelay: 0.1 }), ease: "easeOut" }
-          );
-      }
-      introContainer.remove();
-    }, 600);
-  };
-  
-  // Fallback in case video fails
   setTimeout(() => {
-    if(introContainer.parentNode) {
-      introContainer.style.opacity = '0';
-      setTimeout(() => introContainer.remove(), 600);
-      dashboard.style.opacity = '1';
+    animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+    const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
+    if (elements.length > 0) {
+        animate(
+          elements, 
+          { y: [40, 0], opacity: [0, 1] }, 
+          { duration: 0.8, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
+        );
     }
-  }, 4500);
+  }, 50);
 }
 
 function showPinModal(pf, pElement) {
@@ -894,7 +880,7 @@ function createNavbar() {
       });
       ticking = true;
     }
-  });
+  }, { passive: true });
 
     const currentPf = appState.profiles.find(p => p.name === appState.currentProfile);
     const currAvatar = currentPf ? currentPf.avatar : 'img20251010.jpg';
@@ -910,15 +896,26 @@ function createNavbar() {
       </div>
     `).join('');
     
+    let addButtonText = "Add Memory";
+    if (appState.activeCategory === 'Moments') addButtonText = "Upload Photos";
+    else if (appState.activeCategory === 'Home') addButtonText = "Add Memory";
+    else addButtonText = "Add " + appState.activeCategory.replace(/ies$/, "y").replace(/s$/, "");
+    if (appState.activeCategory === "My List") addButtonText = "Add to List";
+    
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 44px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 55px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links" style="gap: 35px; margin-left: 30px; position:relative; font-size: 15px; font-weight: 500;">
+      <ul class="nav-links" style="gap: 25px; margin-left: 40px; position:relative; font-size: 14px; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>
         ${mainTabs.map(cat => {
-          let catContent = cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
-          if(cat === 'Home') catContent = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` + catContent;
+          let icon = '';
+          if(cat === 'Home') icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+          if(cat === 'Dates') icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+          if(cat === 'Categories') icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+          if(cat === 'Moments') icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+          if(cat === 'My List') icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`;
+          let catContent =  icon + `<span>${cat}</span>`;
           return `<li data-cat="${cat}" class="${appState.activeCategory === cat ? 'active' : ''}" style="display:flex; align-items:center;" onclick="setCategory('${cat}')">${catContent}</li>`;
         }).join('')}
       </ul>
@@ -940,9 +937,9 @@ function createNavbar() {
           </div>
         </div>
 
-        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : 'openUploadModal()'}">＋ ${appState.activeCategory === 'Moments' ? 'Upload Photos' : 'Add Memory'}</button>
+        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : (appState.activeCategory === 'My List' ? 'setCategory(\'Home\')' : 'openUploadModal()')}">＋ ${addButtonText}</button>
         <div class="profile-dropdown">
-          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
+          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s, transform 0.2s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.1)';" onmouseleave="this.style.borderColor='transparent'; this.style.transform='scale(1)';">
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
             <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
@@ -965,12 +962,15 @@ function createNavbar() {
 }
 
 window.currentHeroIndex = window.currentHeroIndex || 0;
+window.isShufflingHero = false;
 window.shuffleHero = () => {
+  if (window.isShufflingHero) return;
   const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
   if(vids.length > 0) window.currentHeroIndex = (window.currentHeroIndex + 1) % Math.min(5, vids.length);
   
   const currentHero = document.querySelector('.hero-billboard');
   if(currentHero) {
+    window.isShufflingHero = true;
     const newHero = createHero();
     newHero.style.position = 'absolute';
     newHero.style.top = '0';
@@ -988,6 +988,7 @@ window.shuffleHero = () => {
         newHero.style.position = 'relative';
         newHero.style.zIndex = '';
         currentHero.remove();
+        window.isShufflingHero = false;
       }, 800);
     }, 100);
   }
@@ -1004,11 +1005,11 @@ function createHero() {
   
   let backgroundVideoHtml = '';
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
-    const isMuted = appState.isHeroMuted === true;
+    const isMuted = appState.isHeroMuted !== false; // Default to true for autoplay compatibility
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080" style="position:absolute;top:50%;left:50%;width:100cqw;height:56.25cqw;min-height:100cqh;min-width:177.77cqh;transform:translate(-50%, -50%) scale(1.15);border:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100cqw;height:56.25cqw;min-height:100cqh;min-width:177.77cqh;transform:translate(-50%, -50%) scale(1.15);border:none;"></iframe></div>`;
     } else {
-      backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : 'volume="0"'} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
+      backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
   }
 
@@ -1251,11 +1252,14 @@ function createRow(title, memories, index = 0) {
         if(m.videoUrl && appState.settings.autoPlayPreviews) {
           const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
           if (isYouTube) {
+            const wrap = document.createElement('div');
+            wrap.className = 'media-card-hover-video';
+            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px;';
             const v = document.createElement('iframe');
-            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080`;
-            v.className = 'media-card-hover-video';
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; border-radius:4px;';
-            card.appendChild(v);
+            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&disablekb=1`;
+            v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.25);';
+            wrap.appendChild(v);
+            card.appendChild(wrap);
           } else {
             const v = document.createElement('video');
             let srcUrl = m.videoUrl;
@@ -1728,7 +1732,12 @@ window.downloadVideo = () => {
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
   const m = appState.memories.find(i => i.id === id);
-  if(!m || !m.videoUrl) return alert("Video file not available for playback.");
+  if(!m) return;
+  
+  // If it's just a photo (no videoUrl), start slideshow from this photo
+  if (!m.videoUrl) {
+     return window.startMomentsSlideshow(m.id);
+  }
   
   const existingPlayer = document.getElementById('playbackOverlay');
   if(existingPlayer) existingPlayer.remove();
@@ -2150,7 +2159,17 @@ window.openBulkUploadModal = () => {
     saveBtn.disabled = true;
     appState.activeCategory = 'Moments';
     
+    // Add Progress Bar
+    const progressContainer = document.createElement('div');
+    progressContainer.style.cssText = 'width: 100%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin-bottom: 20px; overflow: hidden; position: relative;';
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = 'width: 0%; height: 100%; background: #e50914; transition: width 0.3s ease;';
+    progressContainer.appendChild(progressBar);
+    dropZone.parentNode.insertBefore(progressContainer, saveBtn.parentNode);
+
     const maxFiles = Array.from(input.files);
+    let done = 0;
+    
     for(let file of maxFiles) {
       const reader = new FileReader();
       await new Promise(resolve => {
@@ -2169,7 +2188,10 @@ window.openBulkUploadModal = () => {
           };
           appState.memories.push(newMem);
           try { await saveMemoryToDB(newMem); } catch(err){}
-          resolve();
+          
+          done++;
+          progressBar.style.width = (done / maxFiles.length * 100) + '%';
+          setTimeout(resolve, 10); // yield paint
         };
         reader.readAsDataURL(file);
       });
@@ -2181,9 +2203,17 @@ window.openBulkUploadModal = () => {
   };
 };
 
-window.startMomentsSlideshow = () => {
-  const mems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
-  if (mems.length === 0) return alert('Add photos to Moments first.');
+window.startMomentsSlideshow = (startId) => {
+  let mems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
+  if (startId) {
+    const mem = appState.memories.find(m => m.id === startId);
+    if (mem && String(mem.category).toLowerCase() !== 'moments') {
+        mems = appState.memories.filter(m => m.category === mem.category && !m.videoUrl);
+        if (mems.length === 0) mems = [mem];
+    }
+  }
+  
+  if (mems.length === 0) return alert('No photos available to play.');
 
   let c = document.getElementById('playbackOverlay');
   if (!c) {
@@ -2203,23 +2233,28 @@ window.startMomentsSlideshow = () => {
   }
 
   let currentIndex = 0;
+  if(startId) {
+      const idx = mems.findIndex(m => m.id === startId);
+      if(idx !== -1) currentIndex = idx;
+  }
   
   c.innerHTML = `
     <div class="playback-back close-btn" id="ss-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
     </div>
     <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
-       <img id="ss-image" src="${mems[0].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
+       <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay muted id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
   `;
 
   const imgEl = document.getElementById('ss-image');
-  const duration = 3500;
+  const duration = 4000;
   let slideshowInterval;
   
   const startSlideshowLoop = () => {
-    document.getElementById('introPlayer').style.display = 'none';
+    const introP = document.getElementById('introPlayer');
+    if(introP) introP.style.display = 'none';
     slideshowInterval = setInterval(() => {
       imgEl.style.opacity = '0';
       setTimeout(() => {

@@ -95,11 +95,13 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   background-position: center;
   background-repeat: no-repeat;
   box-sizing: border-box;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 3px solid transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
   box-shadow: 0px 4px 15px rgba(0,0,0,0.5);
 }
 .profile-card:hover .profile-avatar {
-  transform: scale(1.05);
+  transform: scale(1.15);
+  border-color: white;
   box-shadow: 0px 10px 25px rgba(0,0,0,0.8);
 }
 .profile-name {
@@ -570,11 +572,10 @@ input:checked + .slider:before { transform: translateX(20px); }
   100% { transform: translateX(100%); }
 }
 .row {
-  margin-bottom: 3vw;
+  margin-bottom: 4vw;
   opacity: 0;
   animation: rowFadeIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   animation-delay: calc(var(--row-index, 0) * 0.15s);
-  contain: content;
   content-visibility: auto;
   contain-intrinsic-size: 300px;
 }
@@ -670,6 +671,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .card-title {
   font-size: 14px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 @keyframes uploadFlashFlare {
   0% { left: -100%; opacity: 0; }
