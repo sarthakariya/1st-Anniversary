@@ -626,6 +626,66 @@ function createStartupScreen() {
   return c;
 }
 
+// Netflix style modals
+window.netflixAlert = (msg) => {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'pin-overlay';
+    ov.innerHTML = `
+      <div class="pin-container" style="background:#141414; padding:30px; border-radius:8px; width:400px; max-width:90%;">
+        <h2 style="margin-bottom:15px; font-size:24px;">Notice</h2>
+        <p style="color:#aaa; margin-bottom:25px;">${msg}</p>
+        <button class="btn btn-primary" id="na-ok" style="width:100%;">OK</button>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector('#na-ok').onclick = () => { ov.remove(); resolve(); };
+  });
+};
+
+window.netflixConfirm = (msg) => {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'pin-overlay';
+    ov.innerHTML = `
+      <div class="pin-container" style="background:#141414; padding:30px; border-radius:8px; width:400px; max-width:90%;">
+        <h2 style="margin-bottom:15px; font-size:24px;">Confirm</h2>
+        <p style="color:#aaa; margin-bottom:25px;">${msg}</p>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" id="nc-cancel" style="flex:1;">Cancel</button>
+          <button class="btn btn-primary" id="nc-ok" style="flex:1; background:#e50914; color:white;">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector('#nc-cancel').onclick = () => { ov.remove(); resolve(false); };
+    ov.querySelector('#nc-ok').onclick = () => { ov.remove(); resolve(true); };
+  });
+};
+
+window.netflixPrompt = (msg, defaultVal = '') => {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'pin-overlay';
+    ov.innerHTML = `
+      <div class="pin-container" style="background:#141414; padding:30px; border-radius:8px; width:400px; max-width:90%;">
+        <h2 style="margin-bottom:15px; font-size:24px;">Input required</h2>
+        <p style="color:#aaa; margin-bottom:15px;">${msg.replace(/\n/g, '<br>')}</p>
+        <input type="text" id="np-input" class="form-control" value="${defaultVal}" style="width:100%; padding:10px; background:#333; color:white; border:none; border-radius:4px; margin-bottom:20px; font-size:16px;">
+        <div style="display:flex; gap:10px;">
+           <button class="btn btn-secondary" id="np-cancel" style="flex:1;">Cancel</button>
+           <button class="btn btn-primary" id="np-ok" style="flex:1;">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('#np-input');
+    inp.focus();
+    ov.querySelector('#np-cancel').onclick = () => { ov.remove(); resolve(null); };
+    ov.querySelector('#np-ok').onclick = () => { ov.remove(); resolve(inp.value); };
+  });
+};
+
 // Web Audio Synthesizer
 window.playHoverSound = () => {};
 
@@ -950,7 +1010,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 55px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 75px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 40px; position:relative; font-size: 14px; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>
@@ -1017,6 +1077,12 @@ window.shuffleHero = () => {
   
   const currentHero = document.querySelector('.hero-billboard');
   if(currentHero) {
+    const shuffleBtn = currentHero.querySelector('#hero-shuffle-btn');
+    if (shuffleBtn) {
+      shuffleBtn.classList.remove('spin-animation');
+      void shuffleBtn.offsetWidth; // trigger reflow
+      shuffleBtn.classList.add('spin-animation');
+    }
     window.isShufflingHero = true;
     const newHero = createHero();
     newHero.style.position = 'absolute';
@@ -1059,7 +1125,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false; // Default to true for autoplay compatibility
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center;"><div style="position:relative;width:100vw;max-width:1920px;aspect-ratio:16/9;max-height:1080px;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe></div></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center;"><div style="position:relative;width:100vw;aspect-ratio:16/9;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:120%;height:120%;transform:translate(-50%, -50%); border:none; pointer-events: none;"></iframe></div></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -1087,7 +1153,7 @@ function createHero() {
     </div>
     <div class="hero-controls" style="z-index: 5;">
       <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
-        <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </div>
       <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
@@ -1292,6 +1358,7 @@ function createRow(title, memories, index = 0) {
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
+        <div class="hc-title" style="font-size:12px; font-weight:bold; margin-bottom:8px; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,0.8); opacity:0.9;">${m.title}</div>
         <div class="hc-buttons">
           <div class="hc-btn hc-play" title="Play">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -1361,7 +1428,7 @@ function createRow(title, memories, index = 0) {
             v.play().catch(e => console.log('Autoplay prevented'));
           }
         }
-      }, 500); // Shorter delay of 500ms for hover videos
+      }, 1000); // 1s hover delay
     };
 
     card.onmouseleave = () => {
@@ -1467,17 +1534,6 @@ window.openUploadModal = () => {
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
           <div>
-            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#c6ff00; margin-bottom:8px;">Thumbnail Style</label>
-            <div style="display:flex; background:rgba(0,0,0,0.4); border-radius: 8px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1);">
-              <div id="ai-toggle-youtube" style="flex:1; padding: 10px; text-align:center; font-size: 13px; cursor:pointer; background: rgba(255,255,255,0.1); color: white; font-weight:bold; transition: background 0.3s;" onclick="setAiToggle(false)">Use YouTube Default</div>
-              <div id="ai-toggle-ai" style="flex:1; padding: 10px; text-align:center; font-size: 13px; cursor:pointer; background: transparent; color: #888; transition: background 0.3s;" onclick="setAiToggle(true)">🌟 AI Movie Poster</div>
-            </div>
-            <input type="hidden" id="up-use-ai" value="false">
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
-          <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
             <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
               <option value="Dates" style="background:#141414;">Dates</option>
@@ -1559,56 +1615,17 @@ window.openUploadModal = () => {
     
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
-  
-  // AI toggle helper
-  window.setAiToggle = (useAi) => {
-    document.getElementById('up-use-ai').value = useAi ? "true" : "false";
-    const bgYoutube = useAi ? "transparent" : "rgba(255,255,255,0.1)";
-    const colorYoutube = useAi ? "#888" : "white";
-    const bgAi = useAi ? "rgba(255,255,255,0.1)" : "transparent";
-    const colorAi = useAi ? "white" : "#888";
-
-    document.getElementById('ai-toggle-youtube').style.background = bgYoutube;
-    document.getElementById('ai-toggle-youtube').style.color = colorYoutube;
-    document.getElementById('ai-toggle-ai').style.background = bgAi;
-    document.getElementById('ai-toggle-ai').style.color = colorAi;
-  };
 
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
-    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
+    if(!title) return netflixAlert("Title required");
+    if(!extractedVideoId) return netflixAlert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    const useAiThumb = document.getElementById('up-use-ai').value === "true";
     let finalThumbnail = currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
     
-    if(useAiThumb) {
-       e.target.innerText = "Generating AI Poster...";
-       try {
-         const aiRes = await fetch('/api/generate-poster', {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             title: title,
-             description: document.getElementById('up-desc').value
-           })
-         });
-         const aiData = await aiRes.json();
-         if(aiData.imageUrl) {
-           finalThumbnail = aiData.imageUrl;
-         } else {
-           console.warn("AI Generation Failed: ", aiData.error);
-           alert("AI Generation failed. Falling back to default.");
-         }
-       } catch (err) {
-         console.error("AI fetch error:", err);
-         alert("AI generation request failed. Using default thumbnail.");
-       }
-    }
-
     const mem = {
       id: 'm_' + Date.now(),
       title,
@@ -1722,7 +1739,11 @@ window.openDetailModal = (id, e, editMode = false) => {
       <div class="detail-body">
         <div class="detail-left">
           <div class="detail-meta">
-            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
+            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
+            <span class="year">${m.year}</span> 
+            <span class="rating">${m.rating}</span> 
+            <span class="duration">${m.duration || (Math.floor(Math.random() * 3) + 1 + 'h ' + Math.floor(Math.random() * 59) + 'm')}</span> 
+            <span class="quality">4K Ultra HD</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
@@ -1841,7 +1862,7 @@ window.saveDetailEdit = async (id) => {
 };
 
 window.deleteMemory = async (id) => {
-  if (confirm("Are you sure you want to delete this memory?")) {
+  if (await netflixConfirm("Are you sure you want to delete this memory?")) {
     appState.memories = appState.memories.filter(m => m.id !== id);
     appState.myList = appState.myList.filter(lId => lId !== id);
     try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
@@ -1871,13 +1892,13 @@ window.likeMemory = (id, event) => {
   window.refreshRowsView();
 };
 
-window.downloadVideo = (id) => {
+window.downloadVideo = async (id) => {
   const m = appState.memories.find(i => i.id === id);
-  if (!m || !m.videoUrl) return alert('Video not available to download.');
+  if (!m || !m.videoUrl) return await netflixAlert('Video not available to download.');
   
   if (m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:')) {
     // It's a YouTube video
-    window.open(`https://www.ssyoutube.com/watch?v=${m.videoUrl}`, '_blank');
+    window.open(`https://www.youtube.com/watch?v=${m.videoUrl}`, '_blank');
   } else {
     // It's a native video
     const a = document.createElement('a');
@@ -1887,24 +1908,24 @@ window.downloadVideo = (id) => {
   }
 };
 
-window.shareVideo = (id) => {
-  const link = window.location.origin + window.location.pathname + "?v=" + id;
+window.shareVideo = async (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  let link = window.location.origin + window.location.pathname + "?v=" + id;
+  if(m && m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:')) {
+     link = `https://www.youtube.com/watch?v=${m.videoUrl}`;
+  }
+  
   if(navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(link).then(() => {
-      alert("Memory link copied to clipboard!\n" + link);
-    }).catch(() => {
-      prompt("Copy this link to share:", link);
-    });
+    try {
+       await navigator.clipboard.writeText(link);
+       await netflixAlert("Video link copied to clipboard!\n" + link);
+    } catch(e) {
+       await netflixPrompt("Copy this link to share:", link);
+    }
   } else {
-    prompt("Copy this link to share:", link);
+    await netflixPrompt("Copy this link to share:", link);
   }
-}
-window.downloadVideo = () => {
-  const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
-  if (quality) {
-    alert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...");
-  }
-}
+};
 
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
@@ -2037,9 +2058,11 @@ window.playVideo = (id) => {
     }
     mainPlayer.style.display = 'flex';
     if (mainPlayer.tagName.toLowerCase() === 'video') {
-      mainPlayer.addEventListener('playing', () => loader.style.opacity = '0');
+      mainPlayer.addEventListener('playing', () => loader.style.display = 'none');
+      mainPlayer.addEventListener('waiting', () => loader.style.display = 'block');
+      if (mainPlayer.readyState >= 3) loader.style.display = 'none';
     } else {
-      setTimeout(() => loader.style.opacity = '0', 2000); // iframe heuristic
+      setTimeout(() => loader.style.display = 'none', 1500); // iframe heuristic
     }
     
     // Auto play when transition is done
@@ -2262,6 +2285,19 @@ loadData().catch(e => {
 }).finally(() => {
   // Re-render to show updated data if we are already on a view that needs it
   render();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const vId = urlParams.get('v');
+  if (vId) {
+    if(!appState.currentProfile) {
+       appState.currentProfile = appState.profiles && appState.profiles.length > 0 ? appState.profiles[0].name : 'User';
+       appState.screen = 'dashboard';
+       render();
+    }
+    setTimeout(() => {
+       window.openDetailModal(vId);
+    }, 500);
+  }
 });
 
 let resizeTimer;
@@ -2349,27 +2385,53 @@ window.openBulkUploadModal = () => {
     let done = 0;
     
     for(let file of maxFiles) {
-      const reader = new FileReader();
       await new Promise(resolve => {
-        reader.onload = async (e) => {
-          const newMem = {
-            id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
-            title: file.name.split('.')[0] || 'Photo',
-            desc: '',
-            category: 'Moments',
-            year: new Date().getFullYear().toString(),
-            rating: 'PG-13',
-            matchRate: 99,
-            thumbnail: e.target.result,
-            videoUrl: '', // Just an image
-            dateAdded: Date.now()
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const resizedData = canvas.toDataURL('image/jpeg', 0.8);
+
+            const newMem = {
+              id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
+              title: file.name.split('.')[0] || 'Photo',
+              desc: '',
+              category: 'Moments',
+              year: new Date().getFullYear().toString(),
+              rating: 'PG-13',
+              matchRate: 99,
+              thumbnail: resizedData,
+              videoUrl: '', // Just an image
+              dateAdded: Date.now()
+            };
+            appState.memories.push(newMem);
+            try { await saveMemoryToDB(newMem); } catch(err){}
+            
+            done++;
+            progressBar.style.width = (done / maxFiles.length * 100) + '%';
+            setTimeout(resolve, 10);
           };
-          appState.memories.push(newMem);
-          try { await saveMemoryToDB(newMem); } catch(err){}
-          
-          done++;
-          progressBar.style.width = (done / maxFiles.length * 100) + '%';
-          setTimeout(resolve, 10); // yield paint
+          img.src = e.target.result;
         };
         reader.onerror = resolve;
         reader.readAsDataURL(file);
@@ -2377,12 +2439,12 @@ window.openBulkUploadModal = () => {
     }
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-    modal.classList.remove('open');
-    setTimeout(() => { modal.remove(); render(); }, 400);
+    m.classList.remove('open');
+    setTimeout(() => { m.remove(); render(); }, 400);
   };
 };
 
-window.startMomentsSlideshow = (startId) => {
+window.startMomentsSlideshow = async (startId) => {
   let mems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
   if (startId) {
     const mem = appState.memories.find(m => m.id === startId);
@@ -2392,7 +2454,7 @@ window.startMomentsSlideshow = (startId) => {
     }
   }
   
-  if (mems.length === 0) return alert('No photos available to play.');
+  if (mems.length === 0) return await netflixAlert('No photos available to play.');
 
   let c = document.getElementById('playbackOverlay');
   if (!c) {
