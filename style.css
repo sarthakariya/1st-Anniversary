@@ -13,7 +13,7 @@
 body {
   background-color: var(--netflix-bg);
   color: #fff;
-  font-family: 'Inter', "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   overflow-x: hidden;
   user-select: none;
 }
@@ -448,8 +448,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-overlay-bottom {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 20vw;
-  background: linear-gradient(180deg, transparent 0%, rgba(20,20,20,0.7) 60%, #141414 100%);
+  height: 25vw;
+  background: linear-gradient(180deg, transparent 0%, rgba(20,20,20,0.5) 40%, rgba(20,20,20,0.9) 75%, #141414 100%);
+  pointer-events: none;
 }
 .hero-info {
   position: absolute;
@@ -556,7 +557,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* Rows */
 .slider-container {
   padding: 0 4% 10vw 4%;
-  margin-top: -12vw; /* overlap bottom gradient */
+  margin-top: -16vw; /* overlap bottom gradient */
   position: relative;
   z-index: 10;
 }
@@ -738,9 +739,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .upload-modal {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(20, 20, 20, 0.55);
-  backdrop-filter: blur(25px) saturate(160%);
-  -webkit-backdrop-filter: blur(25px) saturate(160%);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   display: flex;
   align-items: stretch;
   justify-content: flex-end;

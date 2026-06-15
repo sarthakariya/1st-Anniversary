@@ -912,13 +912,13 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 35px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 44px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links" style="gap: 35px; margin-left: 30px; position:relative;">
+      <ul class="nav-links" style="gap: 35px; margin-left: 30px; position:relative; font-size: 15px; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>
         ${mainTabs.map(cat => {
           let catContent = cat.split('').map((char, i) => `<span style="transition-delay: ${i*0.02}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
-          if(cat === 'Home') catContent = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` + catContent;
+          if(cat === 'Home') catContent = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` + catContent;
           return `<li data-cat="${cat}" class="${appState.activeCategory === cat ? 'active' : ''}" style="display:flex; align-items:center;" onclick="setCategory('${cat}')">${catContent}</li>`;
         }).join('')}
       </ul>
@@ -940,7 +940,7 @@ function createNavbar() {
           </div>
         </div>
 
-        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : 'openUploadModal()'}">＋ ${appState.activeCategory === 'Moments' ? 'Add Photos' : 'Add Memory'}</button>
+        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : 'openUploadModal()'}">＋ ${appState.activeCategory === 'Moments' ? 'Upload Photos' : 'Add Memory'}</button>
         <div class="profile-dropdown">
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'" onmouseleave="this.style.borderColor='transparent'">
           <div class="dropdown-menu">
@@ -1006,7 +1006,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted === true;
     if (isYouTube) {
-      backgroundVideoHtml = `<iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;z-index:2; transform: scale(3.5);"></iframe>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080" style="position:absolute;top:50%;left:50%;width:100cqw;height:56.25cqw;min-height:100cqh;min-width:177.77cqh;transform:translate(-50%, -50%) scale(1.15);border:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : 'volume="0"'} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -1548,7 +1548,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { dm.remove(); render(); }, 300);">&times;</button>
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.classList.remove('open'); setTimeout(() => { dm.remove(); render(); }, 300);">&times;</button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
@@ -1586,7 +1586,8 @@ window.openDetailModal = (id, e, editMode = false) => {
           
           <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
             <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Replace Thumbnail Image</div>
-            <input type="file" id="dm-thumb-input" accept="image/*" style="font-size:14px;">
+            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select New Image</button>
+            <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;">
           </div>
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
@@ -1729,6 +1730,9 @@ window.playVideo = (id) => {
   const m = appState.memories.find(i => i.id === id);
   if(!m || !m.videoUrl) return alert("Video file not available for playback.");
   
+  const existingPlayer = document.getElementById('playbackOverlay');
+  if(existingPlayer) existingPlayer.remove();
+  
   document.body.style.overflow = 'hidden';
   
   // Track Continue Watching
@@ -1763,9 +1767,9 @@ window.playVideo = (id) => {
     playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:auto;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>`;
   } else {
     playerHtml = `
-      <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content;">
-        <video src="${url}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:0; pointer-events:none;"></video>
-        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100cqw; aspect-ratio:16/9; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
+      <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
+        <video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.2); z-index:0; pointer-events:none;"></video>
+        <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100vw; max-height:100vh; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
@@ -1819,6 +1823,22 @@ window.playVideo = (id) => {
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
   
+  if(!document.getElementById('spin-anim-style')) {
+    const s = document.createElement('style');
+    s.id = 'spin-anim-style';
+    s.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
+    document.head.appendChild(s);
+  }
+  c.insertAdjacentHTML('beforeend', `
+    <div id="playback-loading" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; pointer-events:none; transition:opacity 0.5s;">
+      <svg width="50" height="50" viewBox="0 0 50 50" style="animation: spin 1s linear infinite;">
+        <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" />
+        <circle cx="25" cy="25" r="20" fill="none" stroke="#e50914" stroke-width="4" stroke-dasharray="31.4 100" stroke-linecap="round" />
+      </svg>
+    </div>
+  `);
+  const loader = document.getElementById('playback-loading');
+  
   // Request fullscreen automatically as early as possible
   if (c.requestFullscreen) {
     c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
@@ -1830,6 +1850,11 @@ window.playVideo = (id) => {
       mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
+    if (mainPlayer.tagName.toLowerCase() === 'video') {
+      mainPlayer.addEventListener('playing', () => loader.style.opacity = '0');
+    } else {
+      setTimeout(() => loader.style.opacity = '0', 2000); // iframe heuristic
+    }
     
     // Auto play when transition is done
     if (!isYouTube) {
