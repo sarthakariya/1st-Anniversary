@@ -1358,7 +1358,7 @@ function createRow(title, memories, index = 0) {
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
-        <div class="hc-title" style="font-size:12px; font-weight:bold; margin-bottom:8px; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,0.8); opacity:0.9;">${m.title}</div>
+        <div class="hc-title" style="font-size:16px; font-weight:700; margin-bottom:8px; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,0.8); opacity:0.9;">${m.title}</div>
         <div class="hc-buttons">
           <div class="hc-btn hc-play" title="Play">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -1404,12 +1404,13 @@ function createRow(title, memories, index = 0) {
           if (isYouTube) {
             const wrap = document.createElement('div');
             wrap.className = 'media-card-hover-video';
-            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px;';
+            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.8s ease;';
             const v = document.createElement('iframe');
             v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&disablekb=1`;
             v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.25);';
             wrap.appendChild(v);
             card.appendChild(wrap);
+            setTimeout(() => wrap.style.opacity = '1', 1200); // Wait for YT player to load
           } else {
             const v = document.createElement('video');
             let srcUrl = m.videoUrl;
@@ -1423,8 +1424,9 @@ function createRow(title, memories, index = 0) {
             v.loop = true;
             v.className = 'media-card-hover-video';
             v.setAttribute('fetchpriority', 'high');
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2;border-radius:4px;';
+            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:transparent;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.4s ease;';
             card.appendChild(v);
+            v.addEventListener('playing', () => v.style.opacity = '1');
             v.play().catch(e => console.log('Autoplay prevented'));
           }
         }
@@ -1496,30 +1498,30 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0;">
+    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0; background:#141414; border:1px solid rgba(255,255,255,0.08); box-shadow: -10px 0 40px rgba(0,0,0,0.8); border-radius:4px 0 0 4px;">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
         <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       </div>
       
       <div style="padding: 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:25px;">
-        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.15); border-left: 3px solid #e50914; border-radius: 4px;">
+        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.1); backdrop-filter: blur(10px); border-radius: 4px;">
           <p style="margin: 0 0 10px 0; font-size: 13px; color: #ccc;">Please upload your video to YouTube Studio first.</p>
-          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 8px 15px; border-radius:4px; font-size:13px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
-            🡥 Open YouTube Studio
+          <button style="background: transparent; border:none; color:#E5E5E5; padding: 0; font-size:14px; cursor:pointer; transition: color 0.2s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#E5E5E5'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
+            Open YouTube Studio &nearrow;
           </button>
         </div>
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
-          <div style="display:flex; gap:10px;">
-            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
-            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
+          <div style="display:flex; position:relative;">
+            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; padding-right:70px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
+            <button id="up-fetch" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; color:#888; border:none; padding:4px 10px; border-radius:4px; font-weight:600; cursor:pointer; transition: color 0.3s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#888'">Fetch</button>
           </div>
         </div>
         
         <div id="up-preview-container" style="display: none; text-align:center; position: relative;">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
           <div style="margin-top: 10px;">
             <label for="up-thumb-upload" style="background:#333; color:white; padding:8px 15px; border-radius:4px; font-size:12px; cursor:pointer;">Upload Custom Thumbnail</label>
             <input type="file" id="up-thumb-upload" accept="image/*" style="display:none;" onchange="
@@ -1537,15 +1539,16 @@ window.openUploadModal = () => {
         </div>
 
         <div class="floating-input-group">
-          <input type="text" id="up-title" required>
+          <input type="text" id="up-title" style="background:#222; border:1px solid transparent; border-radius:4px; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
           <label for="up-title">Title</label>
         </div>
 
         <div class="floating-input-group" style="position:relative;">
-          <textarea id="up-desc" rows="3" required></textarea>
+          <textarea id="up-desc" rows="4" style="background:#222; border:1px solid transparent; border-radius:4px; padding-bottom: 40px; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
           <label for="up-desc">Description</label>
-          <button id="up-ai-btn" style="position:absolute; right:12px; top:-12px; background:linear-gradient(90deg, #e50914, #b20710); border:none; color:white; padding:5px 12px; font-size:11px; border-radius:12px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 10px rgba(229,9,20,0.4);" onclick="
-            const btn = this;
+          <div style="position:absolute; bottom:4px; left:4px; right:4px; padding:6px; background:rgba(0,0,0,0.4); border-radius:4px; display:flex;">
+            <button id="up-ai-btn" style="background:rgba(255,255,255,0.1); border:none; color:#ddd; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="
+              const btn = this;
             const t = document.getElementById('up-title').value;
             const vid = window.extractedVideoId || '';
             if(!t) return alert('Enter title first or fetch video.');
@@ -1571,7 +1574,7 @@ window.openUploadModal = () => {
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
-            <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+            <select id="up-cat" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
               <option value="Dates" style="background:#141414;">Dates</option>
               <option value="My Fav" style="background:#141414;">My Fav</option>
               <option value="Celebrations" style="background:#141414;">Celebrations</option>
@@ -1582,13 +1585,13 @@ window.openUploadModal = () => {
           </div>
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
-            <input type="date" id="up-date" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'" value="${new Date().toISOString().split('T')[0]}">
+            <input type="date" id="up-date" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'" value="${new Date().toISOString().split('T')[0]}">
           </div>
         </div>
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Maturity Rating</label>
-          <select id="up-rating" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+          <select id="up-rating" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
             <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
             <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
             <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
@@ -1599,8 +1602,8 @@ window.openUploadModal = () => {
       </div>
       
       <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end;">
-        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
-        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:8px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
+        <button style="background:transparent; border:none; color:#A3A3A3; padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; height:44px; transition:color 0.2s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#A3A3A3'" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
+        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:0 30px; font-size:15px; font-weight:700; height:44px; border-radius:4px; cursor:pointer; transition:all 0.2s; position:relative;" onmouseenter="this.style.background='#b20710'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)';">Publish Memory</button>
       </div>
     </div>
   `;
@@ -2537,16 +2540,19 @@ window.startMomentsSlideshow = async (startId) => {
        <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
     </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
-    <iframe src="https://www.youtube.com/embed/6qTghUgMOeY?autoplay=1&loop=1&playlist=6qTghUgMOeY&controls=0&mute=0&modestbranding=1" style="display:none;" allow="autoplay"></iframe>
   `;
 
   const imgEl = document.getElementById('ss-image');
   const duration = 4000;
   let slideshowInterval;
   
+  let audio = new Audio('https://cdn.pixabay.com/download/audio/2022/05/16/audio_f5f6bd7a1c.mp3?filename=romantic-piano-110006.mp3');
+  audio.loop = true;
+  
   const startSlideshowLoop = () => {
     const introP = document.getElementById('introPlayer');
     if(introP) introP.style.display = 'none';
+    audio.play().catch(e => console.log('Music autoplay prevented', e));
     slideshowInterval = setInterval(() => {
       imgEl.style.opacity = '0';
       setTimeout(() => {
@@ -2570,6 +2576,10 @@ window.startMomentsSlideshow = async (startId) => {
   }
 
   const closePlayer = () => {
+     if(audio) {
+       audio.pause();
+       audio = null;
+     }
      clearInterval(slideshowInterval);
      if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
      c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';

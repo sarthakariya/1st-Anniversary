@@ -10,17 +10,23 @@ async function startServer() {
 
   app.post("/api/analyze-video", async (req, res) => {
     try {
-      const { title, videoId } = req.body;
+      const { title, videoUrl } = req.body;
       const { GoogleGenAI } = await import("@google/genai");
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
         httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
       });
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
-        contents: `Analyze this video context: Title: "${title}" (YouTube ID: ${videoId}). Write a captivating 2-3 sentence Netflix-style documentary description or emotional romantic summary for this memory. Keep it dramatic and engaging, do not use quotes.`,
+        model: "gemini-3.5-flash",
+        contents: `Analyze this context for a video to be added to a streaming app memory lane. 
+Context: ${title ? 'Title: ' + title : ''} ${videoUrl ? 'URL or ID: ' + videoUrl : ''}. 
+Generate a Netflix-style documentary description (2-3 sentences) summarizing this memory. Keep it dramatic and engaging, no quotes. Also provide a suggested short Title. Format as JSON: {"title": "Suggested Title", "description": "The description..."}`,
+        config: {
+          responseMimeType: "application/json"
+        }
       });
-      res.json({ description: response.text });
+      const out = JSON.parse(response.text);
+      res.json(out);
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to analyze video." });
