@@ -1424,7 +1424,7 @@ function createRow(title, memories, index = 0) {
             v.loop = true;
             v.className = 'media-card-hover-video';
             v.setAttribute('fetchpriority', 'high');
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;background:transparent;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.4s ease;';
+            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:transparent;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.4s ease;';
             card.appendChild(v);
             v.addEventListener('playing', () => v.style.opacity = '1');
             v.play().catch(e => console.log('Autoplay prevented'));
@@ -1538,14 +1538,14 @@ window.openUploadModal = () => {
           </div>
         </div>
 
-        <div style="margin-bottom:20px;">
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Title</label>
-          <input type="text" id="up-title" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
+        <div class="floating-input-group">
+          <input type="text" id="up-title" style="background:#222; border:1px solid transparent; border-radius:4px; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
+          <label for="up-title">Title</label>
         </div>
 
-        <div style="position:relative; margin-bottom:20px;">
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
-          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; padding-bottom: 40px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
+        <div class="floating-input-group" style="position:relative;">
+          <textarea id="up-desc" rows="4" style="background:#222; border:1px solid transparent; border-radius:4px; padding-bottom: 40px; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
+          <label for="up-desc">Description</label>
           <div style="position:absolute; bottom:4px; left:4px; right:4px; padding:6px; background:rgba(0,0,0,0.4); border-radius:4px; display:flex;">
             <button id="up-ai-btn" style="background:rgba(255,255,255,0.1); border:none; color:#ddd; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="
               const btn = this;
@@ -1635,11 +1635,7 @@ window.openUploadModal = () => {
     document.getElementById('up-fetch').innerText = "Fetching...";
     
     try {
-      const oembedRes = await fetch('/api/youtube-meta', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ videoId })
-      });
+      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
       if (oembedRes.ok) {
         const data = await oembedRes.json();
         if (data.title) document.getElementById('up-title').value = data.title;

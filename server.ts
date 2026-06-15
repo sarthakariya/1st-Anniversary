@@ -18,12 +18,9 @@ async function startServer() {
       });
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Assume you are a creative writer for a Netflix-style streaming platform. You have to write a dramatic 2-3 sentence description for a memory video to be added to the platform.
-You are given the following context: ${title ? 'Title: ' + title : ''} ${videoUrl ? 'URL or ID: ' + videoUrl : ''}.
-
-CRITICAL: DO NOT say you cannot watch the video or need more context. You MUST creatively INFER and invent a compelling, emotional, and dramatic description based PURELY on the provided Title text. Keep it dramatic and engaging, no quotes. Also provide a suggested short Title. 
-
-Format strictly as JSON without markdown: {"title": "Suggested Title", "description": "The description..."}`,
+        contents: `Analyze this context for a video to be added to a streaming app memory lane. 
+Context: ${title ? 'Title: ' + title : ''} ${videoUrl ? 'URL or ID: ' + videoUrl : ''}. 
+Generate a Netflix-style documentary description (2-3 sentences) summarizing this memory. Keep it dramatic and engaging, no quotes. Also provide a suggested short Title. Format as JSON: {"title": "Suggested Title", "description": "The description..."}`,
         config: {
           responseMimeType: "application/json"
         }
@@ -53,22 +50,7 @@ Format strictly as JSON without markdown: {"title": "Suggested Title", "descript
     });
   }
 
-  app.post('/api/youtube-meta', async (req, res) => {
-  try {
-    const { videoId } = req.body;
-    const fetch = (await import('node-fetch')).default;
-    const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
-    if (!oembedRes.ok) {
-        return res.status(500).json({ error: 'Failed to fetch' });
-    }
-    const data = await oembedRes.json();
-    res.json(data);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
