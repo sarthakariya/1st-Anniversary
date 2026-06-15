@@ -8,7 +8,13 @@
   --header-bg: rgba(0, 0, 0, 0.9);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-font-smoothing: antialiased; 
+  -moz-osx-font-smoothing: grayscale; 
+}
 
 body {
   background-color: var(--netflix-bg);
@@ -771,7 +777,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   top: 0; left: 0;
   width: 100%; height: 100%;
   object-fit: contain;
-  background: #000;
+  background: transparent;
   border-radius: 4px;
   pointer-events: none;
   z-index: 1;

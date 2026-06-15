@@ -8,6 +8,25 @@ async function startServer() {
 
   app.use(express.json());
 
+  app.post("/api/analyze-video", async (req, res) => {
+    try {
+      const { title, videoId } = req.body;
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: `Analyze this video context: Title: "${title}" (YouTube ID: ${videoId}). Write a captivating 2-3 sentence Netflix-style documentary description or emotional romantic summary for this memory. Keep it dramatic and engaging, do not use quotes.`,
+      });
+      res.json({ description: response.text });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to analyze video." });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

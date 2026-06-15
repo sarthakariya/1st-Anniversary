@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Romantic Memories App",
+  "description": "A Netflix-inspired romantic memories platform where you can share and relive your favorite moments, complete with Gemini AI integration.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

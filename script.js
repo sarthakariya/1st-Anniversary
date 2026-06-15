@@ -197,7 +197,7 @@ document.addEventListener('keydown', (e) => {
     const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
     openModals.forEach(m => {
       m.classList.remove('open');
-      setTimeout(() => { m.remove(); render(); }, 400);
+      setTimeout(() => { m.remove(); if (appState.view !== 'dashboard') render(); else window.refreshRowsView(); }, 400);
     });
   }
 });
@@ -206,7 +206,7 @@ document.addEventListener('click', (e) => {
   openModals.forEach(m => {
     if (e.target === m) {
       m.classList.remove('open');
-      setTimeout(() => { m.remove(); render(); }, 300);
+      setTimeout(() => { m.remove(); if (appState.view !== 'dashboard') render(); else window.refreshRowsView(); }, 300);
     }
   });
 });
@@ -1518,8 +1518,22 @@ window.openUploadModal = () => {
           </div>
         </div>
         
-        <div id="up-preview-container" style="display: none; text-align:center;">
+        <div id="up-preview-container" style="display: none; text-align:center; position: relative;">
           <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <div style="margin-top: 10px;">
+            <label for="up-thumb-upload" style="background:#333; color:white; padding:8px 15px; border-radius:4px; font-size:12px; cursor:pointer;">Upload Custom Thumbnail</label>
+            <input type="file" id="up-thumb-upload" accept="image/*" style="display:none;" onchange="
+              const f = this.files[0];
+              if(f) {
+                const r = new FileReader();
+                r.onload = e => {
+                   document.getElementById('up-thumb-preview').src = e.target.result;
+                   window.currentThumbData = e.target.result;
+                };
+                r.readAsDataURL(f);
+              }
+            ">
+          </div>
         </div>
 
         <div class="floating-input-group">
@@ -1527,9 +1541,31 @@ window.openUploadModal = () => {
           <label for="up-title">Title</label>
         </div>
 
-        <div class="floating-input-group">
+        <div class="floating-input-group" style="position:relative;">
           <textarea id="up-desc" rows="3" required></textarea>
           <label for="up-desc">Description</label>
+          <button id="up-ai-btn" style="position:absolute; right:12px; top:-12px; background:linear-gradient(90deg, #e50914, #b20710); border:none; color:white; padding:5px 12px; font-size:11px; border-radius:12px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 10px rgba(229,9,20,0.4);" onclick="
+            const btn = this;
+            const t = document.getElementById('up-title').value;
+            const vid = window.extractedVideoId || '';
+            if(!t) return alert('Enter title first or fetch video.');
+            btn.innerText = 'Analyzing...';
+            btn.disabled = true;
+            fetch('/api/analyze-video', {
+               method: 'POST', headers:{'Content-Type':'application/json'},
+               body: JSON.stringify({title: t, videoId: vid})
+            }).then(r=>r.json()).then(d=>{
+               if(d.description) {
+                 document.getElementById('up-desc').value = d.description;
+                 document.getElementById('up-desc').focus();
+               }
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            }).catch(()=>{
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            });
+          ">✨ AI Auto-Fill</button>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
@@ -1574,6 +1610,8 @@ window.openUploadModal = () => {
   
   let currentThumbData = '';
   let extractedVideoId = '';
+  window.extractedVideoId = '';
+  window.currentThumbData = '';
 
   document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
@@ -1599,19 +1637,21 @@ window.openUploadModal = () => {
         const data = await oembedRes.json();
         if (data.title) document.getElementById('up-title').value = data.title;
         // Always prefer maxresdefault for crystal clear thumbnails
-        currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-        document.getElementById('up-thumb-preview').src = currentThumbData;
+        window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+        document.getElementById('up-thumb-preview').src = window.currentThumbData;
         document.getElementById('up-preview-container').style.display = 'block';
       } else {
-         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-         document.getElementById('up-thumb-preview').src = currentThumbData;
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
       }
     } catch(err) {
-         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-         document.getElementById('up-thumb-preview').src = currentThumbData;
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
     }
+    window.extractedVideoId = videoId;
+    extractedVideoId = videoId;
     
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
@@ -1624,7 +1664,7 @@ window.openUploadModal = () => {
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    let finalThumbnail = currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
+    let finalThumbnail = window.currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
     
     const mem = {
       id: 'm_' + Date.now(),
@@ -1645,12 +1685,16 @@ window.openUploadModal = () => {
       console.warn("Failed to save to DB:", err);
     }
     appState.memories.unshift(mem);
+    
+    // Fix: Explicitly save to session storage
+    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    
     window.justUploadedId = mem.id;
     const modalEl = document.getElementById('uploadModal');
     modalEl.classList.remove('open');
     setTimeout(() => {
       modalEl.remove();
-      render();
+      if (appState.view !== 'dashboard') render(); else window.refreshRowsView();
     }, 600);
   };
 };
@@ -1854,7 +1898,7 @@ window.saveDetailEdit = async (id) => {
 
     saveBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Saved!`;
     setTimeout(() => {
-        render();
+        if (appState.view !== 'dashboard') render(); else window.refreshRowsView();
         toggleDetailEdit();
         saveBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save`;
     }, 1000);
@@ -1862,13 +1906,19 @@ window.saveDetailEdit = async (id) => {
 };
 
 window.deleteMemory = async (id) => {
-  if (await netflixConfirm("Are you sure you want to delete this memory?")) {
-    appState.memories = appState.memories.filter(m => m.id !== id);
-    appState.myList = appState.myList.filter(lId => lId !== id);
-    try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
-    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-    saveStateList('myList', appState.myList);
-    document.getElementById('detailModal').remove();
+  appState.memories = appState.memories.filter(m => m.id !== id);
+  appState.myList = appState.myList.filter(lId => lId !== id);
+  try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
+  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+  saveStateList('myList', appState.myList);
+  const detailModal = document.getElementById('detailModal');
+  if (detailModal) {
+    detailModal.classList.remove('open');
+    setTimeout(() => { detailModal.remove(); }, 300);
+  }
+  if (appState.view === 'dashboard') {
+    window.refreshRowsView();
+  } else {
     render();
   }
 };
@@ -2440,7 +2490,7 @@ window.openBulkUploadModal = () => {
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
     m.classList.remove('open');
-    setTimeout(() => { m.remove(); render(); }, 400);
+    setTimeout(() => { m.remove(); if (appState.view !== 'dashboard') render(); else window.refreshRowsView(); }, 400);
   };
 };
 
@@ -2486,7 +2536,8 @@ window.startMomentsSlideshow = async (startId) => {
     <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
        <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay muted id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+    <iframe src="https://www.youtube.com/embed/6qTghUgMOeY?autoplay=1&loop=1&playlist=6qTghUgMOeY&controls=0&mute=0&modestbranding=1" style="display:none;" allow="autoplay"></iframe>
   `;
 
   const imgEl = document.getElementById('ss-image');
