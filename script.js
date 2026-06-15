@@ -4,14 +4,20 @@ import { animate, stagger } from 'motion';
 
 function transitionView(v) { 
   if (appState.view === v) return;
-  if (document.startViewTransition) {
+  if (!document.startViewTransition) {
+    appState.view = v;
+    render();
+    return;
+  }
+  
+  try {
     document.startViewTransition(() => {
       appState.view = v;
       render();
     });
-  } else {
-    appState.view = v; 
-    render(); 
+  } catch(e) {
+    appState.view = v;
+    render();
   }
 }
 window.transitionView = transitionView;
@@ -422,12 +428,7 @@ window.refreshRowsView = (rcNode, heroNode) => {
           }
           openDetailModal(m.id); 
         };
-        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
-        <div class="card-info">
-          <div class="card-title" style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <span style="font-size: 16px; font-weight:600; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">${m.title}</span>
-          </div>
-        </div>`;
+        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
         grid.appendChild(div);
       });
       wrapper.appendChild(grid);
@@ -940,7 +941,7 @@ function createNavbar() {
           <div class="search-icon" onclick="toggleSearch()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
-          <input type="text" id="searchInput" class="search-input" placeholder="Titles, descriptions, dates" oninput="handleSearch(event)" value="${appState.searchQuery || ''}">
+          <input type="text" id="searchInput" class="search-input" placeholder="Titles, people, genres" oninput="handleSearch(event)" value="${appState.searchQuery || ''}">
         </div>
 
         <div class="notification-container">
@@ -953,9 +954,11 @@ function createNavbar() {
           </div>
         </div>
 
-        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : (appState.activeCategory === 'My List' ? 'setCategory(\'Home\')' : 'openUploadModal()')}">＋ ${addButtonText}</button>
+        <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : (appState.activeCategory === 'My List' ? 'setCategory(\'Home\')' : 'openUploadModal()')}" title="${addButtonText}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
         <div class="profile-dropdown">
-          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s, transform 0.2s; object-fit: cover;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.1)';" onmouseleave="this.style.borderColor='transparent'; this.style.transform='scale(1)';">
+          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
             <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
@@ -1111,9 +1114,9 @@ function createRow(title, memories, index = 0) {
   row.style.setProperty('--row-index', index);
   row.innerHTML = `
     <div class="row-header scramble-text" data-text="${title}">${title}</div>
-    <div class="slider-arrow slider-left" style="display:none; position:absolute; left:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center;">‹</div>
+    <div class="slider-arrow slider-left">‹</div>
     <div class="row-content" style="position:relative;"></div>
-    <div class="slider-arrow slider-right" style="position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:100; font-size:3vw; background:rgba(0,0,0,0.5); border:none; color:white; cursor:pointer; height:100%; width:4vw; align-items:center; justify-content:center; display: flex;">›</div>
+    <div class="slider-arrow slider-right">›</div>
   `;
   row.style.position = 'relative';
   
@@ -1135,9 +1138,10 @@ function createRow(title, memories, index = 0) {
   arrowRight.onclick = () => handleScrollClick(1);
   
   rc.addEventListener('scroll', () => {
-    arrowLeft.style.display = rc.scrollLeft > 0 ? 'flex' : 'none';
-    arrowRight.style.display = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'flex' : 'none';
+    arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
+    arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
   }, { passive: true });
+  arrowLeft.style.visibility = 'hidden';
 
   // Swipe scrolling handler
   let isDown = false;
@@ -1262,7 +1266,34 @@ function createRow(title, memories, index = 0) {
     
     // Lazy load the thumbnail
     const displayThumb = (m.thumbnail || '').replace('hqdefault.jpg', 'maxresdefault.jpg');
-    card.innerHTML = `<img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">`;
+    card.innerHTML = `
+      <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
+      <div class="hover-chassis">
+        <div class="hc-buttons">
+          <div class="hc-btn hc-play" title="Play">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          </div>
+          <div class="hc-btn hc-add" title="Add to My List">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <div class="hc-btn hc-like" title="Like">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </div>
+          <div style="flex:1;"></div>
+          <div class="hc-btn hc-more" title="More Info">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="hc-meta">
+          <span class="hc-match">98% Match</span>
+          <span class="hc-rating">${m.rating || 'TV-14'}</span>
+          <span class="hc-badge">HD</span>
+        </div>
+        <div class="hc-genres">
+          <span>Emotional</span><span class="hc-dot">•</span><span>Heartfelt</span><span class="hc-dot">•</span><span>Romance</span>
+        </div>
+      </div>
+    `;
     
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
@@ -1322,13 +1353,6 @@ function createRow(title, memories, index = 0) {
       }
     };
 
-    card.innerHTML += `
-      <div class="card-info">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:flex-end;">
-          <span style="font-size: 16px; font-weight:600; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">${m.title}</span>
-        </div>
-      </div>
-    `;
     fragment.appendChild(card);
   }
   
@@ -1399,7 +1423,7 @@ window.openUploadModal = () => {
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
           <div style="display:flex; gap:10px;">
-            <input type="text" id="up-yt-link" placeholder="Paste the YouTube URL here..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
             <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
           </div>
         </div>
