@@ -1358,7 +1358,7 @@ function createRow(title, memories, index = 0) {
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
-        <div class="hc-title line-clamp-3">${m.title}</div>
+        <div class="hc-title" style="font-size:12px; font-weight:bold; margin-bottom:8px; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,0.8); opacity:0.9;">${m.title}</div>
         <div class="hc-buttons">
           <div class="hc-btn hc-play" title="Play">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -1404,13 +1404,12 @@ function createRow(title, memories, index = 0) {
           if (isYouTube) {
             const wrap = document.createElement('div');
             wrap.className = 'media-card-hover-video';
-            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.8s ease;';
+            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px;';
             const v = document.createElement('iframe');
             v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&disablekb=1`;
             v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.25);';
             wrap.appendChild(v);
             card.appendChild(wrap);
-            setTimeout(() => wrap.style.opacity = '1', 1200); // Wait for YT player to load
           } else {
             const v = document.createElement('video');
             let srcUrl = m.videoUrl;
@@ -1424,9 +1423,8 @@ function createRow(title, memories, index = 0) {
             v.loop = true;
             v.className = 'media-card-hover-video';
             v.setAttribute('fetchpriority', 'high');
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;background:transparent;z-index:2;border-radius:4px; opacity:0; transition:opacity 0.4s ease;';
+            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2;border-radius:4px;';
             card.appendChild(v);
-            v.addEventListener('playing', () => v.style.opacity = '1');
             v.play().catch(e => console.log('Autoplay prevented'));
           }
         }
@@ -1498,33 +1496,32 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content">
+    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0;">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
         <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
       </div>
       
       <div style="padding: 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:25px;">
-        <!-- Error / Info state -->
-        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.1); backdrop-filter: blur(10px); border-radius: 4px;">
+        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.15); border-left: 3px solid #e50914; border-radius: 4px;">
           <p style="margin: 0 0 10px 0; font-size: 13px; color: #ccc;">Please upload your video to YouTube Studio first.</p>
-          <button style="background: transparent; border:none; color:#E5E5E5; padding: 0; font-size:14px; cursor:pointer; transition: color 0.2s;" onmouseenter="this.style.color='#e50914'" onmouseleave="this.style.color='#E5E5E5'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
-            Open YouTube Studio &nearrow;
+          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 8px 15px; border-radius:4px; font-size:13px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
+            🡥 Open YouTube Studio
           </button>
         </div>
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
-          <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; font-family:monospace; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';">
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
+          </div>
         </div>
         
-        <div id="up-preview-container" style="position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); display:none; aspect-ratio: 16/9;" onmouseenter="document.getElementById('up-thumb-overlay').style.opacity='1'" onmouseleave="document.getElementById('up-thumb-overlay').style.opacity='0'">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(0.6);">
-          <div id="up-thumb-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; backdrop-filter:blur(2px);">
-            <label for="up-thumb-upload" style="background:rgba(229,9,20,0.9); color:white; padding:10px 20px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.4);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload Custom Thumbnail
-            </label>
+        <div id="up-preview-container" style="display: none; text-align:center; position: relative;">
+          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <div style="margin-top: 10px;">
+            <label for="up-thumb-upload" style="background:#333; color:white; padding:8px 15px; border-radius:4px; font-size:12px; cursor:pointer;">Upload Custom Thumbnail</label>
             <input type="file" id="up-thumb-upload" accept="image/*" style="display:none;" onchange="
               const f = this.files[0];
               if(f) {
@@ -1539,34 +1536,59 @@ window.openUploadModal = () => {
           </div>
         </div>
 
-        <div style="margin-bottom:20px;">
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Title</label>
-          <input type="text" id="up-title" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required>
+        <div class="floating-input-group">
+          <input type="text" id="up-title" required>
+          <label for="up-title">Title</label>
         </div>
 
-        <div style="margin-bottom:20px;">
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Description</label>
-          <textarea id="up-desc" rows="4" style="width:100%; background:#222; border:1px solid transparent; border-radius:4px; padding:12px 16px; color:white; font-size:15px; outline:none; resize:none; transition:all 0.3s;" onfocus="this.style.background='#2b2b2b'; this.style.borderColor='rgba(255,255,255,0.3)';" onblur="this.style.background='#222'; this.style.borderColor='transparent';" required></textarea>
+        <div class="floating-input-group" style="position:relative;">
+          <textarea id="up-desc" rows="3" required></textarea>
+          <label for="up-desc">Description</label>
+          <button id="up-ai-btn" style="position:absolute; right:12px; top:-12px; background:linear-gradient(90deg, #e50914, #b20710); border:none; color:white; padding:5px 12px; font-size:11px; border-radius:12px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 10px rgba(229,9,20,0.4);" onclick="
+            const btn = this;
+            const t = document.getElementById('up-title').value;
+            const vid = window.extractedVideoId || '';
+            if(!t) return alert('Enter title first or fetch video.');
+            btn.innerText = 'Analyzing...';
+            btn.disabled = true;
+            fetch('/api/analyze-video', {
+               method: 'POST', headers:{'Content-Type':'application/json'},
+               body: JSON.stringify({title: t, videoId: vid})
+            }).then(r=>r.json()).then(d=>{
+               if(d.description) {
+                 document.getElementById('up-desc').value = d.description;
+                 document.getElementById('up-desc').focus();
+               }
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            }).catch(()=>{
+               btn.innerText = '✨ AI Auto-Fill';
+               btn.disabled = false;
+            });
+          ">✨ AI Auto-Fill</button>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom: 20px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top: 15px;">
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
-            <select id="up-cat" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
-              <option value="Us" style="background:#141414;">Us</option>
-              <option value="Special Day" style="background:#141414;">Special Day</option>
+            <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+              <option value="Dates" style="background:#141414;">Dates</option>
+              <option value="My Fav" style="background:#141414;">My Fav</option>
               <option value="Celebrations" style="background:#141414;">Celebrations</option>
+              <option value="Romance" style="background:#141414;">Romance</option>
+              <option value="Our Time" style="background:#141414;">Our Time</option>
+              <option value="Documentaries" style="background:#141414;">Documentaries</option>
             </select>
           </div>
           <div>
-            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date (DD/MM/YYYY)</label>
-            <input type="text" id="up-date" placeholder="DD/MM/YYYY" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
+            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
+            <input type="date" id="up-date" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'" value="${new Date().toISOString().split('T')[0]}">
           </div>
         </div>
 
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Maturity Rating</label>
-          <select id="up-rating" style="width:100%; background:#222; border:1px solid transparent; padding:12px 16px; border-radius:4px; color:white; outline:none; transition: all 0.3s;" onfocus="this.style.background='#2b2b2b'" onblur="this.style.background='#222'">
+          <select id="up-rating" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
             <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
             <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
             <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
@@ -1577,20 +1599,13 @@ window.openUploadModal = () => {
       </div>
       
       <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end;">
-        <button style="background:transparent; border:none; color:#A3A3A3; padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; height:44px; transition:color 0.2s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#A3A3A3'" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
-        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:0 30px; font-size:15px; font-weight:700; height:44px; border-radius:4px; cursor:pointer; transition:all 0.2s; position:relative;" onmouseenter="this.style.background='#b20710'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)';">Publish Memory</button>
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
+        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:8px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
-  
-  // Convert current date to DD/MM/YYYY
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, '0');
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  document.getElementById('up-date').value = `${dd}/${mm}/${today.getFullYear()}`;
-
   setTimeout(() => modal.classList.add('open'), 10);
   
   let currentThumbData = '';
@@ -1598,16 +1613,12 @@ window.openUploadModal = () => {
   window.extractedVideoId = '';
   window.currentThumbData = '';
 
-  document.getElementById('up-yt-link').addEventListener('input', async (e) => {
-    const link = e.target.value.trim();
-    if (!link) {
-      window.currentThumbData = '';
-      document.getElementById('up-preview-container').style.display = 'none';
-      return;
-    }
+  document.getElementById('up-fetch').onclick = async () => {
+    const link = document.getElementById('up-yt-link').value.trim();
+    if (!link) return alert("Please paste a YouTube link first.");
 
     let videoId = '';
-    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = link.match(regExp);
     if (match && match[2].length === 11) {
       videoId = match[2];
@@ -1615,59 +1626,45 @@ window.openUploadModal = () => {
       videoId = link.length === 11 ? link : null;
     }
 
-    if (!videoId) return;
+    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
     
     extractedVideoId = videoId;
-    window.extractedVideoId = videoId;
-
+    document.getElementById('up-fetch').innerText = "Fetching...";
+    
     try {
-      const oembedRes = await fetch('/api/youtube-meta', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ videoId })
-      });
+      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
       if (oembedRes.ok) {
         const data = await oembedRes.json();
-        if (data.title && !document.getElementById('up-title').value) {
-          document.getElementById('up-title').value = data.title;
-        }
-        if (data.thumbnail_url) {
-             window.currentThumbData = data.thumbnail_url;
-             document.getElementById('up-thumb-preview').src = data.thumbnail_url;
-        }
-      }
-    } catch(err) {
-      console.error(err);
-    }
-
-    if (!window.currentThumbData) {
+        if (data.title) document.getElementById('up-title').value = data.title;
+        // Always prefer maxresdefault for crystal clear thumbnails
         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
         document.getElementById('up-thumb-preview').src = window.currentThumbData;
+        document.getElementById('up-preview-container').style.display = 'block';
+      } else {
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
+      }
+    } catch(err) {
+         window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+         document.getElementById('up-thumb-preview').src = window.currentThumbData;
+         document.getElementById('up-preview-container').style.display = 'block';
     }
-    document.getElementById('up-preview-container').style.display = 'block';
-  });
+    window.extractedVideoId = videoId;
+    extractedVideoId = videoId;
+    
+    document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
+  };
 
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
     if(!title) return netflixAlert("Title required");
-    
-    let link = document.getElementById('up-yt-link').value.trim();
-    if(!link && !window.extractedVideoId) return netflixAlert("Please provide a video link or ID.");
-
-    if (!window.extractedVideoId && link) {
-        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-        const match = link.match(regExp);
-        if (match && match[2].length === 11) {
-          window.extractedVideoId = match[2];
-        } else {
-          window.extractedVideoId = link; // Default to the raw URL or string
-        }
-    }
+    if(!extractedVideoId) return netflixAlert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
-    let finalThumbnail = window.currentThumbData || (window.extractedVideoId.length === 11 ? 'https://img.youtube.com/vi/' + window.extractedVideoId + '/maxresdefault.jpg' : '');
+    let finalThumbnail = window.currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg');
     
     const mem = {
       id: 'm_' + Date.now(),
@@ -1677,7 +1674,7 @@ window.openUploadModal = () => {
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
       thumbnail: finalThumbnail,
-      videoUrl: window.extractedVideoId,
+      videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
     };
@@ -1742,19 +1739,9 @@ window.openDetailModal = (id, e, editMode = false) => {
   
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
-  let mediaHtml = m.videoUrl ? 
-      (isYouTube ? `
-        <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden;">
-          <div id="detail-yt-player-container-${m.id}" style="position:absolute; top:50%; left:50%; width:150%; height:150%; transform:translate(-50%,-50%); border:none; pointer-events:none;"></div>
-          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 800)">
-        </div>` : 
-        `
-        <div style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden;">
-          <video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none;" onloadedmetadata="if(this.duration){ document.getElementById('video-duration').innerText = formatNativeDuration(this.duration); }"></video>
-          <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 500)">
-        </div>`
-      ) : 
-      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">`;
+  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
+      (isYouTube ? `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;"></iframe></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
@@ -1763,10 +1750,10 @@ window.openDetailModal = (id, e, editMode = false) => {
       </div>
       <div class="detail-header">
         ${mediaHtml}
-        <div class="video-gradient-overlay"></div>
-        <div class="detail-title-btn" style="position: absolute; bottom: 5%; left: 4%; z-index: 3; width: 92%;">
-          <div class="detail-title" id="dm-title" style="font-size:32px; font-weight:800; line-height:1.1; margin-bottom:20px; text-shadow:0 2px 4px rgba(0,0,0,0.8);">${m.title}</div>
-          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:32px; font-weight:800; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:20px; width:100%; border-radius:4px; font-family:inherit;">
+        <div class="detail-gradient"></div>
+        <div class="detail-title-btn">
+          <div class="detail-title" id="dm-title">${m.title}</div>
+          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
           <div style="display:flex; gap:10px; align-items:center;">
             <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
@@ -1793,13 +1780,13 @@ window.openDetailModal = (id, e, editMode = false) => {
           </div>
         </div>
       </div>
-      <div class="detail-body" style="padding: 20px 4%; display:flex; gap: 40px;">
-        <div class="detail-left" style="flex: 0 0 60%;">
+      <div class="detail-body">
+        <div class="detail-left">
           <div class="detail-meta">
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
             <span class="year">${m.year}</span> 
             <span class="rating">${m.rating}</span> 
-            <span class="duration" id="video-duration">${m.duration || (Math.floor(Math.random() * 3) + 1 + 'h ' + Math.floor(Math.random() * 59) + 'm')}</span> 
+            <span class="duration">${m.duration || (Math.floor(Math.random() * 3) + 1 + 'h ' + Math.floor(Math.random() * 59) + 'm')}</span> 
             <span class="quality">4K Ultra HD</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
@@ -1838,45 +1825,10 @@ window.openDetailModal = (id, e, editMode = false) => {
   `;
   document.body.appendChild(modal);
   
-  // Initialize standard YouTube if it's there
-  if (isYouTube && window.YT && window.YT.Player) {
-    new YT.Player(`detail-yt-player-container-${m.id}`, {
-      videoId: m.videoUrl,
-      playerVars: {
-        'autoplay': 1,
-        'controls': 0,
-        'mute': 1,
-        'loop': 1,
-        'modestbranding': 1,
-        'rel': 0,
-        'playlist': m.videoUrl,
-        'iv_load_policy': 3
-      },
-      events: {
-        'onReady': function(event) {
-          const duration = event.target.getDuration();
-          if(duration && duration > 0){
-             const dt = document.getElementById('video-duration');
-             if(dt) dt.innerText = formatNativeDuration(duration);
-          }
-        }
-      }
-    });
-  }
-
   if (editMode) {
      toggleDetailEdit();
   }
   setTimeout(() => modal.classList.add('open'), 10);
-}
-
-function formatNativeDuration(totalSeconds) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
 }
 
 window.toggleDetailEdit = () => {
@@ -1931,7 +1883,6 @@ window.saveDetailEdit = async (id) => {
           m.thumbnail = e.target.result;
           resolve();
         };
-        reader.onerror = resolve;
         reader.readAsDataURL(file);
       });
     }
@@ -2243,7 +2194,7 @@ window.playVideo = (id) => {
           console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
       } else {
-        document.exitFullscreen().catch(e => {});
+        document.exitFullscreen();
       }
     };
 
@@ -2530,7 +2481,6 @@ window.openBulkUploadModal = () => {
             progressBar.style.width = (done / maxFiles.length * 100) + '%';
             setTimeout(resolve, 10);
           };
-          img.onerror = resolve;
           img.src = e.target.result;
         };
         reader.onerror = resolve;
@@ -2587,19 +2537,16 @@ window.startMomentsSlideshow = async (startId) => {
        <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
     </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+    <iframe src="https://www.youtube.com/embed/6qTghUgMOeY?autoplay=1&loop=1&playlist=6qTghUgMOeY&controls=0&mute=0&modestbranding=1" style="display:none;" allow="autoplay"></iframe>
   `;
 
   const imgEl = document.getElementById('ss-image');
   const duration = 4000;
   let slideshowInterval;
   
-  let audio = new Audio('https://cdn.pixabay.com/download/audio/2022/05/16/audio_f5f6bd7a1c.mp3?filename=romantic-piano-110006.mp3');
-  audio.loop = true;
-  
   const startSlideshowLoop = () => {
     const introP = document.getElementById('introPlayer');
     if(introP) introP.style.display = 'none';
-    audio.play().catch(e => console.log('Music autoplay prevented', e));
     slideshowInterval = setInterval(() => {
       imgEl.style.opacity = '0';
       setTimeout(() => {
@@ -2623,10 +2570,6 @@ window.startMomentsSlideshow = async (startId) => {
   }
 
   const closePlayer = () => {
-     if(audio) {
-       audio.pause();
-       audio = null;
-     }
      clearInterval(slideshowInterval);
      if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
      c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';

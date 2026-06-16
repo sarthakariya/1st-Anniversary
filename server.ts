@@ -10,45 +10,20 @@ async function startServer() {
 
   app.post("/api/analyze-video", async (req, res) => {
     try {
-      const { title, videoUrl } = req.body;
+      const { title, videoId } = req.body;
       const { GoogleGenAI } = await import("@google/genai");
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
         httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
       });
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Assume you are a creative writer for a Netflix-style streaming platform. You have to write a dramatic 2-3 sentence description for a memory video to be added to the platform.
-You are given the following context: ${title ? 'Title: ' + title : ''} ${videoUrl ? 'URL or ID: ' + videoUrl : ''}.
-
-CRITICAL: DO NOT say you cannot watch the video or need more context. You MUST creatively INFER and invent a compelling, emotional, and dramatic description based PURELY on the provided Title text. Keep it dramatic and engaging, no quotes. Also provide a suggested short Title. 
-
-Format strictly as JSON without markdown: {"title": "Suggested Title", "description": "The description..."}`,
-        config: {
-          responseMimeType: "application/json"
-        }
+        model: "gemini-3.1-pro-preview",
+        contents: `Analyze this video context: Title: "${title}" (YouTube ID: ${videoId}). Write a captivating 2-3 sentence Netflix-style documentary description or emotional romantic summary for this memory. Keep it dramatic and engaging, do not use quotes.`,
       });
-      const out = JSON.parse(response.text);
-      res.json(out);
+      res.json({ description: response.text });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to analyze video." });
-    }
-  });
-
-  app.post('/api/youtube-meta', async (req, res) => {
-    try {
-      const { videoId } = req.body;
-      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json', {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' }
-      });
-      if (!oembedRes.ok) {
-          return res.status(500).json({ error: 'Failed to fetch' });
-      }
-      const data = await oembedRes.json();
-      res.json(data);
-    } catch(e: any) {
-      res.status(500).json({ error: e.message });
     }
   });
 
