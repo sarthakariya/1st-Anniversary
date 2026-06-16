@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES } from '../data';
 import { Memory, Profile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import VideoPlayer from './VideoPlayer';
 
 interface BrowseScreenProps {
   profile: Profile;
@@ -126,14 +127,14 @@ export default function BrowseScreen({ profile, isMorning }: BrowseScreenProps) 
       {/* Rows */}
       <div className="pb-16 -mt-8 relative z-10 pt-[20px]">
         {filteredCategories.map(category => (
-          <div key={category.id} className="mb-8 md:mb-12">
+          <div key={category.id} className="mb-8 md:mb-12" style={{ marginBottom: '-40px' }}>
             <h2 className={`px-4 md:px-[60px] text-[20px] font-bold mb-[10px] ${textColor} flex items-center group cursor-pointer`}>
               {category.title}
               <span className="text-[10px] text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hidden md:inline">Explore All</span>
               <ChevronRight className="w-4 h-4 text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity hidden md:inline" />
             </h2>
             
-            <div className="px-4 md:px-[60px] flex gap-[8px] overflow-x-auto hide-scrollbar snap-x py-4">
+            <div className="px-4 md:px-[60px] flex gap-[8px] overflow-x-auto hide-scrollbar snap-x py-4 pb-[40px]" style={{ contain: 'content' }}>
               {category.memories.map(memory => (
                 <div 
                   key={memory.id} 
@@ -174,17 +175,22 @@ export default function BrowseScreen({ profile, isMorning }: BrowseScreenProps) 
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
                onClick={() => setSelectedMemory(null)}
-               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+               className="absolute inset-0 bg-black/70 backdrop-blur-2xl"
              />
              <motion.div
                initial={{ opacity: 0, scale: 0.95, y: 20 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className={`relative w-full md:w-[850px] max-w-full rounded-[10px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 ${modalBg}`}
+               className={`relative w-full md:w-[850px] max-w-full max-h-[90vh] overflow-y-auto overflow-x-hidden hide-scrollbar rounded-[10px] shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 ${modalBg}`}
              >
                 <div className="h-[250px] md:h-[350px] relative bg-[#333]">
-                  <img src={selectedMemory.thumbnailUrl} alt={selectedMemory.title} className="w-full h-full object-cover absolute inset-0" />
-                  <div className={`absolute inset-0 bg-gradient-to-b from-transparent from-70% ${isMorning ? 'to-[#f5f5f1]' : 'to-[#181818]'}`} />
+                  {selectedMemory.videoUrl ? (
+                    <VideoPlayer videoId={selectedMemory.videoUrl} autoplay />
+                  ) : (
+                    <img src={selectedMemory.thumbnailUrl} alt={selectedMemory.title} className="w-full h-full object-cover absolute inset-0" />
+                  )}
+                  <div className={`absolute inset-0 bg-gradient-to-b from-transparent from-70% ${isMorning ? 'to-[#f5f5f1]' : 'to-[#181818]'} pointer-events-none`} />
+                  <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-[#141414] to-transparent pointer-events-none" />
                   
                   <button 
                     onClick={() => setSelectedMemory(null)}
@@ -211,23 +217,23 @@ export default function BrowseScreen({ profile, isMorning }: BrowseScreenProps) 
                        <span className={`px-1 border border-[#777] text-white`}>{selectedMemory.maturityRating}</span>
                        <span className={textColor}>{selectedMemory.duration}</span>
                      </div>
-                     <p className={`text-[16px] leading-[1.6] ${mutedTextColor}`}>
+                     <p className={`text-[16px] leading-relaxed ${mutedTextColor}`}>
                        {selectedMemory.description}
                      </p>
                    </div>
                    
-                   <div className={`font-normal text-[14px] text-[#777] space-y-4`}>
+                   <div className={`font-normal text-[14px] flex flex-col space-y-4`}>
                      <div>
-                       <span>Cast: </span>
-                       <span className="text-[#ddd]">{selectedMemory.cast.join(', ')}</span>
+                       <span className="text-gray-500">Cast: </span>
+                       <span className="text-white">{selectedMemory.cast.join(', ')}</span>
                      </div>
                      <div>
-                       <span>Genres: </span>
-                       <span className="text-[#ddd]">{selectedMemory.tags.join(', ')}</span>
+                       <span className="text-gray-500">Genres: </span>
+                       <span className="text-white">{selectedMemory.tags.join(', ')}</span>
                      </div>
                      <div>
-                       <span>This movie is: </span>
-                       <span className="text-[#ddd]">Romantic, Intimate, Ours</span>
+                       <span className="text-gray-500">This movie is: </span>
+                       <span className="text-white">Romantic, Intimate, Ours</span>
                      </div>
                    </div>
                 </div>
