@@ -1498,7 +1498,7 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content centered-modal" style="display:flex; flex-direction:column; padding:0; background:#141414; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.8); border-radius:8px;">
+    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0; background:#141414; border:none; border-left:1px solid rgba(255,255,255,0.08); box-shadow: -10px 0 40px rgba(0,0,0,0.8); border-radius:0;">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
         <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
@@ -1751,16 +1751,11 @@ window.openDetailModal = (id, e, editMode = false) => {
       </div>
       <div class="detail-header">
         ${mediaHtml}
-        <div class="detail-gradient"></div>
-        <div class="detail-blur"></div>
-        <div class="detail-title-btn">
-          <div class="detail-title" id="dm-title">${m.title}</div>
-          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
-        </div>
-      </div>
-      <div class="detail-body">
-        <div class="detail-left">
-          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 25px; margin-top: -15px;">
+        <div class="video-gradient-overlay"></div>
+        <div class="detail-title-btn" style="position: absolute; bottom: 5%; left: 4%; z-index: 3; width: 92%;">
+          <div class="detail-title" id="dm-title" style="font-size:32px; font-weight:800; line-height:1.1; margin-bottom:20px; text-shadow:0 2px 4px rgba(0,0,0,0.8);">${m.title}</div>
+          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:32px; font-weight:800; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:20px; width:100%; border-radius:4px; font-family:inherit;">
+          <div style="display:flex; gap:10px; align-items:center;">
             <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
             </button>
@@ -1784,6 +1779,10 @@ window.openDetailModal = (id, e, editMode = false) => {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="detail-body" style="padding: 20px 4%; display:flex; gap: 40px;">
+        <div class="detail-left" style="flex: 0 0 60%;">
           <div class="detail-meta">
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
             <span class="year">${m.year}</span> 

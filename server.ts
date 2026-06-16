@@ -36,6 +36,20 @@ Format strictly as JSON without markdown: {"title": "Suggested Title", "descript
     }
   });
 
+  app.post('/api/youtube-meta', async (req, res) => {
+    try {
+      const { videoId } = req.body;
+      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
+      if (!oembedRes.ok) {
+          return res.status(500).json({ error: 'Failed to fetch' });
+      }
+      const data = await oembedRes.json();
+      res.json(data);
+    } catch(e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -53,22 +67,7 @@ Format strictly as JSON without markdown: {"title": "Suggested Title", "descript
     });
   }
 
-  app.post('/api/youtube-meta', async (req, res) => {
-  try {
-    const { videoId } = req.body;
-    const fetch = (await import('node-fetch')).default;
-    const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
-    if (!oembedRes.ok) {
-        return res.status(500).json({ error: 'Failed to fetch' });
-    }
-    const data = await oembedRes.json();
-    res.json(data);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
