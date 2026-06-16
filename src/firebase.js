@@ -10,7 +10,10 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const provider = new GoogleAuthProvider();
 
-// Attempt anonymous sign-in to ensure storage rules don't block uploads if they require auth
-signInAnonymously(auth).catch(err => console.log("Anon auth failed", err));
+// Anonymous authentication is disabled by default in the Firebase console.
+// Since this application's Firestore security rules allow read/write access without sign-in,
+// we do not need to call signInAnonymously. If you decide to restrict access later,
+// you can enable Anonymous Auth in the Firebase Console (Authentication -> Sign-in method).
+// signInAnonymously(auth).catch(err => console.log("Anon auth failed", err));
 
 export { signInWithPopup, onAuthStateChanged };

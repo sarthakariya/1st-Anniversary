@@ -921,7 +921,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 55px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" style="height: 85px; width: 180px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="gap: 25px; margin-left: 40px; position:relative; font-size: 14px; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>

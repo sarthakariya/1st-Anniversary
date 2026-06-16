@@ -1079,3 +1079,167 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-color: #fff;
   background: rgba(255,255,255,0.2);
 }
+
+/* --- AIS FOCUS MODE STYLES --- */
+
+/* CSS 1: Hero title size */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) {
+  font-size: 50px !important;
+  line-height: 53px !important;
+}
+
+/* CSS 3: Nav links container */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) {
+  width: 480.8px !important;
+  height: 27px !important;
+  margin-left: 0px !important;
+  font-size: 15px !important;
+  padding-left: 0px !important;
+  border-width: 0px !important;
+  border-style: groove !important;
+}
+
+/* CSS 6: Nav logo image */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(1) > img#nav-logo-img:nth-of-type(1) {
+  height: 85px !important;
+  width: 180px !important;
+  padding-left: 0px !important;
+}
+
+/* CSS 7: Hero background image overlay */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(1) > img#hero-img-overlay:nth-of-type(1) {
+  width: 1536px !important;
+}
+
+/* CSS 8: Nav right section */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) {
+  width: 250px !important;
+  height: 40px !important;
+  margin-left: 485px !important;
+}
+
+/* CSS 9: Nav profile image */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > img:nth-of-type(1) {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* CSS 11: Hero description width */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) {
+  width: 500px !important;
+}
+
+/* CSS 13: Hero play button padding */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(3) > button:nth-of-type(1) {
+  padding-right: 31px !important;
+  padding-left: 31px !important;
+  padding-top: 12px !important;
+}
+
+/* CSS 15: Hero controls height */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(5) {
+  height: 45px !important;
+}
+
+/* CSS 16: Category row 1 title header in dashboard */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) {
+  padding-left: 10px !important;
+  font-family: Inter, sans-serif !important;
+  font-size: 21px !important;
+}
+
+/* CSS 17: Category row 2 title header */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
+  font-size: 21px !important;
+  padding-left: 10px !important;
+}
+
+/* CSS 18: Category row 3 title header */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) {
+  padding-left: 10px !important;
+  font-size: 21px !important;
+}
+
+/* CSS 19: Category row 4 title header */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) {
+  font-size: 21px !important;
+  padding-left: 10px !important;
+}
+
+/* CSS 20: Category row 5 title header */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1) {
+  padding-left: 10px !important;
+  font-size: 21px !important;
+}
+
+/* CSS 21: Row 1 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  padding-left: 10px !important;
+  padding-right: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  height: 163px !important;
+}
+
+/* CSS 22: Row 2 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  padding-left: 10px !important;
+  padding-right: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  height: 163px !important;
+}
+
+/* CSS 26: Row 3 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(1) {
+  height: 163px !important;
+}
+
+/* CSS 27: Row 4 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 10px !important;
+  padding-right: 0px !important;
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  height: 163px !important;
+}
+
+/* CSS 28: Row 5 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 10px !important;
+  padding-right: 0px !important;
+  height: 163px !important;
+}
+
+/* CSS 32: Row 5 first item dimensions */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(1) {
+  height: 163px !important;
+}
+
+/* CSS 33: Row 5 second item dimensions */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(2) {
+  height: 163px !important;
+}
+
+/* CSS 35: Nav list items */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(4) > span:nth-of-type(1) {
+  width: 60px !important;
+}
+
+/* CSS 36: Navbar height and padding */
+div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
+  height: 67px !important;
+  padding-right: 0px !important;
+  padding-left: 30px !important;
+}
+
