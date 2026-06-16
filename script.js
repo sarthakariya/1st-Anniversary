@@ -838,6 +838,7 @@ function createIntroScreen() {
 
 function createDashboard() {
   const c = document.createElement('div');
+  c.style.position = 'relative';
   c.appendChild(createNavbar());
   
   if(appState.memories.length === 0) {
@@ -994,6 +995,8 @@ window.shuffleHero = () => {
     newHero.style.position = 'absolute';
     newHero.style.top = '0';
     newHero.style.left = '0';
+    newHero.style.width = '100%';
+    newHero.style.height = '100%';
     newHero.style.zIndex = '11';
     newHero.style.opacity = '0';
     newHero.style.transition = 'opacity 0.8s ease';
@@ -1004,9 +1007,16 @@ window.shuffleHero = () => {
     setTimeout(() => {
       newHero.style.opacity = '1';
       setTimeout(() => {
-        newHero.style.position = 'relative';
-        newHero.style.zIndex = '';
+        if (currentHero.id === 'hero-section') {
+          newHero.id = 'hero-section';
+        }
         currentHero.remove();
+        newHero.style.position = 'relative';
+        newHero.style.top = '';
+        newHero.style.left = '';
+        newHero.style.width = '';
+        newHero.style.height = '';
+        newHero.style.zIndex = '';
         window.isShufflingHero = false;
       }, 800);
     }, 100);
@@ -1293,6 +1303,7 @@ function createRow(title, memories, index = 0) {
     `;
     
     card.onmouseenter = () => {
+      window.activeHoveredCard = card;
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
       const originOffset = r.width * 0.20;
@@ -1340,6 +1351,9 @@ function createRow(title, memories, index = 0) {
     };
 
     card.onmouseleave = () => {
+      if (window.activeHoveredCard === card) {
+        window.activeHoveredCard = null;
+      }
       clearTimeout(card.hoverTimeout);
       const v = card.querySelector('.media-card-hover-video');
       if(v) {
@@ -2347,3 +2361,44 @@ window.startMomentsSlideshow = (startId) => {
   
   document.getElementById('ss-close-btn').onclick = closePlayer;
 };
+
+// Global scroll and mouse-hover integration for smooth auto-preview while scrolling or dragging
+window.activeHoveredCard = null;
+window.lastMouseX = 0;
+window.lastMouseY = 0;
+
+window.addEventListener('mousemove', (e) => {
+  window.lastMouseX = e.clientX;
+  window.lastMouseY = e.clientY;
+}, { passive: true });
+
+function checkHoverUnderMouse() {
+  if (window.lastMouseX === 0 && window.lastMouseY === 0) return;
+  const elem = document.elementFromPoint(window.lastMouseX, window.lastMouseY);
+  if (!elem) return;
+  const card = elem.closest('.media-card');
+  if (card) {
+    if (card !== window.activeHoveredCard) {
+      if (window.activeHoveredCard && typeof window.activeHoveredCard.onmouseleave === 'function') {
+        window.activeHoveredCard.onmouseleave();
+      }
+      window.activeHoveredCard = card;
+      if (typeof card.onmouseenter === 'function') {
+        card.onmouseenter();
+      }
+    }
+  } else {
+    // If the mouse is not on any media card, make sure any active hovered card is cleared safely
+    const isNavOrOverlay = elem.closest('nav, .navbar, .hero-controls, .hero-info, .mute-btn, .modal-content, #settings-modal, #upload-modal');
+    if (window.activeHoveredCard && !elem.closest('.media-card') && !isNavOrOverlay) {
+      if (typeof window.activeHoveredCard.onmouseleave === 'function') {
+        window.activeHoveredCard.onmouseleave();
+      }
+      window.activeHoveredCard = null;
+    }
+  }
+}
+
+// Attach listeners for both general page scroll and horizontal section scrolling
+window.addEventListener('scroll', checkHoverUnderMouse, { passive: true });
+document.addEventListener('scroll', checkHoverUnderMouse, { capture: true, passive: true });
