@@ -589,7 +589,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 1;
 }
 .row:hover {
-  z-index: 10;
+  z-index: 5000 !important;
 }
 .row-header {
   font-size: 1.4vw;
@@ -608,13 +608,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 2vw 4%;
-  margin-top: -1.5vw;
-  margin-bottom: -1.5vw;
+  padding: 2.5vw 4% 3.5vw 4%;
+  margin-top: -2.5vw;
+  margin-bottom: -3.5vw;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  contain: content;
 }
 .row-content.active {
   scroll-snap-type: none;
@@ -1172,26 +1171,47 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
   font-size: 21px !important;
 }
 
+/* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
+  padding-left: 50px !important;
+  padding-right: 50px !important;
+  margin-top: -200px !important;
+}
+
 /* CSS 21: Row 1 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
+  margin-top: -60px !important;
+  margin-bottom: -110px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  padding-top: 0px !important;
-  padding-bottom: 0px !important;
-  height: 163px !important;
+  padding-top: 60px !important;
+  padding-bottom: 110px !important;
+  height: calc(163px + 170px) !important;
+  overflow-y: hidden !important;
 }
 
 /* CSS 22: Row 2 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
+  margin-top: -60px !important;
+  margin-bottom: -110px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  padding-top: 0px !important;
-  padding-bottom: 0px !important;
-  height: 163px !important;
+  padding-top: 60px !important;
+  padding-bottom: 110px !important;
+  height: calc(163px + 170px) !important;
+  overflow-y: hidden !important;
+}
+
+/* CSS Selector 3: Row 3 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) {
+  margin-top: -60px !important;
+  margin-bottom: -110px !important;
+  padding-left: 10px !important;
+  padding-right: 0px !important;
+  padding-top: 60px !important;
+  padding-bottom: 110px !important;
+  height: calc(163px + 170px) !important;
+  overflow-y: hidden !important;
 }
 
 /* CSS 26: Row 3 content container (slider list) */
@@ -1201,24 +1221,26 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 
 /* CSS 27: Row 4 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
-  padding-top: 0px !important;
-  padding-bottom: 0px !important;
+  padding-top: 60px !important;
+  padding-bottom: 110px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
-  height: 163px !important;
+  margin-top: -60px !important;
+  margin-bottom: -110px !important;
+  height: calc(163px + 170px) !important;
+  overflow-y: hidden !important;
 }
 
 /* CSS 28: Row 5 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
-  padding-top: 0px !important;
-  padding-bottom: 0px !important;
+  margin-top: -60px !important;
+  margin-bottom: -110px !important;
+  padding-top: 60px !important;
+  padding-bottom: 110px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  height: 163px !important;
+  height: calc(163px + 170px) !important;
+  overflow-y: hidden !important;
 }
 
 /* CSS 32: Row 5 first item dimensions */
@@ -1236,9 +1258,9 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-typ
   width: 60px !important;
 }
 
-/* CSS 36: Navbar height and padding */
+/* CSS 36: Navbar height and padding (CSS Selector 12) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
-  height: 67px !important;
+  height: 60px !important;
   padding-right: 0px !important;
   padding-left: 30px !important;
 }
