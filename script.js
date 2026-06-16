@@ -308,6 +308,15 @@ window.setCategory = (cat) => {
       }
     }
   });
+
+  // Update Mobile bottom nav visual
+  document.querySelectorAll('.mobile-nav-item').forEach(item => {
+    if (item.getAttribute('data-cat') === cat) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
   
   const searchInput = document.getElementById('searchInput');
   if (searchInput) searchInput.value = '';
@@ -482,6 +491,11 @@ window.refreshRowsView = (rcNode, heroNode) => {
     });
   });
   }, 300);
+  setTimeout(() => {
+    if (typeof window.checkHoverUnderMouse === 'function') {
+      window.checkHoverUnderMouse();
+    }
+  }, 350);
 };
 
 window.toggleSetting = (settingKey) => {
@@ -863,6 +877,25 @@ function createDashboard() {
   const rc = document.createElement('div');
   rc.className = 'slider-container';
   c.appendChild(rc);
+
+  // Mobile Bottom Navigation
+  const mobNav = document.createElement('div');
+  mobNav.className = 'mobile-bottom-nav';
+  mobNav.innerHTML = mainTabs.map(cat => {
+    let icon = '';
+    if(cat === 'Home') icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+    if(cat === 'Dates') icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+    if(cat === 'Categories') icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+    if(cat === 'Moments') icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+    if(cat === 'My List') icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`;
+    return `
+      <div class="mobile-nav-item ${appState.activeCategory === cat ? 'active' : ''}" data-cat="${cat}" onclick="setCategory('${cat}')">
+        ${icon}
+        <span>${cat}</span>
+      </div>
+    `;
+  }).join('');
+  c.appendChild(mobNav);
   
   window.refreshRowsView(rc, heroContent);
   return c;
@@ -1146,6 +1179,9 @@ function createRow(title, memories, index = 0) {
   rc.addEventListener('scroll', () => {
     arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
     arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
+    if (typeof window.checkHoverUnderMouse === 'function') {
+      window.checkHoverUnderMouse();
+    }
   }, { passive: true });
   arrowLeft.style.visibility = 'hidden';
 
@@ -1193,11 +1229,17 @@ function createRow(title, memories, index = 0) {
     if(!isDown) return;
     isDown = false;
     beginMomentumLoop();
+    setTimeout(() => {
+      if (typeof window.checkHoverUnderMouse === 'function') window.checkHoverUnderMouse();
+    }, 100);
   });
   rc.addEventListener('mouseup', () => {
     if(!isDown) return;
     isDown = false;
     beginMomentumLoop();
+    setTimeout(() => {
+      if (typeof window.checkHoverUnderMouse === 'function') window.checkHoverUnderMouse();
+    }, 100);
   });
   let rAF;
   rc.addEventListener('mousemove', (e) => {
@@ -1276,17 +1318,17 @@ function createRow(title, memories, index = 0) {
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
         <div class="hc-buttons">
-          <div class="hc-btn hc-play" title="Play">
+          <div class="hc-btn hc-play" title="Play" onclick="event.stopPropagation(); playVideo('${m.id}')">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </div>
-          <div class="hc-btn hc-add" title="Add to My List">
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <div class="hc-btn hc-add" title="${appState.myList.includes(m.id) ? 'Remove from List' : 'Add to My List'}" onclick="event.stopPropagation(); toggleMyList('${m.id}', event)">
+             ${appState.myList.includes(m.id) ? '✓' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'}
           </div>
-          <div class="hc-btn hc-like" title="Like">
+          <div class="hc-btn hc-like" title="Like" onclick="event.stopPropagation(); likeMemory('${m.id}')">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
           </div>
           <div style="flex:1;"></div>
-          <div class="hc-btn hc-more" title="More Info">
+          <div class="hc-btn hc-more" title="More Info" onclick="event.stopPropagation(); openDetailModal('${m.id}', event)">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
         </div>
@@ -1347,7 +1389,7 @@ function createRow(title, memories, index = 0) {
             v.play().catch(e => console.log('Autoplay prevented'));
           }
         }
-      }, 500); // Shorter delay of 500ms for hover videos
+      }, 180); // Extremely responsive delay of 180ms for instant feel
     };
 
     card.onmouseleave = () => {
@@ -2398,6 +2440,7 @@ function checkHoverUnderMouse() {
     }
   }
 }
+window.checkHoverUnderMouse = checkHoverUnderMouse;
 
 // Attach listeners for both general page scroll and horizontal section scrolling
 window.addEventListener('scroll', checkHoverUnderMouse, { passive: true });

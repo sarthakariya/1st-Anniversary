@@ -483,7 +483,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: 18%;
+  bottom: calc(16vw + 30px);
   max-width: 40vw;
   z-index: 10;
 }
@@ -556,7 +556,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-controls {
   position: absolute;
   right: 0;
-  bottom: 20%;
+  bottom: calc(16vw + 30px);
   display: flex;
   align-items: center;
   z-index: 10;
@@ -662,7 +662,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 4px;
   background: #222;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s;
+  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.22s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -699,7 +699,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .media-card:hover .hover-chassis {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0.4s;
+  transition-delay: 0.18s;
 }
 .hc-buttons { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
 .hc-btn {
@@ -1027,13 +1027,23 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 
 @media (max-width: 991px) {
+  body {
+    padding-bottom: 75px !important;
+  }
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  .slider-container {
+    margin-top: -35px !important;
+    padding: 0 4% 30px 4% !important;
+  }
   .hero-billboard {
     height: 60vh !important;
     min-height: 380px !important;
   }
   .hero-info {
     max-width: 85vw !important;
-    bottom: 12% !important;
+    bottom: 55px !important;
   }
   .hero-title {
     font-size: clamp(22px, 4vw, 32px) !important;
@@ -1056,7 +1066,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     padding: 6px 14px !important;
   }
   .hero-controls {
-    bottom: 14% !important;
+    bottom: 55px !important;
   }
   .maturity-rating {
     font-size: 12px !important;
@@ -1083,13 +1093,20 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 
 @media (max-width: 576px) {
+  body {
+    padding-bottom: 70px !important;
+  }
+  .slider-container {
+    margin-top: -20px !important;
+    padding: 0 4% 20px 4% !important;
+  }
   .hero-billboard {
     height: 50vh !important;
     min-height: 320px !important;
   }
   .hero-info {
     max-width: 90vw !important;
-    bottom: 8% !important;
+    bottom: 40px !important;
   }
   .hero-title {
     font-size: 18px !important;
@@ -1117,7 +1134,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     border-radius: 4px !important;
   }
   .hero-controls {
-    bottom: 10% !important;
+    bottom: 40px !important;
   }
   .maturity-rating {
     font-size: 11px !important;
@@ -1135,6 +1152,46 @@ input:checked + .slider:before { transform: translateX(20px); }
     gap: 4px !important;
     height: auto !important;
   }
+}
+
+/* Mobile Bottom Navigation Bar Styles */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: #121212;
+  border-top: 1px solid #252525;
+  z-index: 9999;
+  justify-content: space-around;
+  align-items: center;
+  padding: 5px 10px;
+}
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #858585;
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  user-select: none;
+}
+.mobile-nav-item.active {
+  color: #fff;
+}
+.mobile-nav-item svg {
+  margin-bottom: 2px;
+  color: #858585;
+  transition: transform 0.2s, color 0.2s;
+}
+.mobile-nav-item.active svg {
+  color: #e50914 !important; /* Netflix Red */
+  transform: scale(1.15);
 }
 
 /* Search Bar */
