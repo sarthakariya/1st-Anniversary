@@ -1600,10 +1600,14 @@ window.openUploadModal = () => {
 
   document.getElementById('up-yt-link').addEventListener('input', async (e) => {
     const link = e.target.value.trim();
-    if (!link) return;
+    if (!link) {
+      window.currentThumbData = '';
+      document.getElementById('up-preview-container').style.display = 'none';
+      return;
+    }
 
     let videoId = '';
-    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
     const match = link.match(regExp);
     if (match && match[2].length === 11) {
       videoId = match[2];
@@ -1627,11 +1631,19 @@ window.openUploadModal = () => {
         if (data.title && !document.getElementById('up-title').value) {
           document.getElementById('up-title').value = data.title;
         }
+        if (data.thumbnail_url) {
+             window.currentThumbData = data.thumbnail_url;
+             document.getElementById('up-thumb-preview').src = data.thumbnail_url;
+        }
       }
-    } catch(err) {}
+    } catch(err) {
+      console.error(err);
+    }
 
-    window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-    document.getElementById('up-thumb-preview').src = window.currentThumbData;
+    if (!window.currentThumbData) {
+        window.currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+        document.getElementById('up-thumb-preview').src = window.currentThumbData;
+    }
     document.getElementById('up-preview-container').style.display = 'block';
   });
 
@@ -1643,7 +1655,7 @@ window.openUploadModal = () => {
     if(!link && !window.extractedVideoId) return netflixAlert("Please provide a video link or ID.");
 
     if (!window.extractedVideoId && link) {
-        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
         const match = link.match(regExp);
         if (match && match[2].length === 11) {
           window.extractedVideoId = match[2];
@@ -1884,6 +1896,7 @@ window.saveDetailEdit = async (id) => {
           m.thumbnail = e.target.result;
           resolve();
         };
+        reader.onerror = resolve;
         reader.readAsDataURL(file);
       });
     }
@@ -2195,7 +2208,7 @@ window.playVideo = (id) => {
           console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
       } else {
-        document.exitFullscreen();
+        document.exitFullscreen().catch(e => {});
       }
     };
 
@@ -2482,6 +2495,7 @@ window.openBulkUploadModal = () => {
             progressBar.style.width = (done / maxFiles.length * 100) + '%';
             setTimeout(resolve, 10);
           };
+          img.onerror = resolve;
           img.src = e.target.result;
         };
         reader.onerror = resolve;

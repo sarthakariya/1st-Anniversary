@@ -39,7 +39,9 @@ Format strictly as JSON without markdown: {"title": "Suggested Title", "descript
   app.post('/api/youtube-meta', async (req, res) => {
     try {
       const { videoId } = req.body;
-      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
+      const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' }
+      });
       if (!oembedRes.ok) {
           return res.status(500).json({ error: 'Failed to fetch' });
       }
