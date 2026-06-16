@@ -1498,7 +1498,7 @@ window.openUploadModal = () => {
   modal.id = 'uploadModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0; background:#141414; border:none; border-left:1px solid rgba(255,255,255,0.08); box-shadow: -10px 0 40px rgba(0,0,0,0.8); border-radius:0;">
+    <div class="upload-modal-content">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
         <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
@@ -1745,12 +1745,12 @@ window.openDetailModal = (id, e, editMode = false) => {
   let mediaHtml = m.videoUrl ? 
       (isYouTube ? `
         <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden;">
-          <iframe id="detail-yt-player" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&playlist=${m.videoUrl}&loop=1" style="position:absolute; top:50%; left:50%; width:150%; height:150%; transform:translate(-50%,-50%); border:none; pointer-events:none;"></iframe>
+          <div id="detail-yt-player-container-${m.id}" style="position:absolute; top:50%; left:50%; width:150%; height:150%; transform:translate(-50%,-50%); border:none; pointer-events:none;"></div>
           <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 800)">
         </div>` : 
         `
         <div style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden;">
-          <video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none;"></video>
+          <video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none;" onloadedmetadata="if(this.duration){ document.getElementById('video-duration').innerText = formatNativeDuration(this.duration); }"></video>
           <img id="detail-thumb-cover" src="${m.thumbnail}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; transition:opacity 0.8s ease;" onload="setTimeout(() => this.style.opacity='0', 500)">
         </div>`
       ) : 
@@ -1799,7 +1799,7 @@ window.openDetailModal = (id, e, editMode = false) => {
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> 
             <span class="year">${m.year}</span> 
             <span class="rating">${m.rating}</span> 
-            <span class="duration">${m.duration || (Math.floor(Math.random() * 3) + 1 + 'h ' + Math.floor(Math.random() * 59) + 'm')}</span> 
+            <span class="duration" id="video-duration">${m.duration || (Math.floor(Math.random() * 3) + 1 + 'h ' + Math.floor(Math.random() * 59) + 'm')}</span> 
             <span class="quality">4K Ultra HD</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
@@ -1838,10 +1838,45 @@ window.openDetailModal = (id, e, editMode = false) => {
   `;
   document.body.appendChild(modal);
   
+  // Initialize standard YouTube if it's there
+  if (isYouTube && window.YT && window.YT.Player) {
+    new YT.Player(`detail-yt-player-container-${m.id}`, {
+      videoId: m.videoUrl,
+      playerVars: {
+        'autoplay': 1,
+        'controls': 0,
+        'mute': 1,
+        'loop': 1,
+        'modestbranding': 1,
+        'rel': 0,
+        'playlist': m.videoUrl,
+        'iv_load_policy': 3
+      },
+      events: {
+        'onReady': function(event) {
+          const duration = event.target.getDuration();
+          if(duration && duration > 0){
+             const dt = document.getElementById('video-duration');
+             if(dt) dt.innerText = formatNativeDuration(duration);
+          }
+        }
+      }
+    });
+  }
+
   if (editMode) {
      toggleDetailEdit();
   }
   setTimeout(() => modal.classList.add('open'), 10);
+}
+
+function formatNativeDuration(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
 }
 
 window.toggleDetailEdit = () => {
