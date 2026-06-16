@@ -483,7 +483,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: 35%;
+  bottom: 43%;
   max-width: 40vw;
   z-index: 10;
 }
@@ -550,7 +550,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-controls {
   position: absolute;
   right: 0;
-  bottom: 30%;
+  bottom: 38%;
   display: flex;
   align-items: center;
   z-index: 10;
@@ -1020,11 +1020,89 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex; align-items: center; justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .hero-title { font-size: 8vw; }
-  .media-card { flex: 0 0 calc(100% / 3 - 8px); }
-  .detail-body { flex-direction: column; }
-  .nav-links { display: none; }
+@media (max-width: 991px) {
+  .hero-billboard {
+    height: 70vh !important;
+    min-height: 410px !important;
+  }
+  .hero-info {
+    max-width: 80vw !important;
+    bottom: 22% !important;
+  }
+  .hero-title {
+    font-size: clamp(28px, 5vw, 42px) !important;
+    margin-bottom: 12px !important;
+  }
+  .hero-desc {
+    font-size: 14px !important;
+    margin-bottom: 16px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  .btn {
+    font-size: 14px !important;
+    padding: 8px 16px !important;
+  }
+  .hero-controls {
+    bottom: 24% !important;
+  }
+  .maturity-rating {
+    font-size: 13px !important;
+    padding: 6px 20px 6px 10px !important;
+  }
+  .media-card {
+    flex: 0 0 calc(33.33vw - 20px) !important;
+    height: auto !important;
+  }
+  .detail-body { 
+    flex-direction: column !important; 
+  }
+  .nav-links { 
+    display: none !important; 
+  }
+  
+  /* Reset rigid heights on tablets to encourage natural aspect ratios */
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(1),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(1),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(2) {
+    height: auto !important;
+  }
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3),
+  div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
+    height: auto !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-billboard {
+    height: 75vh !important;
+    min-height: 480px !important;
+  }
+  .hero-info {
+    max-width: 90vw !important;
+    bottom: 14% !important;
+  }
+  .hero-title {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+  }
+  .hero-desc {
+    font-size: 13px !important;
+    -webkit-line-clamp: 4 !important;
+  }
+  .btn {
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+  }
+  .media-card {
+    flex: 0 0 calc(50vw - 12px) !important;
+    height: auto !important;
+  }
 }
 
 /* Search Bar */
@@ -1165,7 +1243,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > 
 
 /* CSS 16: Category row 1 title header in dashboard */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-left: 10px !important;
+  padding-left: 4% !important;
   font-family: Inter, sans-serif !important;
   font-size: 21px !important;
 }
@@ -1173,31 +1251,31 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 /* CSS 17: Category row 2 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
   font-size: 21px !important;
-  padding-left: 10px !important;
+  padding-left: 4% !important;
 }
 
 /* CSS 18: Category row 3 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) {
-  padding-left: 10px !important;
+  padding-left: 4% !important;
   font-size: 21px !important;
 }
 
 /* CSS 19: Category row 4 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) {
   font-size: 21px !important;
-  padding-left: 10px !important;
+  padding-left: 4% !important;
 }
 
 /* CSS 20: Category row 5 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1) {
-  padding-left: 10px !important;
+  padding-left: 4% !important;
   font-size: 21px !important;
 }
 
 /* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
-  padding-left: 50px !important;
-  padding-right: 50px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
   margin-top: -200px !important;
   padding-bottom: 0px !important;
 }
@@ -1211,8 +1289,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
   margin-top: -150px !important;
   margin-bottom: -220px !important;
-  padding-left: 60px !important;
-  padding-right: 60px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   padding-top: 150px !important;
   padding-bottom: 220px !important;
   height: calc(163px + 370px) !important;
@@ -1223,8 +1301,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
   margin-top: -150px !important;
   margin-bottom: -220px !important;
-  padding-left: 60px !important;
-  padding-right: 60px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   padding-top: 150px !important;
   padding-bottom: 220px !important;
   height: calc(163px + 370px) !important;
@@ -1235,8 +1313,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) {
   margin-top: -150px !important;
   margin-bottom: -220px !important;
-  padding-left: 60px !important;
-  padding-right: 60px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   padding-top: 150px !important;
   padding-bottom: 220px !important;
   height: calc(163px + 370px) !important;
@@ -1252,8 +1330,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
   padding-top: 150px !important;
   padding-bottom: 220px !important;
-  padding-left: 60px !important;
-  padding-right: 60px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   margin-top: -150px !important;
   margin-bottom: -220px !important;
   height: calc(163px + 370px) !important;
@@ -1266,8 +1344,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
   margin-bottom: -220px !important;
   padding-top: 150px !important;
   padding-bottom: 220px !important;
-  padding-left: 60px !important;
-  padding-right: 60px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   height: calc(163px + 370px) !important;
   overflow-y: hidden !important;
 }
