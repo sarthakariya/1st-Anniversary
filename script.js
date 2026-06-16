@@ -1298,10 +1298,11 @@ function createRow(title, memories, index = 0) {
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
+      const originOffset = r.width * 0.20;
       requestAnimationFrame(() => {
-        if (r.left < 50) {
+        if (r.left - originOffset < 30) {
           card.style.transformOrigin = 'left center';
-        } else if (ww - r.right < 50) {
+        } else if (ww - r.right - originOffset < 30) {
           card.style.transformOrigin = 'right center';
         } else {
           card.style.transformOrigin = 'center center';

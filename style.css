@@ -608,9 +608,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 2.5vw 4% 3.5vw 4%;
-  margin-top: -2.5vw;
-  margin-bottom: -3.5vw;
+  padding: 80px 4% 220px 4%;
+  margin-top: -80px;
+  margin-bottom: -220px;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -1180,37 +1180,37 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
 
 /* CSS 21: Row 1 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -110px !important;
+  margin-top: -100px !important;
+  margin-bottom: -250px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 110px !important;
-  height: calc(163px + 170px) !important;
+  padding-top: 100px !important;
+  padding-bottom: 250px !important;
+  height: calc(163px + 350px) !important;
   overflow-y: hidden !important;
 }
 
 /* CSS 22: Row 2 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -110px !important;
+  margin-top: -100px !important;
+  margin-bottom: -250px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 110px !important;
-  height: calc(163px + 170px) !important;
+  padding-top: 100px !important;
+  padding-bottom: 250px !important;
+  height: calc(163px + 350px) !important;
   overflow-y: hidden !important;
 }
 
 /* CSS Selector 3: Row 3 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -110px !important;
+  margin-top: -100px !important;
+  margin-bottom: -250px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 110px !important;
-  height: calc(163px + 170px) !important;
+  padding-top: 100px !important;
+  padding-bottom: 250px !important;
+  height: calc(163px + 350px) !important;
   overflow-y: hidden !important;
 }
 
@@ -1221,25 +1221,25 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 
 /* CSS 27: Row 4 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
-  padding-top: 60px !important;
-  padding-bottom: 110px !important;
+  padding-top: 100px !important;
+  padding-bottom: 250px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  margin-top: -60px !important;
-  margin-bottom: -110px !important;
-  height: calc(163px + 170px) !important;
+  margin-top: -100px !important;
+  margin-bottom: -250px !important;
+  height: calc(163px + 350px) !important;
   overflow-y: hidden !important;
 }
 
 /* CSS 28: Row 5 content container (slider list) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -110px !important;
-  padding-top: 60px !important;
-  padding-bottom: 110px !important;
+  margin-top: -100px !important;
+  margin-bottom: -250px !important;
+  padding-top: 100px !important;
+  padding-bottom: 250px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  height: calc(163px + 170px) !important;
+  height: calc(163px + 350px) !important;
   overflow-y: hidden !important;
 }
 
