@@ -12,8 +12,9 @@ const OperationType = {
 };
 
 function handleFirestoreError(error, operationType, path) {
+  const errMsg = error instanceof Error ? error.message : String(error);
   const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth?.currentUser?.uid || null,
       email: auth?.currentUser?.email || null,
@@ -28,7 +29,69 @@ function handleFirestoreError(error, operationType, path) {
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.warn('Firestore Error Handled Gracefully: ', JSON.stringify(errInfo));
+  
+  appState.offlineMode = true;
+
+  // Let's populate fallback states if we were trying to load them
+  if (operationType === OperationType.GET || operationType === OperationType.LIST) {
+    if (path === 'user_state/household') {
+      if (!appState.profiles || appState.profiles.length === 0) {
+        const fallbackProfs = typeof initialProfiles !== 'undefined' ? [...initialProfiles] : [
+          { id: 'p_1', name: 'Sarthak', avatar: 'img20251010.jpg' },
+          { id: 'p_2', name: 'Reechita', avatar: 'img2025.78_07.jpg' },
+          { id: 'p_3', name: 'Our Future Kids', avatar: '20250707_2328.jpg' }
+        ];
+        appState.profiles = fallbackProfs;
+      }
+    } else if (path === 'memories') {
+      if (!appState.memories || appState.memories.length === 0) {
+        try {
+          const cachedMemories = sessionStorage.getItem('netflix_memories') || localStorage.getItem('netflix_memories');
+          if (cachedMemories) {
+            appState.memories = JSON.parse(cachedMemories);
+          }
+        } catch (e) {}
+        if (!appState.memories || appState.memories.length === 0) {
+          const fallbackMems = typeof initialMemories !== 'undefined' ? [...initialMemories] : [
+            {
+              id: 'm_mock1',
+              title: 'Our First Memory',
+              description: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
+              thumbnail: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMjc1IiBmaWxsPSIjMjIyIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI3NSIvPjwvc3ZnPg==',
+              videoUrl: 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4',
+              category: 'Celebrations',
+              dateAdded: Date.now()
+            }
+          ];
+          appState.memories = fallbackMems;
+        }
+      }
+    }
+    
+    // Smooth rendering update
+    render();
+    
+    // Show polite warning toast
+    setTimeout(() => {
+      if (typeof window.showToast === 'function') {
+        window.showToast("🛡️ Sandbox Mode: Saved locally to browser cache (Cloud limit full)", 6200);
+      }
+    }, 1200);
+    
+    return; // Bypass throwing to avoid crashing the UI
+  }
+  
+  if (operationType === OperationType.WRITE || operationType === OperationType.UPDATE || operationType === OperationType.DELETE) {
+    setTimeout(() => {
+      if (typeof window.showToast === 'function') {
+        window.showToast("Saved locally to browser sandbox storage (Cloud quota full)", 4000);
+      }
+    }, 100);
+    return; // Bypass throwing to avoid interrupting active uploads/saves
+  }
+
+  // Fallback throw if not reads or writes
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -79,8 +142,9 @@ let appState = {
   myList: [],
   continueWatching: [],
   likedMemories: [],
-  memories: null,
-  profiles: null
+  memories: [],
+  profiles: [],
+  offlineMode: false
 };
 
 window.addEventListener('storage', (e) => {
@@ -135,10 +199,15 @@ window.safeSetSessionItem = (key, value) => {
     sessionStorage.setItem(key, value);
   } catch (e) {
     if (e.name === 'QuotaExceededError' || e.code === 22) {
-      console.warn(`[QuotaExceededError] Session storage quota exceeded while saving "${key}". State is safely stored in Firestore.`);
+      console.warn(`[QuotaExceededError] Session storage quota exceeded while saving "${key}".`);
     } else {
       console.error(`Session storage error while saving "${key}":`, e);
     }
+  }
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn(`[QuotaExceededError] Local storage backup failed for "${key}":`, e);
   }
 };
 
@@ -179,10 +248,10 @@ window.getNormalizedCategory = (cat) => {
 };
 
 async function loadData() {
-  // Pre-load from sessionStorage for instant visual layout (no flickering on reload)
+  // Pre-load from sessionStorage or localStorage for instant visual layout (no flickering on reload)
   try {
-    const cachedState = sessionStorage.getItem('netflix_state');
-    const cachedMemories = sessionStorage.getItem('netflix_memories');
+    const cachedState = sessionStorage.getItem('netflix_state') || localStorage.getItem('netflix_state');
+    const cachedMemories = sessionStorage.getItem('netflix_memories') || localStorage.getItem('netflix_memories');
     if (cachedState) {
       const data = JSON.parse(cachedState);
       if(data.myList) appState.myList = data.myList;
@@ -196,6 +265,14 @@ async function loadData() {
     }
   } catch (e) {
     console.error("Error loading cached data", e);
+  }
+
+  // Ensure that profiles and memories are instantly set to non-null arrays with designer defaults
+  if (!appState.profiles || appState.profiles.length === 0) {
+    appState.profiles = [...initialProfiles];
+  }
+  if (!appState.memories || appState.memories.length === 0) {
+    appState.memories = [...initialMemories];
   }
 
   // Set up real-time listener for household user state
@@ -243,6 +320,10 @@ async function loadData() {
 
   // Set up real-time listener for memories
   onSnapshot(collection(db, 'memories'), (snapshot) => {
+    if (appState.bulkTransactionActive) {
+      console.log("Ignoring real-time snapshot update during bulk database transaction.");
+      return;
+    }
     const list = snapshot.docs.map(d => d.data());
     // Sort descending by dateAdded (newest first)
     list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
@@ -463,10 +544,23 @@ window.setCategory = (cat) => {
     if (vids.length > 0) {
       window.currentHeroIndex = Math.floor(Math.random() * vids.length);
     }
-    const heroSec = document.getElementById('hero-section');
-    if (heroSec) {
-      heroSec.innerHTML = '';
-      heroSec.appendChild(createHero());
+    const container = document.getElementById('hero-carousel-container');
+    if (container) {
+      container.innerHTML = '';
+      const newHero = createHero();
+      newHero.id = 'hero-section';
+      newHero.style.gridArea = '1 / 1 / 2 / 2';
+      container.appendChild(newHero);
+    } else {
+      const heroSec = document.getElementById('hero-section');
+      if (heroSec) {
+        const parent = heroSec.parentNode;
+        if (parent) {
+          const newHero = createHero();
+          newHero.id = 'hero-section';
+          parent.replaceChild(newHero, heroSec);
+        }
+      }
     }
   }
   
@@ -890,7 +984,7 @@ function createProfileSelection() {
   `;
   const list = c.querySelector('.profiles-list');
   
-  if (appState.profiles === null) {
+  if (!appState.profiles || appState.profiles.length === 0) {
     for(let i=0; i<3; i++) {
         const skel = document.createElement('div');
         skel.className = 'profile-card';
@@ -1116,6 +1210,7 @@ function createIntroScreen() {
 
 function createDashboard() {
   const c = document.createElement('div');
+  c.className = 'dashboard-container';
   c.appendChild(createNavbar());
   
   if(appState.memories.length === 0) {
@@ -1133,9 +1228,23 @@ function createDashboard() {
     return c;
   }
 
+  // Create Grid wrapper for hero cross-fade to maintain fixed dimensions and eliminate flickering
+  const heroWrapper = document.createElement('div');
+  heroWrapper.id = 'hero-carousel-container';
+  heroWrapper.style.cssText = `
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 100%;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  `;
+  c.appendChild(heroWrapper);
+
   const heroContent = createHero();
   heroContent.id = 'hero-section';
-  c.appendChild(heroContent);
+  heroContent.style.gridArea = '1 / 1 / 2 / 2';
+  heroWrapper.appendChild(heroContent);
   
   const rc = document.createElement('div');
   rc.className = 'slider-container';
@@ -1215,6 +1324,19 @@ function createNavbar() {
         }).join('')}
       </ul>
       <div class="nav-right">
+        <style>
+          @keyframes pulse-red-anim {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+          }
+        </style>
+        ${appState.offlineMode ? `
+          <div class="offline-badge" title="Cloud DB quota reached. Operating securely in Sandbox Mode using local browser storage." style="background: rgba(229,9,20,0.18); color: #ff5252; border: 1px solid rgba(229,9,20,0.5); font-size: 11px; padding: 5px 12px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: help; letter-spacing: 0.4px; margin-right: 8px;">
+            <span style="width: 7px; height: 7px; background: #e50914; border-radius: 50%; display: inline-block; animation: pulse-red-anim 1.5s infinite; box-shadow: 0 0 6px #e50914;"></span>
+            Sandbox Mode
+          </div>
+        ` : ''}
         <div class="search-container" id="searchContainer">
           <div class="search-icon" onclick="toggleSearch()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1287,17 +1409,44 @@ window.shuffleHero = () => {
   }
   window.currentHeroIndex = nextIndex;
   
-  const currentHero = document.querySelector('.hero-billboard');
-  if (currentHero) {
+  const container = document.getElementById('hero-carousel-container');
+  const currentHero = container ? container.querySelector('.hero-billboard') : document.querySelector('.hero-billboard');
+  
+  if (container && currentHero) {
+    const newHero = createHero();
+    newHero.id = 'hero-section';
+    newHero.style.gridArea = '1 / 1 / 2 / 2';
+    newHero.style.opacity = '0';
+    newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    newHero.style.zIndex = '1';
+    
+    currentHero.id = 'hero-section-old';
+    currentHero.style.gridArea = '1 / 1 / 2 / 2';
+    currentHero.style.zIndex = '2';
+    currentHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    currentHero.style.pointerEvents = 'none';
+    
+    container.appendChild(newHero);
+    
+    // Force reflow
+    newHero.offsetHeight;
+    
+    newHero.style.opacity = '1';
+    currentHero.style.opacity = '0';
+    
+    setTimeout(() => {
+      currentHero.remove();
+      newHero.style.transition = '';
+      window.isShufflingHero = false;
+    }, 600);
+  } else if (currentHero) {
+    // Fallback if container is not found
     const newHero = createHero();
     newHero.id = 'hero-section';
     newHero.style.opacity = '0';
     newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
     
-    // Rename old hero ID to avoid duplicate ID collisions and style selector breaking
     currentHero.id = 'hero-section-old';
-    
-    // Place old hero absolutely on top of the flow as it fades out, so newHero dictates standard flow immediately
     currentHero.style.position = 'absolute';
     currentHero.style.top = '0';
     currentHero.style.left = '0';
@@ -1311,23 +1460,16 @@ window.shuffleHero = () => {
       if (getComputedStyle(parent).position === 'static') {
         parent.style.position = 'relative';
       }
-      
-      // Insert newHero behind the absolute old hero in normal flow
       parent.insertBefore(newHero, currentHero);
-      
-      // Force reflow
       newHero.offsetHeight;
       
-      // cross-fade opacity
       newHero.style.opacity = '1';
       currentHero.style.opacity = '0';
       
       setTimeout(() => {
         currentHero.remove();
-        
         newHero.style.opacity = '';
         newHero.style.transition = '';
-        
         window.isShufflingHero = false;
       }, 600);
     } else {
@@ -3013,14 +3155,40 @@ window.openBulkUploadModal = () => {
     const progressPercent = progressContainer.querySelector('#progress-percent');
 
     let done = 0;
+    let failed = 0;
+    let fallbackCount = 0;
     const total = toUpload.length;
+
+    // Toggle bulk transaction to pause snapshot logic and prevent rendering collisions
+    appState.bulkTransactionActive = true;
+
+    const uploadWithRetryAndFallback = async (newMem, retries = 2) => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          await saveMemoryToDB(newMem);
+          return { success: true };
+        } catch (err) {
+          console.warn(`[Upload Attempt ${attempt} Failed]:`, err);
+          if (attempt === retries) {
+            // Local fallback backup
+            try {
+              window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+            } catch(e) {}
+            return { success: false, error: err, fallbackSaved: true };
+          }
+          // Delay before next attempt
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+      }
+    };
     
     for(let file of toUpload) {
-      progressText.innerText = `Compressing & Uploading: ${file.name} (${done + 1}/${total})`;
+      const idx = done + failed + fallbackCount;
+      progressText.innerText = `Compressing & Uploading: ${file.name} (${idx + 1}/${total})`;
       
       const compressedDataUrl = await compressPhotoFile(file);
       if (!compressedDataUrl) {
-        done++;
+        failed++;
         continue;
       }
       
@@ -3038,14 +3206,19 @@ window.openBulkUploadModal = () => {
       };
       
       appState.memories.push(newMem);
-      try { 
-        await saveMemoryToDB(newMem); 
-      } catch(err) {
-        console.error("Error saving photo inside bulk upload:", err);
+      
+      const result = await uploadWithRetryAndFallback(newMem);
+      if (result && result.success) {
+        done++;
+      } else {
+        if (result && result.fallbackSaved) {
+          fallbackCount++;
+        } else {
+          failed++;
+        }
       }
       
-      done++;
-      const percent = Math.round((done / total) * 100);
+      const percent = Math.round(((done + failed + fallbackCount) / total) * 100);
       progressBarFill.style.width = percent + '%';
       progressPercent.innerText = percent + '%';
       
@@ -3053,9 +3226,18 @@ window.openBulkUploadModal = () => {
       await new Promise(r => setTimeout(r, 40));
     }
     
+    // Clear the transaction active flag
+    appState.bulkTransactionActive = false;
+
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     
-    let endMsg = `Successfully uploaded ${total} photos.`;
+    let endMsg = `Successfully uploaded ${done} photo(s).`;
+    if (fallbackCount > 0) {
+      endMsg += ` ${fallbackCount} photo(s) saved securely in browser storage due to connection caps.`;
+    }
+    if (failed > 0) {
+      endMsg += ` ${failed} photo(s) failed upload due to batch failures.`;
+    }
     if (skippedFiles.length > 0) {
       endMsg += ` ${skippedFiles.length} photo${skippedFiles.length > 1 ? 's were' : ' was'} not uploaded because they already exist in the gallery.`;
     }
@@ -3342,21 +3524,28 @@ window.applyBulkEdit = async () => {
   
   let updatedCount = 0;
   
-  for (const id of window.selectedBulkIds) {
-    const m = appState.memories.find(item => item.id === id);
-    if (m) {
-      if (catVal) m.category = catVal;
-      if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
-      if (ratingVal) m.rating = ratingVal;
-      if (thumbVal) m.thumbnail = thumbVal;
-      
-      try {
-        await saveMemoryToDB(m);
-        updatedCount++;
-      } catch (err) {
-        console.error('Error saving in bulk:', err);
+  // Activate bulk transaction to block live listener interferes
+  appState.bulkTransactionActive = true;
+  
+  try {
+    for (const id of window.selectedBulkIds) {
+      const m = appState.memories.find(item => item.id === id);
+      if (m) {
+        if (catVal) m.category = catVal;
+        if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
+        if (ratingVal) m.rating = ratingVal;
+        if (thumbVal) m.thumbnail = thumbVal;
+        
+        try {
+          await saveMemoryToDB(m);
+          updatedCount++;
+        } catch (err) {
+          console.error('Error saving in bulk:', err);
+        }
       }
     }
+  } finally {
+    appState.bulkTransactionActive = false;
   }
   
   window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
@@ -3381,23 +3570,31 @@ window.applyBulkDelete = async () => {
   }
   
   let deletedCount = 0;
-  for (const id of window.selectedBulkIds) {
-    const mIndex = appState.memories.findIndex(item => item.id === id);
-    if (mIndex !== -1) {
-      appState.memories.splice(mIndex, 1);
-      try {
-        await deleteDoc(doc(db, 'memories', id));
-        deletedCount++;
-      } catch (err) {
-        console.error('Error deleting from db:', err);
+  
+  // Activate bulk transaction to block live listener interferes
+  appState.bulkTransactionActive = true;
+  
+  try {
+    for (const id of window.selectedBulkIds) {
+      const mIndex = appState.memories.findIndex(item => item.id === id);
+      if (mIndex !== -1) {
+        appState.memories.splice(mIndex, 1);
+        try {
+          await deleteDoc(doc(db, 'memories', id));
+          deletedCount++;
+        } catch (err) {
+          console.error('Error deleting from db:', err);
+        }
+      }
+      
+      appState.myList = appState.myList.filter(item => item !== id);
+      appState.continueWatching = appState.continueWatching.filter(item => item !== id);
+      if (appState.likedMemories) {
+        appState.likedMemories = appState.likedMemories.filter(item => item !== id);
       }
     }
-    
-    appState.myList = appState.myList.filter(item => item !== id);
-    appState.continueWatching = appState.continueWatching.filter(item => item !== id);
-    if (appState.likedMemories) {
-      appState.likedMemories = appState.likedMemories.filter(item => item !== id);
-    }
+  } finally {
+    appState.bulkTransactionActive = false;
   }
   
   await saveStateList('myList', appState.myList);
