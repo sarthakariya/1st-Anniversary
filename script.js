@@ -129,6 +129,31 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error("Unhandled Rejection:", event.reason);
   // Unhandled rejections don't always crash the UI, but we log them.
 });
+
+window.safeSetSessionItem = (key, value) => {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      console.warn(`[QuotaExceededError] Session storage quota exceeded while saving "${key}". State is safely stored in Firestore.`);
+    } else {
+      console.error(`Session storage error while saving "${key}":`, e);
+    }
+  }
+};
+
+window.safeSetLocalItem = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      console.warn(`[QuotaExceededError] Local storage quota exceeded while saving "${key}".`);
+    } else {
+      console.error(`Local storage error while saving "${key}":`, e);
+    }
+  }
+};
+
 const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // We do NOT set appState.currentProfile = savedProfile here
 // to force the user to select the profile every time.
@@ -193,7 +218,7 @@ async function loadData() {
         }
       }
       
-      sessionStorage.setItem('netflix_state', JSON.stringify({
+      window.safeSetSessionItem('netflix_state', JSON.stringify({
         myList: appState.myList,
         continueWatching: appState.continueWatching,
         likedMemories: appState.likedMemories,
@@ -223,7 +248,7 @@ async function loadData() {
     list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
     appState.memories = list;
     
-    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     render();
   }, (err) => {
     handleFirestoreError(err, OperationType.GET, 'memories');
@@ -243,7 +268,7 @@ async function saveMemoryToDB(memory) {
 
 async function saveStateList(key, data) {
   appState[key] = data;
-  sessionStorage.setItem('netflix_state', JSON.stringify({
+  window.safeSetSessionItem('netflix_state', JSON.stringify({
     myList: appState.myList,
     continueWatching: appState.continueWatching,
     likedMemories: appState.likedMemories || [],
@@ -562,13 +587,38 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
               div.style.transformOrigin = 'center center';
             }
           };
-          div.onclick = () => { 
+          div.onclick = (e) => { 
             if (!appState.memories.find(mem => mem.id === m.id)) {
               appState.memories.push(m);
             }
-            openDetailModal(m.id); 
+            openDetailModal(m.id, e); 
           };
-          div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
+          
+          const isLiked = appState.likedMemories && appState.likedMemories.includes(m.id);
+          div.innerHTML = `
+            <img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
+            <div class="hover-chassis">
+              <div class="hc-buttons">
+                <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play Slideshow">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                </div>
+                <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Static Photo" style="background: rgba(255,255,255,0.15);">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                </div>
+                <div style="flex:1;"></div>
+                <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+              </div>
+              <div class="hc-title" style="font-size: 11px; font-weight: 700; color: #ffffff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: uppercase; letter-spacing: 0.2px;" title="${m.title}">${m.title}</div>
+            </div>
+          `;
           grid.appendChild(div);
         });
         wrapper.appendChild(grid);
@@ -893,7 +943,7 @@ function createProfileSelection() {
 function loginProfile(pf, p) {
   window.currentHeroIndex = undefined;
   appState.currentProfile = pf.name;
-  localStorage.setItem('sarthak_netflix_profile', pf.name);
+  window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
   appState.view = 'dashboard';
   app.innerHTML = '';
   
@@ -958,7 +1008,7 @@ function showPinModal(pf, pElement) {
       const val = Array.from(inputs).map(i => i.dataset.val || '').join('');
       if (val.length === 8) {
         if (val === '25072025') {
-          sessionStorage.setItem('sarthak_netflix_code', '25072025');
+          window.safeSetSessionItem('sarthak_netflix_code', '25072025');
           overlay.remove();
           loginProfile(pf, pElement);
         } else {
@@ -1048,7 +1098,7 @@ window.editProfile = (pfId) => {
     
     if (appState.currentProfile === oldName) {
       appState.currentProfile = pf.name;
-      localStorage.setItem('sarthak_netflix_profile', pf.name);
+      window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
     }
     
     saveStateList('profiles', appState.profiles);
@@ -1241,42 +1291,42 @@ window.shuffleHero = () => {
   if (currentHero) {
     const newHero = createHero();
     newHero.id = 'hero-section';
-    newHero.style.position = 'absolute';
-    newHero.style.top = '0';
-    newHero.style.left = '0';
-    newHero.style.width = '100%';
-    newHero.style.height = currentHero.offsetHeight + 'px';
-    newHero.style.zIndex = '12';
     newHero.style.opacity = '0';
     newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
     
-    // Ensure parent has position: relative during animation
+    // Rename old hero ID to avoid duplicate ID collisions and style selector breaking
+    currentHero.id = 'hero-section-old';
+    
+    // Place old hero absolutely on top of the flow as it fades out, so newHero dictates standard flow immediately
+    currentHero.style.position = 'absolute';
+    currentHero.style.top = '0';
+    currentHero.style.left = '0';
+    currentHero.style.width = '100%';
+    currentHero.style.zIndex = '10';
+    currentHero.style.pointerEvents = 'none';
+    currentHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    
     const parent = currentHero.parentNode;
     if (parent) {
       if (getComputedStyle(parent).position === 'static') {
         parent.style.position = 'relative';
       }
       
+      // Insert newHero behind the absolute old hero in normal flow
       parent.insertBefore(newHero, currentHero);
       
       // Force reflow
       newHero.offsetHeight;
       
+      // cross-fade opacity
       newHero.style.opacity = '1';
+      currentHero.style.opacity = '0';
       
       setTimeout(() => {
-        // Instantly hide currentHero so it doesn't take space in the flow before layout recalculation
-        currentHero.style.display = 'none';
-        
-        newHero.style.position = '';
-        newHero.style.top = '';
-        newHero.style.left = '';
-        newHero.style.width = '';
-        newHero.style.height = '';
-        newHero.style.zIndex = '';
-        newHero.style.transition = '';
-        
         currentHero.remove();
+        
+        newHero.style.opacity = '';
+        newHero.style.transition = '';
         
         window.isShufflingHero = false;
       }, 600);
@@ -1348,13 +1398,15 @@ function createHero() {
     <div class="hero-overlay" style="z-index: 5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5;">
-      <div class="${titleClass}">${heroMem.title}</div>
-      <div style="display: inline-flex; align-items: center; margin: 8px 0 15px 0; font-weight: 800; color: white;">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
-          <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
-          <span style="font-size: 13px; font-weight: 950;">10</span>
+      <div class="${titleClass}">
+        <div>${heroMem.title}</div>
+        <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
+            <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+            <span style="font-size: 13px; font-weight: 950;">10</span>
+          </div>
+          <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
         </div>
-        <span style="font-size: clamp(13px, 1.1vw, 18px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
       </div>
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
@@ -1575,23 +1627,45 @@ function createRow(title, memories, index = 0) {
     
     // Lazy load the thumbnail
     const displayThumb = (m.thumbnail || '').replace('hqdefault.jpg', 'maxresdefault.jpg');
+    const isLiked = appState.likedMemories && appState.likedMemories.includes(m.id);
+    const buttonsHtml = m.videoUrl ? `
+          <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          </div>
+          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </div>
+          <div style="flex:1;"></div>
+          <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+    ` : `
+          <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play Slideshow">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          </div>
+          <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Photo" style="background: rgba(255,255,255,0.15);">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </div>
+          <div style="flex:1;"></div>
+          <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+    `;
+
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
         <div class="hc-buttons">
-          <div class="hc-btn hc-play" title="Play">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-          </div>
-          <div class="hc-btn hc-add" title="Add to My List">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </div>
-          <div class="hc-btn hc-like" title="Like">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-          </div>
-          <div style="flex:1;"></div>
-          <div class="hc-btn hc-more" title="More Info">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
+          ${buttonsHtml}
         </div>
         <div class="hc-title" style="font-size: 11px; font-weight: 700; color: #ffffff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: uppercase; letter-spacing: 0.2px;" title="${m.title}">${m.title}</div>
         <div class="hc-meta" style="font-size: 10px; margin-bottom: 5px;">
@@ -1809,17 +1883,16 @@ window.openUploadModal = () => {
   let extractedVideoId = '';
   let localThumbBase64 = '';
 
-  document.getElementById('up-thumb-file').onchange = function() {
+  document.getElementById('up-thumb-file').onchange = async function() {
     if (this.files && this.files[0]) {
       const file = this.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        localThumbBase64 = e.target.result;
+      const compressed = await compressPhotoFile(file);
+      if (compressed) {
+        localThumbBase64 = compressed;
         document.getElementById('up-thumb-preview').src = localThumbBase64;
         document.getElementById('up-preview-container').style.display = 'block';
         document.getElementById('up-thumb-custom').value = 'Local File Selected: ' + file.name;
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -2157,7 +2230,7 @@ window.saveDetailEdit = async (id) => {
     }
 
     try { await saveMemoryToDB(m); } catch(err) {}
-    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     document.getElementById('dm-title').innerText = m.title;
     document.getElementById('dm-desc').innerText = m.desc;
     // update thumbnail visually
@@ -2174,7 +2247,7 @@ window.deleteMemory = async (id) => {
     appState.memories = appState.memories.filter(m => m.id !== id);
     appState.myList = appState.myList.filter(lId => lId !== id);
     try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
-    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     saveStateList('myList', appState.myList);
     document.getElementById('detailModal').remove();
     render();
@@ -2452,8 +2525,13 @@ window.playVideo = (id) => {
   
   // Try autoplaying intro, else wait
   if (introPlayer) {
+    introPlayer.muted = false;
+    introPlayer.volume = 1.0;
     if(introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => startMainVideo());
+      introPlayer.play().catch(() => {
+        introPlayer.muted = true;
+        introPlayer.play().catch(() => startMainVideo());
+      });
     }
     introPlayer.onended = startMainVideo;
     introPlayer.onerror = startMainVideo;
@@ -2737,18 +2815,25 @@ window.handleAddMemoryClick = () => {
 // Copy YouTube descriptive prompts and open Google Gemini
 window.generateDescriptionWithAI = () => {
   const link = document.getElementById('up-yt-link').value.trim();
-  const title = document.getElementById('up-title').value.trim();
   
-  const prompt = `Please write an extremely catchy, engaging, emotional, and dramatic Netflix-like caption/description for our romantic streaming catalogue memory.
+  const prompt = `CRITICAL ASSIGNMENT: Please process this YouTube link, watch/analyze its exact content, and retrieve its actual transcripts/captions:
+${link || '(Not provided)'}
 
-Here are the details:
-- Video Title: "${title || 'My Precious Couple Memory'}"
-- YouTube Video Link: ${link || '(Not provided)'}
+MANDATORY RULES:
+1. You must base your output ONLY on the real events, theme, and spoken characters of the provided YouTube link. DO NOT write a generic guess or general cinematic filler if you cannot see the video!
+2. If you are UNABLE to access this specific video due to YouTube blocks, server-side filters, or private/unlisted flags, DO NOT HALLUCINATE OR MAKE UP A STORY. Instead, output the following starting template so the user can describe it:
+Title: [Please replace with a 1-sentence summary of your video so I can style it!]
+Description: [Please replace with a 1-sentence description of your video so I can style it!]
 
-Requirements:
-- Keep it under 2 lines of text (about 30-40 words total).
-- Make it sound cinematic, nostalgic, romantic, and highly engaging like a professional movie/show blurb.
-- Do not use markdown like bolding or brackets. Keep it as pure, natural narrative text.`;
+3. If you CAN successfully access/process the video, please generate and output:
+- A catchy, cinematic custom Video Title (Netflix style) that conveys the actual narrative/events of the video.
+- A nostalgic, romantic, cinematic professional blurb/description for our streaming catalogue (under 2 lines, around 30-40 words maximum).
+
+Your final output format must be EXACTLY:
+Title: [Your Generated Cinematic Title]
+Description: [Your Generated Description]
+
+(Do not include any greeting, markdown, brackets, introduction, conversational filler, or bold fonts! Keep the title and description as pure, clean text.)`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Gemini prompt copied! Opening Google Gemini...");
@@ -2790,14 +2875,7 @@ window.viewPhotoStatic = (id) => {
     <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
        <img src="${m.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay muted id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
   `;
-  
-  const introPlayer = document.getElementById('introPlayer');
-  if (introPlayer) {
-    introPlayer.onended = () => introPlayer.remove();
-    introPlayer.onerror = () => introPlayer.remove();
-  }
 
   const closePlayer = () => {
      if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
@@ -2975,7 +3053,7 @@ window.openBulkUploadModal = () => {
       await new Promise(r => setTimeout(r, 40));
     }
     
-    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     
     let endMsg = `Successfully uploaded ${total} photos.`;
     if (skippedFiles.length > 0) {
@@ -3040,7 +3118,7 @@ window.startMomentsSlideshow = (startId) => {
     <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
        <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay muted id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
   `;
 
   const imgEl = document.getElementById('ss-image');
@@ -3062,8 +3140,14 @@ window.startMomentsSlideshow = (startId) => {
 
   const introPlayer = document.getElementById('introPlayer');
   if (introPlayer) {
-    if(introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => startSlideshowLoop());
+    introPlayer.muted = false; // ensure sound plays
+    introPlayer.volume = 1.0;  // set maximum volume
+    if (introPlayer.play() !== undefined) {
+      introPlayer.play().catch(() => {
+        // Fallback to muted playback if the browser's autoplay block overrides the active click
+        introPlayer.muted = true;
+        introPlayer.play().catch(() => startSlideshowLoop());
+      });
     }
     introPlayer.onended = startSlideshowLoop;
     introPlayer.onerror = startSlideshowLoop;
@@ -3275,7 +3359,7 @@ window.applyBulkEdit = async () => {
     }
   }
   
-  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+  window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
   window.showToast(`Successfully updated ${updatedCount} memories!`);
   
   const dm = document.getElementById('bulkManagerModal');
@@ -3319,7 +3403,7 @@ window.applyBulkDelete = async () => {
   await saveStateList('myList', appState.myList);
   await saveStateList('continueWatching', appState.continueWatching);
   await saveStateList('likedMemories', appState.likedMemories);
-  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+  window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
   
   window.showToast(`Deleted ${deletedCount} memories in bulk.`);
   
