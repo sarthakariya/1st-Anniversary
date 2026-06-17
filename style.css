@@ -16,6 +16,9 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   overflow-x: hidden;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
 }
 img {
   background-color: #2a2a2a;
@@ -60,7 +63,7 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   background: radial-gradient(circle at center, rgba(229, 9, 20, 0.4) 0%, rgba(229, 9, 20, 0.15) 50%, #141414 100%);
 }
 .profile-selection h1 {
-  font-size: 3vw;
+  font-size: clamp(24px, 3vw, 42px);
   font-weight: 500;
   color: #fff;
   margin-bottom: 2em;
@@ -70,6 +73,7 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   display: flex;
   gap: 2vw;
   justify-content: center;
+  flex-wrap: wrap;
 }
 .profiles-list:hover .profile-card:not(:hover) {
   /* removed grayscale mapping as requested */
@@ -112,7 +116,7 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
 .profile-name {
   margin-top: 10px;
   color: #808080;
-  font-size: 1.2vw;
+  font-size: clamp(14px, 1.2vw, 18px);
   font-weight: 400;
   transition: color 0.3s ease, font-weight 0.3s ease;
 }
@@ -601,6 +605,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   position: relative;
   z-index: 20;
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  pointer-events: none;
 }
 .row-content {
   display: flex;
@@ -628,7 +633,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   100% { box-shadow: 0 0 8px rgba(229, 9, 20, 0.5); }
 }
 .media-card {
-  flex: 0 0 calc(20vw - 12px);
+  flex: 0 0 clamp(160px, 18vw, 250px);
+  min-width: 130px;
+  max-width: 280px;
   position: relative;
   border-radius: 4px;
   background: #222;
@@ -1081,193 +1088,130 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* --- AIS FOCUS MODE STYLES --- */
 
-/* CSS 1: Hero title size */
+/* CSS 1: Hero title size - fluid clamp style */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) {
-  font-size: 50px !important;
-  line-height: 53px !important;
+  font-size: clamp(28px, 4.5vw, 60px) !important;
+  line-height: 1.1 !important;
 }
 
-/* CSS 3: Nav links container */
+/* CSS 3: Nav links container - flexible and auto-wrapping */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) {
-  width: 480.8px !important;
-  height: 27px !important;
+  max-width: 480.8px !important;
+  width: 100% !important;
+  height: auto !important;
   margin-left: 0px !important;
-  font-size: 15px !important;
+  font-size: clamp(13px, 1.1vw, 15px) !important;
   padding-left: 0px !important;
   border-width: 0px !important;
-  border-style: groove !important;
+  border-style: none !important;
 }
 
-/* CSS 6: Nav logo image */
+/* CSS 6: Nav logo image - adaptive width */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(1) > img#nav-logo-img:nth-of-type(1) {
-  height: 85px !important;
-  width: 180px !important;
+  height: clamp(50px, 6vw, 85px) !important;
+  width: auto !important;
+  max-width: 180px !important;
   padding-left: 0px !important;
 }
 
-/* CSS 7: Hero background image overlay */
+/* CSS 7: Hero background image overlay - 100% full screen fluid width */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(1) > img#hero-img-overlay:nth-of-type(1) {
-  width: 1536px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
-/* CSS 8: Nav right section */
+/* CSS 8: Nav right section - beautiful right edge align auto-responsive */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) {
-  width: 250px !important;
+  width: auto !important;
   height: 40px !important;
-  margin-left: 485px !important;
+  margin-left: auto !important;
 }
 
-/* CSS 9: Nav profile image */
+/* CSS 9: Nav profile image - stable profile dimensions */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > img:nth-of-type(1) {
-  width: 40px !important;
-  height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
 }
 
-/* CSS 11: Hero description width */
+/* CSS 11: Hero description width - fluid bound */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) {
-  width: 500px !important;
+  max-width: 500px !important;
+  width: 90% !important;
 }
 
-/* CSS 13: Hero play button padding */
+/* CSS 13: Hero play button padding - scalable tap target */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(3) > button:nth-of-type(1) {
-  padding-right: 31px !important;
-  padding-left: 31px !important;
-  padding-top: 12px !important;
+  padding-right: clamp(16px, 2vw, 31px) !important;
+  padding-left: clamp(16px, 2vw, 31px) !important;
+  padding-top: 10px !important;
 }
 
-/* CSS 15: Hero controls height */
+/* CSS 15: Hero controls height - auto scaling */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(5) {
-  height: 45px !important;
+  height: auto !important;
+  min-height: 40px !important;
 }
 
-/* CSS 16: Category row 1 title header in dashboard */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-left: 10px !important;
-  font-family: Inter, sans-serif !important;
-  font-size: 21px !important;
-}
-
-/* CSS 17: Category row 2 title header */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
-  font-size: 21px !important;
-  padding-left: 10px !important;
-}
-
-/* CSS 18: Category row 3 title header */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) {
-  padding-left: 10px !important;
-  font-size: 21px !important;
-}
-
-/* CSS 19: Category row 4 title header */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) {
-  font-size: 21px !important;
-  padding-left: 10px !important;
-}
-
-/* CSS 20: Category row 5 title header */
+/* CSS 16-20: Category and row title headers in dashboard - clean adaptive text size */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1) {
   padding-left: 10px !important;
-  font-size: 21px !important;
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  font-size: clamp(16px, 2vw, 22px) !important;
 }
 
-/* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) */
+/* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) - responsive spacing */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
-  padding-left: 50px !important;
-  padding-right: 50px !important;
-  margin-top: -200px !important;
-  padding-bottom: 0px !important;
+  padding-left: clamp(15px, 4%, 50px) !important;
+  padding-right: clamp(15px, 4%, 50px) !important;
+  margin-top: clamp(-140px, -12vw, -200px) !important;
+  padding-bottom: 20px !important;
 }
 
-/* Hide Slider Navigation Arrows */
-.slider-arrow, .slider-left, .slider-right {
-  display: none !important;
+/* Enable Beautiful Slider Navigation Arrows globally on hover */
+.slider-arrow {
+  display: flex !important;
 }
 
-/* CSS 21: Row 1 content container (slider list) */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -180px !important;
-  padding-left: 10px !important;
-  padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 180px !important;
-  height: calc(163px + 240px) !important;
-  overflow-y: hidden !important;
-}
-
-/* CSS 22: Row 2 content container (slider list) */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -180px !important;
-  padding-left: 10px !important;
-  padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 180px !important;
-  height: calc(163px + 240px) !important;
-  overflow-y: hidden !important;
-}
-
-/* CSS Selector 3: Row 3 content container (slider list) */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -180px !important;
-  padding-left: 10px !important;
-  padding-right: 0px !important;
-  padding-top: 60px !important;
-  padding-bottom: 180px !important;
-  height: calc(163px + 240px) !important;
-  overflow-y: hidden !important;
-}
-
-/* CSS 26: Row 3 content container (slider list) */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(1) {
-  height: 163px !important;
-}
-
-/* CSS 27: Row 4 content container (slider list) */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
-  padding-top: 60px !important;
-  padding-bottom: 180px !important;
-  padding-left: 10px !important;
-  padding-right: 0px !important;
-  margin-top: -60px !important;
-  margin-bottom: -180px !important;
-  height: calc(163px + 240px) !important;
-  overflow-y: hidden !important;
-}
-
-/* CSS 28: Row 5 content container (slider list) */
+/* CSS 21, 22, 27, 28: Row Content horizontal slider lists - fully fluid heights corresponding to cards */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
-  margin-top: -60px !important;
-  margin-bottom: -180px !important;
-  padding-top: 60px !important;
-  padding-bottom: 180px !important;
+  margin-top: -40px !important;
+  margin-bottom: -120px !important;
   padding-left: 10px !important;
   padding-right: 0px !important;
-  height: calc(163px + 240px) !important;
+  padding-top: 40px !important;
+  padding-bottom: 120px !important;
+  height: auto !important;
   overflow-y: hidden !important;
 }
 
-/* CSS 32: Row 5 first item dimensions */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(1) {
-  height: 163px !important;
-}
-
-/* CSS 33: Row 5 second item dimensions */
+/* Fluid card sizes for CSS 26, 32, 33 and all other list cards */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(1),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(1),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(2) {
-  height: 163px !important;
+  height: auto !important;
 }
 
 /* CSS 35: Nav list items */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(4) > span:nth-of-type(1) {
-  width: 60px !important;
+  width: auto !important;
+  max-width: 80px !important;
 }
 
-/* CSS 36: Navbar height and padding (CSS Selector 12) */
+/* CSS 36: Navbar height and padding */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
-  height: 60px !important;
-  padding-right: 0px !important;
-  padding-left: 30px !important;
+  height: 68px !important;
+  padding-right: 4% !important;
+  padding-left: 4% !important;
 }
 
