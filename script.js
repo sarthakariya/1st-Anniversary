@@ -332,6 +332,13 @@ function internalRender() {
   if(!app) return;
   if (appState.view === 'startup' && app.querySelector('.intro-container')) return;
   
+  if (appState.view === 'dashboard' && app.querySelector('.dashboard-container')) {
+    if (typeof window.refreshRowsView === 'function') {
+      window.refreshRowsView(null, null, true);
+    }
+    return;
+  }
+  
   app.innerHTML = '';
   if (appState.view === 'startup') app.appendChild(createStartupScreen());
   else if (appState.view === 'profiles') {
@@ -586,6 +593,14 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
           const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
           if (cw.length) {
             rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+          }
+        }
+
+        // My Favorites
+        if (appState.likedMemories && appState.likedMemories.length > 0) {
+          const favorites = appState.memories.filter(m => appState.likedMemories.includes(m.id));
+          if (favorites.length) {
+            rc.appendChild(createRow('My Favorites', favorites, rowIndex++));
           }
         }
 
@@ -1225,37 +1240,49 @@ window.shuffleHero = () => {
   const currentHero = document.querySelector('.hero-billboard');
   if (currentHero) {
     const newHero = createHero();
+    newHero.id = 'hero-section';
     newHero.style.position = 'absolute';
     newHero.style.top = '0';
     newHero.style.left = '0';
-    newHero.style.width = '100vw';
-    newHero.style.height = '100%';
+    newHero.style.width = '100%';
+    newHero.style.height = currentHero.offsetHeight + 'px';
     newHero.style.zIndex = '12';
     newHero.style.opacity = '0';
     newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
     
-    currentHero.style.position = 'relative';
-    currentHero.appendChild(newHero);
-    
-    // Force reflow
-    newHero.offsetHeight;
-    
-    newHero.style.opacity = '1';
-    
-    setTimeout(() => {
-      newHero.style.position = '';
-      newHero.style.top = '';
-      newHero.style.left = '';
-      newHero.style.width = '';
-      newHero.style.height = '';
-      newHero.style.zIndex = '';
-      newHero.style.transition = '';
+    // Ensure parent has position: relative during animation
+    const parent = currentHero.parentNode;
+    if (parent) {
+      if (getComputedStyle(parent).position === 'static') {
+        parent.style.position = 'relative';
+      }
       
-      currentHero.parentNode.insertBefore(newHero, currentHero);
-      currentHero.remove();
+      parent.insertBefore(newHero, currentHero);
       
+      // Force reflow
+      newHero.offsetHeight;
+      
+      newHero.style.opacity = '1';
+      
+      setTimeout(() => {
+        // Instantly hide currentHero so it doesn't take space in the flow before layout recalculation
+        currentHero.style.display = 'none';
+        
+        newHero.style.position = '';
+        newHero.style.top = '';
+        newHero.style.left = '';
+        newHero.style.width = '';
+        newHero.style.height = '';
+        newHero.style.zIndex = '';
+        newHero.style.transition = '';
+        
+        currentHero.remove();
+        
+        window.isShufflingHero = false;
+      }, 600);
+    } else {
       window.isShufflingHero = false;
-    }, 600);
+    }
   } else {
     window.isShufflingHero = false;
   }
@@ -1322,6 +1349,13 @@ function createHero() {
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5;">
       <div class="${titleClass}">${heroMem.title}</div>
+      <div style="display: inline-flex; align-items: center; margin: 8px 0 15px 0; font-weight: 800; color: white;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
+          <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+          <span style="font-size: 13px; font-weight: 950;">10</span>
+        </div>
+        <span style="font-size: clamp(13px, 1.1vw, 18px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
+      </div>
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
         <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">
@@ -1546,26 +1580,27 @@ function createRow(title, memories, index = 0) {
       <div class="hover-chassis">
         <div class="hc-buttons">
           <div class="hc-btn hc-play" title="Play">
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </div>
           <div class="hc-btn hc-add" title="Add to My List">
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </div>
           <div class="hc-btn hc-like" title="Like">
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
           </div>
           <div style="flex:1;"></div>
           <div class="hc-btn hc-more" title="More Info">
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
         </div>
-        <div class="hc-meta">
-          <span class="hc-match">98% Match</span>
-          <span class="hc-rating">${m.rating || 'TV-14'}</span>
-          <span class="hc-badge">HD</span>
+        <div class="hc-title" style="font-size: 11px; font-weight: 700; color: #ffffff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: uppercase; letter-spacing: 0.2px;" title="${m.title}">${m.title}</div>
+        <div class="hc-meta" style="font-size: 10px; margin-bottom: 5px;">
+          <span class="hc-match" style="font-size: 10px;">98% Match</span>
+          <span class="hc-rating" style="font-size: 9px; padding: 0 2px;">${m.rating || 'TV-14'}</span>
+          <span class="hc-badge" style="font-size: 8px; padding: 0 2px;">HD</span>
         </div>
-        <div class="hc-genres">
-          <span>Emotional</span><span class="hc-dot">•</span><span>Heartfelt</span><span class="hc-dot">•</span><span>Romance</span>
+        <div class="hc-genres" style="font-size: 9px;">
+          <span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romance</span>
         </div>
       </div>
     `;
@@ -1724,6 +1759,13 @@ window.openUploadModal = () => {
         <div class="floating-input-group">
           <textarea id="up-desc" rows="3" required></textarea>
           <label for="up-desc">Description</label>
+        </div>
+
+        <div style="margin-top:-10px; margin-bottom:5px;">
+          <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateDescriptionWithAI()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Generate Description with AI
+          </button>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
@@ -1915,9 +1957,18 @@ window.openDetailModal = (id, e, editMode = false) => {
           <div class="detail-title" id="dm-title">${m.title}</div>
           <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
           <div style="display:flex; gap:10px; align-items:center;">
-            <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
-            </button>
+            ${!m.videoUrl ? `
+              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 20px; font-size: 15px;">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
+              </button>
+              <button class="btn btn-secondary" id="dm-view-photo-btn" onclick="window.viewPhotoStatic('${m.id}')" style="padding: 10px 15px; font-size: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: white;">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Photo
+              </button>
+            ` : `
+              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
+              </button>
+            `}
             <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 20px; font-size: 16px;">
                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
             </button>
@@ -1944,6 +1995,13 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-left">
           <div class="detail-meta">
             <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
+          </div>
+          <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
+              <span style="font-size: 6px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+              <span style="font-size: 11px; font-weight: 950;">10</span>
+            </div>
+            <span style="font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">#1 in Memories Today</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
@@ -2620,6 +2678,142 @@ window.addEventListener('resize', () => {
 // Init VH value
 document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
 
+// Helper to compress images on the client side before uploading to Firestore to stay safely within 1MB quota and upload super fast
+function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to optimized JPEG format
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => {
+        resolve(e.target.result); // fallback to original file reader string
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = () => {
+      resolve(null);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Action Router for Add Memory button dynamically routed based on current tab
+window.handleAddMemoryClick = () => {
+  const cat = appState.activeCategory;
+  if (cat === 'Moments') {
+    window.openBulkUploadModal();
+  } else if (cat === 'My List') {
+    window.setCategory('Home');
+  } else {
+    window.openUploadModal();
+  }
+};
+
+// Copy YouTube descriptive prompts and open Google Gemini
+window.generateDescriptionWithAI = () => {
+  const link = document.getElementById('up-yt-link').value.trim();
+  const title = document.getElementById('up-title').value.trim();
+  
+  const prompt = `Please write an extremely catchy, engaging, emotional, and dramatic Netflix-like caption/description for our romantic streaming catalogue memory.
+
+Here are the details:
+- Video Title: "${title || 'My Precious Couple Memory'}"
+- YouTube Video Link: ${link || '(Not provided)'}
+
+Requirements:
+- Keep it under 2 lines of text (about 30-40 words total).
+- Make it sound cinematic, nostalgic, romantic, and highly engaging like a professional movie/show blurb.
+- Do not use markdown like bolding or brackets. Keep it as pure, natural narrative text.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Gemini prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch((err) => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
+};
+
+// View Photo Static Modal (for moments static photo previews)
+window.viewPhotoStatic = (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if(!m) return;
+  
+  const existingPlayer = document.getElementById('playbackOverlay');
+  if(existingPlayer) existingPlayer.remove();
+  
+  document.body.style.overflow = 'hidden';
+  
+  let c = document.getElementById('playbackOverlay');
+  if (!c) {
+    c = document.createElement('div');
+    c.className = 'playback-overlay';
+    c.id = 'playbackOverlay';
+    document.body.appendChild(c);
+  }
+  
+  c.style.display = 'block';
+  c.style.transform = 'translateY(0)';
+  c.style.opacity = '1';
+  
+  c.innerHTML = `
+    <div class="playback-back close-btn" id="photo-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+    <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
+       <img src="${m.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+    </div>
+    <video src="./netflix-intro.mp4" playsinline autoplay muted id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+  `;
+  
+  const introPlayer = document.getElementById('introPlayer');
+  if (introPlayer) {
+    introPlayer.onended = () => introPlayer.remove();
+    introPlayer.onerror = () => introPlayer.remove();
+  }
+
+  const closePlayer = () => {
+     if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
+     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s';
+     c.style.transform = 'translateY(100%)';
+     c.style.opacity = '0';
+     setTimeout(() => {
+       c.innerHTML = '';
+       c.style.display = 'none';
+       document.body.style.overflow = '';
+     }, 400);
+  };
+  
+  document.getElementById('photo-close-btn').onclick = closePlayer;
+};
+
 // Moments functions
 window.openBulkUploadModal = () => {
   const m = document.createElement('div');
@@ -2679,52 +2873,128 @@ window.openBulkUploadModal = () => {
     saveBtn.disabled = true;
     appState.activeCategory = 'Moments';
     
-    // Add Progress Bar
-    const progressContainer = document.createElement('div');
-    progressContainer.style.cssText = 'width: 100%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin-bottom: 20px; overflow: hidden; position: relative;';
-    const progressBar = document.createElement('div');
-    progressBar.style.cssText = 'width: 0%; height: 100%; background: #e50914; transition: width 0.3s ease;';
-    progressContainer.appendChild(progressBar);
-    dropZone.parentNode.insertBefore(progressContainer, saveBtn.parentNode);
-
-    const maxFiles = Array.from(input.files);
-    let done = 0;
+    // Check for duplicates
+    const existingTitles = new Set(
+      appState.memories
+        .filter(mem => window.getNormalizedCategory(mem.category) === 'Moments')
+        .map(mem => String(mem.title).trim().toLowerCase())
+    );
     
-    for(let file of maxFiles) {
-      const reader = new FileReader();
-      await new Promise(resolve => {
-        reader.onload = async (e) => {
-          const newMem = {
-            id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
-            title: file.name.split('.')[0] || 'Photo',
-            desc: '',
-            category: 'Moments',
-            year: new Date().getFullYear().toString(),
-            rating: 'PG-13',
-            matchRate: 99,
-            thumbnail: e.target.result,
-            videoUrl: '', // Just an image
-            dateAdded: Date.now()
-          };
-          appState.memories.push(newMem);
-          try { await saveMemoryToDB(newMem); } catch(err){}
-          
-          done++;
-          progressBar.style.width = (done / maxFiles.length * 100) + '%';
-          setTimeout(resolve, 10); // yield paint
-        };
-        reader.readAsDataURL(file);
-      });
+    const maxFiles = Array.from(input.files);
+    const toUpload = [];
+    const skippedFiles = [];
+    const seenInBatch = new Set();
+    
+    for (const file of maxFiles) {
+      const title = file.name.split('.')[0] || 'Photo';
+      const normalizedTitle = title.trim().toLowerCase();
+      
+      const isDuplicate = existingTitles.has(normalizedTitle) || seenInBatch.has(normalizedTitle);
+      if (isDuplicate) {
+        skippedFiles.push(file.name);
+      } else {
+        seenInBatch.add(normalizedTitle);
+        toUpload.push(file);
+      }
+    }
+    
+    if (toUpload.length === 0) {
+      alert(`All ${maxFiles.length} selected photo${maxFiles.length > 1 ? 's' : ''} already exist in your gallery.\n\nNo duplicates were uploaded.`);
+      const dm = document.getElementById('bulkUploadModal');
+      if (dm) {
+        dm.classList.remove('open');
+        setTimeout(() => dm.remove(), 300);
+      }
+      return;
+    }
+    
+    // Add Progress Bar with detailed text & percentages
+    const oldProgress = m.querySelector('#upload-progress-container');
+    if (oldProgress) oldProgress.remove();
+    
+    const progressContainer = document.createElement('div');
+    progressContainer.id = 'upload-progress-container';
+    progressContainer.style.cssText = 'width: 100%; margin-top: 15px; margin-bottom: 25px;';
+    
+    progressContainer.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #fff; font-family: inherit;">
+        <span id="progress-text" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 80%;">Preparing photos...</span>
+         <span id="progress-percent" style="color: #e50914; font-weight: 700; font-family: monospace;">0%</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
+         <div id="progress-bar-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #e50914, #ff5252); border-radius: 4px; transition: width 0.3s cubic-bezier(0.1, 0.8, 0.25, 1); box-shadow: 0 0 10px rgba(229, 9, 20, 0.85);"></div>
+      </div>
+    `;
+    
+    const modalContent = m.querySelector('.upload-modal-content');
+    const actionsBox = modalContent.lastElementChild;
+    modalContent.insertBefore(progressContainer, actionsBox);
+    
+    const progressBarFill = progressContainer.querySelector('#progress-bar-fill');
+    const progressText = progressContainer.querySelector('#progress-text');
+    const progressPercent = progressContainer.querySelector('#progress-percent');
+
+    let done = 0;
+    const total = toUpload.length;
+    
+    for(let file of toUpload) {
+      progressText.innerText = `Compressing & Uploading: ${file.name} (${done + 1}/${total})`;
+      
+      const compressedDataUrl = await compressPhotoFile(file);
+      if (!compressedDataUrl) {
+        done++;
+        continue;
+      }
+      
+      const newMem = {
+        id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
+        title: file.name.split('.')[0] || 'Photo',
+        desc: '',
+        category: 'Moments',
+        year: new Date().getFullYear().toString(),
+        rating: 'PG-13',
+        matchRate: 99,
+        thumbnail: compressedDataUrl,
+        videoUrl: '', // Just an image
+        dateAdded: Date.now()
+      };
+      
+      appState.memories.push(newMem);
+      try { 
+        await saveMemoryToDB(newMem); 
+      } catch(err) {
+        console.error("Error saving photo inside bulk upload:", err);
+      }
+      
+      done++;
+      const percent = Math.round((done / total) * 100);
+      progressBarFill.style.width = percent + '%';
+      progressPercent.innerText = percent + '%';
+      
+      // Let painter update for flawless framerate rendering
+      await new Promise(r => setTimeout(r, 40));
     }
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-    modal.classList.remove('open');
-    setTimeout(() => { 
-      modal.remove(); 
-      if (typeof window.refreshRowsView === 'function') {
-        window.refreshRowsView(null, null, true);
-      }
-    }, 400);
+    
+    let endMsg = `Successfully uploaded ${total} photos.`;
+    if (skippedFiles.length > 0) {
+      endMsg += ` ${skippedFiles.length} photo${skippedFiles.length > 1 ? 's were' : ' was'} not uploaded because they already exist in the gallery.`;
+    }
+    
+    window.showToast(endMsg, 6000);
+    alert(endMsg);
+    
+    const dm = document.getElementById('bulkUploadModal');
+    if (dm) {
+      dm.classList.remove('open');
+      setTimeout(() => { 
+        dm.remove(); 
+        if (typeof window.refreshRowsView === 'function') {
+          window.refreshRowsView(null, null, true);
+        }
+      }, 400);
+    }
   };
 };
 
