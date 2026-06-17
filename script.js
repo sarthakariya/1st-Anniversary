@@ -42,6 +42,7 @@ let appState = {
   },
   myList: [],
   continueWatching: [],
+  likedMemories: [],
   memories: null,
   profiles: null
 };
@@ -52,6 +53,7 @@ window.addEventListener('storage', (e) => {
     const newState = JSON.parse(sessionStorage.getItem('netflix_state') || '{}');
     if(newState.myList) appState.myList = newState.myList;
     if(newState.continueWatching) appState.continueWatching = newState.continueWatching;
+    if(newState.likedMemories) appState.likedMemories = newState.likedMemories;
     if(newState.settings) appState.settings = newState.settings;
     if(newState.profiles) appState.profiles = newState.profiles;
     
@@ -96,7 +98,24 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebrations', 'Romance', 'Our Time', 'Documentaries'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Events'];
+
+window.getNormalizedCategory = (cat) => {
+  const c = String(cat || '').trim();
+  if (c.toLowerCase().includes('romance') || c.toLowerCase().includes('romantic')) {
+    return 'Our Romantic Scenes';
+  }
+  if (c.toLowerCase().includes('celebration')) {
+    return 'Celebration Parties';
+  }
+  if (c.toLowerCase().includes('moment')) {
+    return 'Moments';
+  }
+  if (c.toLowerCase().includes('dates')) {
+    return 'Dates';
+  }
+  return 'Our Special Events';
+};
 
 async function loadData() {
   const cachedState = sessionStorage.getItem('netflix_state');
@@ -105,6 +124,7 @@ async function loadData() {
     const data = JSON.parse(cachedState);
     if(data.myList) appState.myList = data.myList;
     if(data.continueWatching) appState.continueWatching = data.continueWatching;
+    if(data.likedMemories) appState.likedMemories = data.likedMemories;
     if(data.settings) appState.settings = data.settings;
     if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
     appState.memories = JSON.parse(cachedMemories);
@@ -116,6 +136,7 @@ async function loadData() {
     const data = stateDoc.data();
     if(data.myList) appState.myList = data.myList;
     if(data.continueWatching) appState.continueWatching = data.continueWatching;
+    if(data.likedMemories) appState.likedMemories = data.likedMemories;
     if(data.settings) appState.settings = data.settings;
     if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
   } else {
@@ -123,6 +144,7 @@ async function loadData() {
     await setDoc(doc(db, 'user_state', 'household'), {
       myList: appState.myList,
       continueWatching: appState.continueWatching,
+      likedMemories: appState.likedMemories,
       settings: appState.settings,
       profiles: appState.profiles
     });
@@ -134,6 +156,7 @@ async function loadData() {
   sessionStorage.setItem('netflix_state', JSON.stringify({
     myList: appState.myList,
     continueWatching: appState.continueWatching,
+    likedMemories: appState.likedMemories,
     settings: appState.settings,
     profiles: appState.profiles
   }));
@@ -158,6 +181,7 @@ async function saveStateList(key, data) {
   sessionStorage.setItem('netflix_state', JSON.stringify({
     myList: appState.myList,
     continueWatching: appState.continueWatching,
+    likedMemories: appState.likedMemories || [],
     settings: appState.settings,
     profiles: appState.profiles
   }));
@@ -181,6 +205,29 @@ document.addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('click', (e) => {
+  // Click outside search container should close active search
+  const searchContainer = document.getElementById('searchContainer');
+  if (searchContainer && searchContainer.classList.contains('active')) {
+    if (!searchContainer.contains(e.target)) {
+      searchContainer.classList.remove('active');
+      const input = document.getElementById('searchInput');
+      if (input && appState.searchQuery) {
+        appState.searchQuery = '';
+        input.value = '';
+        window.refreshRowsView();
+      }
+    }
+  }
+
+  // Click outside notification panel should close it
+  const notifPanel = document.getElementById('notifPanel');
+  if (notifPanel && notifPanel.classList.contains('active')) {
+    const bellIcon = document.querySelector('.bell-icon');
+    if (!notifPanel.contains(e.target) && (!bellIcon || !bellIcon.contains(e.target))) {
+      notifPanel.classList.remove('active');
+    }
+  }
+
   const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
   openModals.forEach(m => {
     if (e.target === m) {
@@ -300,6 +347,28 @@ window.setCategory = (cat) => {
   appState.activeCategory = cat;
   appState.searchQuery = '';
   
+  if (cat === 'Home') {
+    let vids = appState.memories.filter(m => {
+      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+      const isCw = appState.continueWatching.includes(m.id);
+      return !isMoment && m.videoUrl && !isCw;
+    });
+    if (vids.length === 0) {
+      vids = appState.memories.filter(m => {
+        const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+        return !isMoment && m.videoUrl;
+      });
+    }
+    if (vids.length > 0) {
+      window.currentHeroIndex = Math.floor(Math.random() * vids.length);
+    }
+    const heroSec = document.getElementById('hero-section');
+    if (heroSec) {
+      heroSec.innerHTML = '';
+      heroSec.appendChild(createHero());
+    }
+  }
+  
   // Update Nav visual
   document.querySelectorAll('.nav-links li').forEach(li => {
     li.classList.remove('active');
@@ -368,22 +437,17 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     
     let rowIndex = 0;
     
-    if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
-      const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
-      if(cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
-    }
-    
     if (appState.activeCategory === 'My List') {
       rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id)), rowIndex++));
     } else if (appState.activeCategory === 'Categories') {
       subCategories.forEach(cat => {
-        const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+        const mems = appState.memories.filter(m => window.getNormalizedCategory(m.category) === cat);
         if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
       });
     } else if (appState.activeCategory === 'Moments') {
       // Show local array instantly to feel responsive, then fetch from firestore
       const fetchAndRenderGallery = async () => {
-        let galleryItems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
+        let galleryItems = appState.memories.filter(m => window.getNormalizedCategory(m.category) === 'Moments');
         
         rc.innerHTML = '';
         
@@ -439,15 +503,50 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     } else {
       // For Home
       if (appState.activeCategory === 'Home') {
+        // 1. Today's Top Picks for You
+        const topPicksMems = [...appState.memories]
+          .filter(m => window.getNormalizedCategory(m.category) !== 'Moments')
+          .sort((a, b) => b.title.localeCompare(a.title)) // deterministic stable order
+          .slice(0, 8);
+        if (topPicksMems.length) {
+          rc.appendChild(createRow("Today's Top Picks for You", topPicksMems, rowIndex++));
+        }
+
+        // 2. Continue Watching
+        if (appState.continueWatching.length > 0) {
+          const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
+          if (cw.length) {
+            rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+          }
+        }
+
+        // 3. Recent Additions
+        const recentMems = [...appState.memories]
+          .filter(m => window.getNormalizedCategory(m.category) !== 'Moments')
+          .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+        if (recentMems.length) {
+          rc.appendChild(createRow('Recent Additions', recentMems, rowIndex++));
+        }
+
+        // 4. My List
+        const myListMems = appState.memories.filter(m => appState.myList.includes(m.id));
+        if (myListMems.length) {
+          rc.appendChild(createRow('My List', myListMems, rowIndex++));
+        }
+
+        // 5. Categorized rows
         subCategories.forEach(cat => {
-          const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+          const mems = appState.memories.filter(m => window.getNormalizedCategory(m.category) === cat);
           if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
         });
-        rc.appendChild(createRow('Recent Additions', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded5 || b.dateAdded - a.dateAdded), rowIndex++));
       }
       // For Dates
       if (appState.activeCategory === 'Dates') {
-        rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
+        if (appState.continueWatching.length > 0) {
+          const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
+          if (cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+        }
+        rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => window.getNormalizedCategory(m.category) !== 'Moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
       }
     }
     
@@ -542,7 +641,8 @@ window.openSettingsModal = () => {
 
 window.toggleMyList = (id, event) => {
   if (event) event.stopPropagation();
-  if (appState.myList.includes(id)) {
+  const inListBefore = appState.myList.includes(id);
+  if (inListBefore) {
     appState.myList = appState.myList.filter(i => i !== id);
   } else {
     appState.myList.push(id);
@@ -555,7 +655,41 @@ window.toggleMyList = (id, event) => {
     btn.title = appState.myList.includes(id) ? 'Remove from List' : 'Add to My List';
   }
   
-  window.refreshRowsView();
+  // Also synchronize the hero mylist button state if the same ID is being toggled and visible on screen
+  const heroBtn = document.getElementById('hero-mylist-btn');
+  if (heroBtn) {
+    const inListAfter = appState.myList.includes(id);
+    heroBtn.title = inListAfter ? 'Remove from My List' : 'Add to My List';
+    heroBtn.innerHTML = inListAfter ? 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  }
+  
+  window.refreshRowsView(null, null, true);
+};
+
+window.toggleHeroMyList = (id, event) => {
+  if (event) event.stopPropagation();
+  const isCurrentlyIn = appState.myList.includes(id);
+  if (isCurrentlyIn) {
+    appState.myList = appState.myList.filter(i => i !== id);
+    window.showToast('Removed from My List');
+  } else {
+    appState.myList.push(id);
+    window.showToast('Added to My List');
+  }
+  saveStateList('myList', appState.myList);
+  
+  const heroBtn = document.getElementById('hero-mylist-btn');
+  if (heroBtn) {
+    const inListAfter = appState.myList.includes(id);
+    heroBtn.title = inListAfter ? 'Remove from My List' : 'Add to My List';
+    heroBtn.innerHTML = inListAfter ? 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  }
+  
+  window.refreshRowsView(null, null, true);
 };
 
 function createStartupScreen() {
@@ -970,6 +1104,7 @@ function createNavbar() {
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
           <div class="dropdown-menu">
             <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
+            <div class="dropdown-item" onclick="openBulkManagerModal()">🛠 Bulk Manage Memories</div>
             <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
             <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
             <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
@@ -989,12 +1124,31 @@ function createNavbar() {
   return nav;
 }
 
-window.currentHeroIndex = window.currentHeroIndex || 0;
+window.currentHeroIndex = typeof window.currentHeroIndex === 'number' ? window.currentHeroIndex : Math.floor(Math.random() * 100);
 window.isShufflingHero = false;
 window.shuffleHero = () => {
   if (window.isShufflingHero) return;
-  const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
-  if(vids.length > 0) window.currentHeroIndex = (window.currentHeroIndex + 1) % Math.min(5, vids.length);
+  
+  let vids = appState.memories.filter(m => {
+    const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+    const isCw = appState.continueWatching.includes(m.id);
+    return !isMoment && m.videoUrl && !isCw;
+  });
+  
+  if (vids.length === 0) {
+    vids = appState.memories.filter(m => {
+      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+      return !isMoment && m.videoUrl;
+    });
+  }
+  
+  if (vids.length > 0) {
+    let nextIndex = Math.floor(Math.random() * vids.length);
+    if (vids.length > 1 && nextIndex === window.currentHeroIndex % vids.length) {
+      nextIndex = (nextIndex + 1) % vids.length;
+    }
+    window.currentHeroIndex = nextIndex;
+  }
   
   const currentHero = document.querySelector('.hero-billboard');
   if(currentHero) {
@@ -1031,8 +1185,25 @@ function createHero() {
     return c;
   }
 
-  const vids = appState.memories.filter(m => String(m.category).toLowerCase() !== 'moments' && m.videoUrl);
+  let vids = appState.memories.filter(m => {
+    const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+    const isCw = appState.continueWatching.includes(m.id);
+    return !isMoment && m.videoUrl && !isCw;
+  });
+  
+  if (vids.length === 0) {
+    vids = appState.memories.filter(m => {
+      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+      return !isMoment && m.videoUrl;
+    });
+  }
+  
   if(vids.length === 0) return c;
+  
+  if (window.currentHeroIndex === undefined) {
+    window.currentHeroIndex = Math.floor(Math.random() * vids.length);
+  }
+  
   const heroMem = vids[window.currentHeroIndex % vids.length] || vids[0];
   const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
@@ -1070,10 +1241,10 @@ function createHero() {
       <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
         <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
       </div>
-      <div class="mute-btn" id="hero-mute-btn" onclick="toggleHeroMute()" title="Toggle Mute">
-        ${(appState.isHeroMuted === true) ? 
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>` :
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`}
+      <div class="mute-btn" id="hero-mylist-btn" onclick="window.toggleHeroMyList('${heroMem.id}', event)" title="${appState.myList.includes(heroMem.id) ? 'Remove from My List' : 'Add to My List'}">
+        ${appState.myList.includes(heroMem.id) ? 
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` :
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`}
       </div>
       <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
@@ -1437,6 +1608,11 @@ window.openUploadModal = () => {
             <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
           </div>
         </div>
+
+        <div>
+          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Thumbnail Image URL (Optional)</label>
+          <input type="text" id="up-thumb-custom" placeholder="Paste custom image URL here (or keep blank to use fetched youtube thumbnail)" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" oninput="document.getElementById('up-thumb-preview').src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block';">
+        </div>
         
         <div id="up-preview-container" style="display: none; text-align:center;">
           <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
@@ -1551,7 +1727,7 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'),
+      thumbnail: document.getElementById('up-thumb-custom').value.trim() || currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'),
       videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
@@ -1583,6 +1759,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   }
   
   const inMyList = appState.myList.includes(id);
+  const isLiked = appState.likedMemories && appState.likedMemories.includes(id);
 
   // Pause hero video
   const heroVids = document.querySelectorAll('.hero-video');
@@ -1634,11 +1811,11 @@ window.openDetailModal = (id, e, editMode = false) => {
                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
             </button>
             
-            <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
+            <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
             </div>
-            <div class="circ-play-btn" onclick="likeMemory('${m.id}')" title="Like">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', this)" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
             </div>
             <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -1658,9 +1835,11 @@ window.openDetailModal = (id, e, editMode = false) => {
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
           
           <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
-            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Replace Thumbnail Image</div>
-            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select New Image</button>
-            <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;">
+            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Thumbnail Image URL</div>
+            <input type="text" id="dm-thumb-url-input" value="${m.thumbnail || ''}" placeholder="Paste Thumbnail Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;">
+            <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
+            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select Image File</button>
+            <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
           </div>
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
@@ -1772,6 +1951,8 @@ window.saveDetailEdit = async (id) => {
     m.desc = document.getElementById('dm-desc-edit').value;
 
     const fileInput = document.getElementById('dm-thumb-input');
+    const urlInput = document.getElementById('dm-thumb-url-input');
+
     if (fileInput && fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
       const reader = new FileReader();
@@ -1782,6 +1963,8 @@ window.saveDetailEdit = async (id) => {
         };
         reader.readAsDataURL(file);
       });
+    } else if (urlInput && urlInput.value && !urlInput.value.startsWith('Local File Selected:')) {
+      m.thumbnail = urlInput.value.trim();
     }
 
     try { await saveMemoryToDB(m); } catch(err) {}
@@ -1809,26 +1992,130 @@ window.deleteMemory = async (id) => {
   }
 };
 
-window.likeMemory = async (id) => {
-  const m = appState.memories.find(i => i.id === id);
-  if (!m) return;
-  m.likes = (m.likes || 0) + 1;
-  try { await saveMemoryToDB(m); } catch(err){}
-  alert('Liked! Total likes: ' + m.likes);
+window.showToast = (msg, duration = 3000) => {
+  const existing = document.getElementById('nf-toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.id = 'nf-toast';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(229, 9, 20, 0.95);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 130000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+  toast.innerText = msg;
+  document.body.appendChild(toast);
+  
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    toast.style.opacity = '1';
+  });
+  
+  setTimeout(() => {
+    toast.style.transform = 'translateX(-50%) translateY(20px)';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 };
 
-window.downloadVideo = (id) => {
+window.likeMemory = async (id, btn) => {
   const m = appState.memories.find(i => i.id === id);
-  if (!m || !m.videoUrl) return alert('Video not available to download.');
+  if (!m) return;
   
-  if (m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:')) {
-    // It's a YouTube video
-    window.open(`https://www.ssyoutube.com/watch?v=${m.videoUrl}`, '_blank');
+  if (!appState.likedMemories) {
+    appState.likedMemories = [];
+  }
+  
+  const index = appState.likedMemories.indexOf(id);
+  const isLiked = index !== -1;
+  
+  if (isLiked) {
+    appState.likedMemories.splice(index, 1);
+    m.likes = Math.max(0, (m.likes || 1) - 1);
+    window.showToast('Removed from Liked list');
   } else {
-    // It's a native video
+    appState.likedMemories.push(id);
+    m.likes = (m.likes || 0) + 1;
+    window.showToast('Added to Liked memories!');
+  }
+  
+  await saveStateList('likedMemories', appState.likedMemories);
+  try { await saveMemoryToDB(m); } catch(err){}
+  
+  const targetBtn = btn || document.getElementById('dm-like-btn');
+  if (targetBtn) {
+    const isNowLiked = appState.likedMemories.includes(id);
+    targetBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="${isNowLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+      </svg>
+    `;
+    targetBtn.style.color = isNowLiked ? '#E50914' : '';
+    targetBtn.style.borderColor = isNowLiked ? '#E50914' : '';
+    targetBtn.title = isNowLiked ? 'Unlike' : 'Like';
+    
+    // Ripple ring effect
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple-ring';
+    targetBtn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 550);
+    
+    // springy pop animation
+    targetBtn.classList.add('pop-active');
+    setTimeout(() => {
+      targetBtn.classList.remove('pop-active');
+    }, 450);
+  }
+};
+
+window.downloadVideo = async (id) => {
+  const m = appState.memories.find(i => i.id === id);
+  if (!m || !m.videoUrl) {
+    window.showToast('Video not available to download.');
+    return;
+  }
+  
+  const isYt = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+  
+  if (isYt) {
+    const ytUrl = `https://www.youtube.com/watch?v=${m.videoUrl}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(ytUrl);
+        window.showToast('YouTube link copied to clipboard! Opening downloader...');
+      } else {
+        window.showToast('Opening downloader tool...');
+      }
+    } catch (err) {
+      window.showToast('Opening downloader tool...');
+    }
+    
+    // Open downloader website
+    window.open('https://vidssave.com/youtube-video-downloader-6fu', '_blank');
+  } else {
+    // Native video download
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(m.videoUrl);
+      }
+    } catch(e){}
+    window.showToast('Starting local video download...');
+    
     const a = document.createElement('a');
     a.href = m.videoUrl;
-    a.download = m.title + '.mp4';
+    a.download = (m.title || 'video') + '.mp4';
     a.click();
   }
 };
@@ -2417,4 +2704,251 @@ window.startMomentsSlideshow = (startId) => {
   };
   
   document.getElementById('ss-close-btn').onclick = closePlayer;
+};
+
+// Bulk Memories Manager
+window.openBulkManagerModal = () => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'bulkManagerModal';
+  
+  // Clear any existing bulk selection cache
+  window.selectedBulkIds = [];
+  
+  const buildListHTML = () => {
+    if (!appState.memories || appState.memories.length === 0) {
+      return '<div style="color: #888; text-align:center; padding:40px; font-size:16px;">No memories found to manage.</div>';
+    }
+    return appState.memories.map(m => `
+      <div class="bm-card" data-id="${m.id}" onclick="toggleBulkSelect('${m.id}')">
+        <div class="bm-checkbox">
+          <input type="checkbox" id="chk-${m.id}" data-id="${m.id}" onclick="event.stopPropagation(); syncBulkCardSelect('${m.id}');">
+        </div>
+        <img src="${m.thumbnail || './Netflix-Logo-Streaming-Platform-765.png'}" class="bm-thumb" onerror="this.src='./Netflix-Logo-Streaming-Platform-765.png';">
+        <div class="bm-info">
+          <div class="bm-title">${m.title || 'Untitled'}</div>
+          <div class="bm-meta">${m.category || 'No Category'} • ${m.year || '2026'}</div>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 900px; width: 92vw; height: 85vh; display: flex; flex-direction: column; overflow: hidden; padding: 25px;">
+      <div class="upload-close" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">&times;</div>
+      
+      <h2 style="margin-bottom: 5px; font-weight: 700; color: white; font-size: 26px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #e50914;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Bulk Memories Manager
+      </h2>
+      <p style="color:#aaa; font-size:13px; margin-bottom: 20px;">Easily re-categorize, update metadata, or bulk-delete multiple memory tiles or photos in one go.</p>
+      
+      <!-- Toolbar -->
+      <div class="bm-toolbar">
+        <div class="bm-selection-controls">
+          <button class="btn btn-secondary" onclick="bulkSelectAll(true)" style="padding: 6px 14px; font-size: 13px;">✓ Select All</button>
+          <button class="btn btn-secondary" onclick="bulkSelectAll(false)" style="padding: 6px 14px; font-size: 13px;">✗ Deselect All</button>
+          <span id="bm-count-badge" class="bm-badge">0 selected</span>
+        </div>
+        
+        <div class="bm-actions-container hidden" id="bm-bulk-actions">
+          <select id="bulk-category-select" class="bm-select-input">
+            <option value="">-- Change Category --</option>
+            <option value="Moments">Moments (Photos)</option>
+            ${subCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+          
+          <input type="number" id="bulk-year-input" class="bm-input" placeholder="Change Year" style="width: 110px;">
+          
+          <select id="bulk-rating-select" class="bm-select-input" style="width: 120px;">
+            <option value="">-- Rating --</option>
+            <option value="G">G</option>
+            <option value="PG">PG</option>
+            <option value="PG-13">PG-13</option>
+            <option value="R">R</option>
+            <option value="TV-PG">TV-PG</option>
+            <option value="TV-14">TV-14</option>
+            <option value="TV-MA">TV-MA</option>
+          </select>
+
+          <input type="text" id="bulk-thumbnail-input" class="bm-input" placeholder="New Thumbnail URL" style="width: 150px;">
+          
+          <button class="btn btn-primary" onclick="applyBulkEdit()" style="background:#46d369; color:black; font-weight:600; padding: 7px 16px; font-size: 13px;">Update Selected</button>
+          <button class="btn btn-primary" onclick="applyBulkDelete()" style="background:#e50914; color:white; font-weight:600; padding: 7px 16px; font-size: 13px;">Delete Selected</button>
+        </div>
+      </div>
+      
+      <!-- List Container -->
+      <div class="bm-grid-container">
+        <div class="bm-grid">
+          ${buildListHTML()}
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: flex-end; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
+        <button class="btn btn-secondary" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">Close Panel</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
+};
+
+window.selectedBulkIds = [];
+
+window.toggleBulkSelect = (id) => {
+  const chk = document.getElementById(`chk-${id}`);
+  if (chk) {
+    chk.checked = !chk.checked;
+    window.syncBulkCardSelect(id);
+  }
+};
+
+window.syncBulkCardSelect = (id) => {
+  const card = document.querySelector(`.bm-card[data-id="${id}"]`);
+  const chk = document.getElementById(`chk-${id}`);
+  if (!chk) return;
+  
+  if (chk.checked) {
+    if (!window.selectedBulkIds.includes(id)) {
+      window.selectedBulkIds.push(id);
+    }
+    if (card) card.classList.add('selected');
+  } else {
+    window.selectedBulkIds = window.selectedBulkIds.filter(item => item !== id);
+    if (card) card.classList.remove('selected');
+  }
+  
+  window.updateBulkToolbar();
+};
+
+window.bulkSelectAll = (select) => {
+  window.selectedBulkIds = [];
+  const cards = document.querySelectorAll('.bm-card');
+  const chkboxes = document.querySelectorAll('.bm-checkbox input');
+  
+  cards.forEach(card => {
+    const id = card.getAttribute('data-id');
+    if (select) {
+      card.classList.add('selected');
+      window.selectedBulkIds.push(id);
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+  
+  chkboxes.forEach(chk => {
+    chk.checked = select;
+  });
+  
+  window.updateBulkToolbar();
+};
+
+window.updateBulkToolbar = () => {
+  const badge = document.getElementById('bm-count-badge');
+  const actionPanel = document.getElementById('bm-bulk-actions');
+  const count = window.selectedBulkIds.length;
+  
+  if (badge) {
+    badge.innerText = `${count} selected`;
+  }
+  
+  if (actionPanel) {
+    if (count > 0) {
+      actionPanel.classList.remove('hidden');
+    } else {
+      actionPanel.classList.add('hidden');
+    }
+  }
+};
+
+window.applyBulkEdit = async () => {
+  if (window.selectedBulkIds.length === 0) return;
+  
+  const catVal = document.getElementById('bulk-category-select').value;
+  const yearVal = document.getElementById('bulk-year-input').value;
+  const ratingVal = document.getElementById('bulk-rating-select').value;
+  const thumbVal = document.getElementById('bulk-thumbnail-input').value.trim();
+  
+  if (!catVal && !yearVal && !ratingVal && !thumbVal) {
+    window.showToast('Please specify at least one metadata change field.');
+    return;
+  }
+  
+  let updatedCount = 0;
+  
+  for (const id of window.selectedBulkIds) {
+    const m = appState.memories.find(item => item.id === id);
+    if (m) {
+      if (catVal) m.category = catVal;
+      if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
+      if (ratingVal) m.rating = ratingVal;
+      if (thumbVal) m.thumbnail = thumbVal;
+      
+      try {
+        await saveMemoryToDB(m);
+        updatedCount++;
+      } catch (err) {
+        console.error('Error saving in bulk:', err);
+      }
+    }
+  }
+  
+  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+  window.showToast(`Successfully updated ${updatedCount} memories!`);
+  
+  const dm = document.getElementById('bulkManagerModal');
+  if (dm) {
+    dm.classList.remove('open');
+    setTimeout(() => {
+      dm.remove();
+      window.refreshRowsView(null, null, true);
+    }, 300);
+  }
+};
+
+window.applyBulkDelete = async () => {
+  if (window.selectedBulkIds.length === 0) return;
+  
+  const count = window.selectedBulkIds.length;
+  if (!confirm(`Are you sure you want to permanently delete all ${count} selected memories?`)) {
+    return;
+  }
+  
+  let deletedCount = 0;
+  for (const id of window.selectedBulkIds) {
+    const mIndex = appState.memories.findIndex(item => item.id === id);
+    if (mIndex !== -1) {
+      appState.memories.splice(mIndex, 1);
+      try {
+        await deleteDoc(doc(db, 'memories', id));
+        deletedCount++;
+      } catch (err) {
+        console.error('Error deleting from db:', err);
+      }
+    }
+    
+    appState.myList = appState.myList.filter(item => item !== id);
+    appState.continueWatching = appState.continueWatching.filter(item => item !== id);
+    if (appState.likedMemories) {
+      appState.likedMemories = appState.likedMemories.filter(item => item !== id);
+    }
+  }
+  
+  await saveStateList('myList', appState.myList);
+  await saveStateList('continueWatching', appState.continueWatching);
+  await saveStateList('likedMemories', appState.likedMemories);
+  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+  
+  window.showToast(`Deleted ${deletedCount} memories in bulk.`);
+  
+  const dm = document.getElementById('bulkManagerModal');
+  if (dm) {
+    dm.classList.remove('open');
+    setTimeout(() => {
+      dm.remove();
+      window.refreshRowsView(null, null, true);
+    }, 300);
+  }
 };
