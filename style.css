@@ -441,7 +441,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-billboard {
   position: relative;
   width: 100vw;
-  height: 56.25vw; /* 16:9 aspect ratio */
+  height: 80vh;
+  max-height: 900px;
+  min-height: 600px;
   background-color: #000;
   overflow: hidden;
 }
@@ -472,8 +474,8 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: 35%;
-  max-width: 40vw;
+  bottom: clamp(110px, 15%, 170px);
+  max-width: 45vw;
   z-index: 10;
 }
 .hero-title {
@@ -483,12 +485,15 @@ input:checked + .slider:before { transform: translateX(20px); }
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
   line-height: 1.1;
   color: #fff;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 .hero-desc {
-  font-size: 1.2vw;
+  font-size: clamp(0.9rem, 1.25vw, 1.1rem);
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -504,9 +509,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 30px;
+  padding: 10px 24px;
   border-radius: 8px;
-  font-size: 1.1vw;
+  font-size: clamp(0.9rem, 1vw, 1.1rem);
   font-weight: bold;
   cursor: pointer;
   border: none;
@@ -539,7 +544,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-controls {
   position: absolute;
   right: 0;
-  bottom: 30%;
+  bottom: 10%;
   display: flex;
   align-items: center;
   z-index: 10;
@@ -572,15 +577,15 @@ input:checked + .slider:before { transform: translateX(20px); }
 .maturity-rating {
   background: rgba(51,51,51,0.6);
   border-left: 3px solid #d9d9d9;
-  padding: 0.5vw 3.5vw 0.5vw 0.8vw;
-  font-size: 1.1vw;
+  padding: 6px 40px 6px 15px;
+  font-size: clamp(0.9rem, 1vw, 1.1rem);
   color: #fff;
 }
 
 /* Rows */
 .slider-container {
-  padding: 0 4% 10vw 4%;
-  margin-top: -16vw; /* overlap bottom gradient */
+  padding: 0 0 10vw 0;
+  margin-top: -15px; /* overlap bottom gradient elegantly */
   position: relative;
   z-index: 10;
 }
@@ -604,7 +609,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 5000 !important;
 }
 .row-header {
-  font-size: 1.4vw;
+  font-size: clamp(1.1rem, 1.4vw, 1.5rem);
   color: #e5e5e5;
   font-weight: bold;
   margin-bottom: 0.5em;
@@ -652,7 +657,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 4px;
   background: #222;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s, border-color 0.4s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -663,7 +669,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .media-card:hover {
   transform: scale(1.35) translateY(-8px) translateZ(0) !important;
   z-index: 99;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
   box-shadow: 0 15px 40px rgba(0,0,0,0.85);
 }
 .media-card img {
@@ -994,11 +1000,16 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .detail-title-btn {
   position: absolute; bottom: 24px; left: 4%;
+  width: 92%;
+  max-width: 92%;
   z-index: 10;
 }
 .detail-title {
-  font-size: 32px; font-weight: bold; margin-bottom: 20px;
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: bold; margin-bottom: 20px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 .detail-body {
   padding: 24px 4% 16px 4%;
@@ -1163,6 +1174,12 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > 
   font-size: clamp(28px, 4.5vw, 60px) !important;
   line-height: 1.1 !important;
 }
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1).title-long {
+  font-size: clamp(22px, 3.2vw, 42px) !important;
+}
+div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1).title-very-long {
+  font-size: clamp(18px, 2.5vw, 32px) !important;
+}
 
 /* CSS 3: Nav links container - flexible and auto-wrapping */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) {
@@ -1233,8 +1250,10 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1) {
-  padding-left: 10px !important;
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1),
+.slider-container .row-header {
+  padding-left: 0px !important;
   font-family: inherit !important;
   font-weight: 700 !important;
   font-size: clamp(16px, 2vw, 22px) !important;
@@ -1244,8 +1263,10 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
   padding-left: clamp(15px, 4%, 50px) !important;
   padding-right: clamp(15px, 4%, 50px) !important;
-  margin-top: clamp(-140px, -12vw, -200px) !important;
+  margin-top: clamp(-70px, -5vw, -100px) !important;
   padding-bottom: 20px !important;
+  max-width: 100vw !important;
+  box-sizing: border-box !important;
 }
 
 /* Enable Beautiful Slider Navigation Arrows globally on hover */
@@ -1258,11 +1279,13 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3),
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3),
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(3),
+.slider-container .row-content {
   margin-top: -100px !important;
   margin-bottom: -240px !important;
-  padding-left: 4% !important;
-  padding-right: 4% !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
   padding-top: 100px !important;
   padding-bottom: 240px !important;
   height: auto !important;

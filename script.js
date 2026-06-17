@@ -98,7 +98,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Events'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event'];
 
 window.getNormalizedCategory = (cat) => {
   const c = String(cat || '').trim();
@@ -114,7 +114,7 @@ window.getNormalizedCategory = (cat) => {
   if (c.toLowerCase().includes('dates')) {
     return 'Dates';
   }
-  return 'Our Special Events';
+  return 'Our Special Event';
 };
 
 async function loadData() {
@@ -169,6 +169,7 @@ async function loadData() {
       localStorage.removeItem('sarthak_netflix_profile');
     }
   }
+  window.currentHeroIndex = undefined;
 }
 
 async function saveMemoryToDB(memory) {
@@ -807,6 +808,7 @@ function createProfileSelection() {
 }
 
 function loginProfile(pf, p) {
+  window.currentHeroIndex = undefined;
   appState.currentProfile = pf.name;
   localStorage.setItem('sarthak_netflix_profile', pf.name);
   appState.view = 'dashboard';
@@ -1124,7 +1126,7 @@ function createNavbar() {
   return nav;
 }
 
-window.currentHeroIndex = typeof window.currentHeroIndex === 'number' ? window.currentHeroIndex : Math.floor(Math.random() * 100);
+window.currentHeroIndex = undefined;
 window.isShufflingHero = false;
 window.shuffleHero = () => {
   if (window.isShufflingHero) return;
@@ -1142,37 +1144,52 @@ window.shuffleHero = () => {
     });
   }
   
-  if (vids.length > 0) {
-    let nextIndex = Math.floor(Math.random() * vids.length);
-    if (vids.length > 1 && nextIndex === window.currentHeroIndex % vids.length) {
-      nextIndex = (nextIndex + 1) % vids.length;
-    }
-    window.currentHeroIndex = nextIndex;
+  if (vids.length === 0) return;
+  
+  window.isShufflingHero = true;
+  
+  let nextIndex = Math.floor(Math.random() * vids.length);
+  if (vids.length > 1 && window.currentHeroIndex !== undefined && nextIndex === window.currentHeroIndex % vids.length) {
+    nextIndex = (nextIndex + 1) % vids.length;
   }
+  window.currentHeroIndex = nextIndex;
   
   const currentHero = document.querySelector('.hero-billboard');
-  if(currentHero) {
-    window.isShufflingHero = true;
+  if (currentHero) {
     const newHero = createHero();
     newHero.style.position = 'absolute';
     newHero.style.top = '0';
     newHero.style.left = '0';
-    newHero.style.zIndex = '11';
+    newHero.style.width = '100vw';
+    newHero.style.height = '100%';
+    newHero.style.zIndex = '12';
     newHero.style.opacity = '0';
-    newHero.style.transition = 'opacity 0.8s ease';
+    newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
     
-    currentHero.parentNode.insertBefore(newHero, currentHero.nextSibling);
+    currentHero.style.position = 'relative';
+    currentHero.appendChild(newHero);
     
-    // slight delay to allow video to start buffering
+    // Force reflow
+    newHero.offsetHeight;
+    
+    newHero.style.opacity = '1';
+    
     setTimeout(() => {
-      newHero.style.opacity = '1';
-      setTimeout(() => {
-        newHero.style.position = 'relative';
-        newHero.style.zIndex = '';
-        currentHero.remove();
-        window.isShufflingHero = false;
-      }, 800);
-    }, 100);
+      newHero.style.position = '';
+      newHero.style.top = '';
+      newHero.style.left = '';
+      newHero.style.width = '';
+      newHero.style.height = '';
+      newHero.style.zIndex = '';
+      newHero.style.transition = '';
+      
+      currentHero.parentNode.insertBefore(newHero, currentHero);
+      currentHero.remove();
+      
+      window.isShufflingHero = false;
+    }, 600);
+  } else {
+    window.isShufflingHero = false;
   }
 };
 
@@ -1207,9 +1224,19 @@ function createHero() {
   const heroMem = vids[window.currentHeroIndex % vids.length] || vids[0];
   const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
   
+  const titleText = heroMem.title || '';
+  const isLongTitle = titleText.length > 20;
+  const isVeryLongTitle = titleText.length > 35;
+  let titleClass = "hero-title";
+  if (isVeryLongTitle) {
+    titleClass += " title-very-long";
+  } else if (isLongTitle) {
+    titleClass += " title-long";
+  }
+  
   let backgroundVideoHtml = '';
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
-    const isMuted = appState.isHeroMuted !== false; // Default to true for autoplay compatibility
+    const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
       backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%);border:none;"></iframe></div>`;
     } else {
@@ -1226,7 +1253,7 @@ function createHero() {
     <div class="hero-overlay" style="z-index: 5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5;">
-      <div class="hero-title">${heroMem.title}</div>
+      <div class="${titleClass}">${heroMem.title}</div>
       <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
         <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">
@@ -1239,7 +1266,7 @@ function createHero() {
     </div>
     <div class="hero-controls" style="z-index: 5;">
       <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
-        <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
       <div class="mute-btn" id="hero-mylist-btn" onclick="window.toggleHeroMyList('${heroMem.id}', event)" title="${appState.myList.includes(heroMem.id) ? 'Remove from My List' : 'Add to My List'}">
         ${appState.myList.includes(heroMem.id) ? 
@@ -1612,6 +1639,9 @@ window.openUploadModal = () => {
         <div>
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Thumbnail Image URL (Optional)</label>
           <input type="text" id="up-thumb-custom" placeholder="Paste custom image URL here (or keep blank to use fetched youtube thumbnail)" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" oninput="document.getElementById('up-thumb-preview').src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block';">
+          <div style="text-align:center; margin-top:12px; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
+          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-thumb-file').click()">📁 Select Image File</button>
+          <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
         </div>
         
         <div id="up-preview-container" style="display: none; text-align:center;">
@@ -1632,12 +1662,9 @@ window.openUploadModal = () => {
           <div>
             <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
             <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
-              <option value="Dates" style="background:#141414;">Dates</option>
-              <option value="My Fav" style="background:#141414;">My Fav</option>
-              <option value="Celebrations" style="background:#141414;">Celebrations</option>
-              <option value="Romance" style="background:#141414;">Romance</option>
-              <option value="Our Time" style="background:#141414;">Our Time</option>
-              <option value="Documentaries" style="background:#141414;">Documentaries</option>
+              <option value="Celebration Parties" style="background:#141414;">Celebration Parties</option>
+              <option value="Our Romantic Scenes" style="background:#141414;">Our Romantic Scenes</option>
+              <option value="Our Special Event" style="background:#141414;">Our Special Event</option>
             </select>
           </div>
           <div>
@@ -1670,6 +1697,21 @@ window.openUploadModal = () => {
   
   let currentThumbData = '';
   let extractedVideoId = '';
+  let localThumbBase64 = '';
+
+  document.getElementById('up-thumb-file').onchange = function() {
+    if (this.files && this.files[0]) {
+      const file = this.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        localThumbBase64 = e.target.result;
+        document.getElementById('up-thumb-preview').src = localThumbBase64;
+        document.getElementById('up-preview-container').style.display = 'block';
+        document.getElementById('up-thumb-custom').value = 'Local File Selected: ' + file.name;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
@@ -1720,6 +1762,10 @@ window.openUploadModal = () => {
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
+    const customThumbVal = document.getElementById('up-thumb-custom').value.trim();
+    const finalThumb = (localThumbBase64 && customThumbVal.startsWith('Local File Selected:')) ?
+      localThumbBase64 : (customThumbVal || currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'));
+
     const mem = {
       id: 'm_' + Date.now(),
       title,
@@ -1727,7 +1773,7 @@ window.openUploadModal = () => {
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
       rating: document.getElementById('up-rating').value,
-      thumbnail: document.getElementById('up-thumb-custom').value.trim() || currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'),
+      thumbnail: finalThumb,
       videoUrl: extractedVideoId,
       dateAdded: Date.now(),
       uploadedBy: appState.currentProfile
@@ -1834,6 +1880,15 @@ window.openDetailModal = (id, e, editMode = false) => {
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
           
+          <div id="dm-cat-edit-container" class="hidden" style="margin-top:15px;">
+            <div style="font-size:14px; color:#aaa; margin-bottom:8px;">Category</div>
+            <select id="dm-cat-edit" style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:11px; border-radius:4px; font-family:inherit; font-size:14px; outline:none;">
+              <option value="Celebration Parties" ${window.getNormalizedCategory(m.category) === 'Celebration Parties' ? 'selected' : ''} style="background:#141414;">Celebration Parties</option>
+              <option value="Our Romantic Scenes" ${window.getNormalizedCategory(m.category) === 'Our Romantic Scenes' ? 'selected' : ''} style="background:#141414;">Our Romantic Scenes</option>
+              <option value="Our Special Event" ${window.getNormalizedCategory(m.category) === 'Our Special Event' ? 'selected' : ''} style="background:#141414;">Our Special Event</option>
+            </select>
+          </div>
+          
           <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
             <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Thumbnail Image URL</div>
             <input type="text" id="dm-thumb-url-input" value="${m.thumbnail || ''}" placeholder="Paste Thumbnail Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;">
@@ -1921,6 +1976,7 @@ window.toggleDetailEdit = () => {
   const saveBtn = document.getElementById('dm-save-btn');
   const editBtn = document.getElementById('dm-edit-btn');
   const thumbEdit = document.getElementById('dm-thumb-edit');
+  const catEdit = document.getElementById('dm-cat-edit-container');
   
   if(title.classList.contains('hidden')) {
     title.classList.remove('hidden');
@@ -1931,6 +1987,7 @@ window.toggleDetailEdit = () => {
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
     thumbEdit.classList.add('hidden');
+    if(catEdit) catEdit.classList.add('hidden');
   } else {
     title.classList.add('hidden');
     desc.classList.add('hidden');
@@ -1940,6 +1997,7 @@ window.toggleDetailEdit = () => {
     descEdit.classList.remove('hidden');
     saveBtn.classList.remove('hidden');
     thumbEdit.classList.remove('hidden');
+    if(catEdit) catEdit.classList.remove('hidden');
     titleEdit.focus();
   }
 };
@@ -1949,6 +2007,11 @@ window.saveDetailEdit = async (id) => {
   if (m) {
     m.title = document.getElementById('dm-title-edit').value;
     m.desc = document.getElementById('dm-desc-edit').value;
+
+    const catSelect = document.getElementById('dm-cat-edit');
+    if (catSelect) {
+      m.category = catSelect.value;
+    }
 
     const fileInput = document.getElementById('dm-thumb-input');
     const urlInput = document.getElementById('dm-thumb-url-input');
@@ -2242,22 +2305,6 @@ window.playVideo = (id) => {
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
   
-  if(!document.getElementById('spin-anim-style')) {
-    const s = document.createElement('style');
-    s.id = 'spin-anim-style';
-    s.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-    document.head.appendChild(s);
-  }
-  c.insertAdjacentHTML('beforeend', `
-    <div id="playback-loading" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; pointer-events:none; transition:opacity 0.5s;">
-      <svg width="50" height="50" viewBox="0 0 50 50" style="animation: spin 1s linear infinite;">
-        <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" />
-        <circle cx="25" cy="25" r="20" fill="none" stroke="#e50914" stroke-width="4" stroke-dasharray="31.4 100" stroke-linecap="round" />
-      </svg>
-    </div>
-  `);
-  const loader = document.getElementById('playback-loading');
-  
   // Request fullscreen automatically as early as possible
   if (c.requestFullscreen) {
     c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
@@ -2269,11 +2316,6 @@ window.playVideo = (id) => {
       mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
-    if (mainPlayer.tagName.toLowerCase() === 'video') {
-      mainPlayer.addEventListener('playing', () => loader.style.opacity = '0');
-    } else {
-      setTimeout(() => loader.style.opacity = '0', 2000); // iframe heuristic
-    }
     
     // Auto play when transition is done
     if (!isYouTube) {
