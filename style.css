@@ -483,34 +483,28 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: calc(16vw + 30px);
+  bottom: 35%;
   max-width: 40vw;
   z-index: 10;
 }
 .hero-title {
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 800;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
   line-height: 1.1;
   color: #fff;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  max-width: 100%;
 }
 .hero-desc {
-  font-size: clamp(14px, 1.1vw, 16px);
+  font-size: 1.2vw;
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  margin-bottom: 24px;
+  margin-bottom: 30px;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-width: 100%;
 }
 .hero-buttons {
   display: flex;
@@ -556,7 +550,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-controls {
   position: absolute;
   right: 0;
-  bottom: calc(16vw + 30px);
+  bottom: 30%;
   display: flex;
   align-items: center;
   z-index: 10;
@@ -632,17 +626,17 @@ input:checked + .slider:before { transform: translateX(20px); }
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 .row-content {
-  display: flex !important;
-  gap: 8px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scroll-behavior: smooth !important;
-  padding: 150px 4% 220px 4% !important;
-  margin-top: -150px !important;
-  margin-bottom: -220px !important;
-  scroll-snap-type: x mandatory !important;
-  overscroll-behavior-x: contain !important;
-  -webkit-overflow-scrolling: touch !important;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  padding: 80px 4% 220px 4%;
+  margin-top: -80px;
+  margin-bottom: -220px;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .row-content.active {
   scroll-snap-type: none;
@@ -662,7 +656,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 4px;
   background: #222;
   cursor: pointer;
-  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.22s;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -699,7 +693,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .media-card:hover .hover-chassis {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0.18s;
+  transition-delay: 0.4s;
 }
 .hc-buttons { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
 .hc-btn {
@@ -1026,172 +1020,11 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex; align-items: center; justify-content: center;
 }
 
-@media (max-width: 991px) {
-  body {
-    padding-bottom: 75px !important;
-  }
-  .mobile-bottom-nav {
-    display: flex !important;
-  }
-  .slider-container {
-    margin-top: -35px !important;
-    padding: 0 4% 30px 4% !important;
-  }
-  .hero-billboard {
-    height: 60vh !important;
-    min-height: 380px !important;
-  }
-  .hero-info {
-    max-width: 85vw !important;
-    bottom: 55px !important;
-  }
-  .hero-title {
-    font-size: clamp(22px, 4vw, 32px) !important;
-    margin-bottom: 8px !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-  }
-  .hero-desc {
-    font-size: 13px !important;
-    margin-bottom: 12px !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-  }
-  .btn {
-    font-size: 13px !important;
-    padding: 6px 14px !important;
-  }
-  .hero-controls {
-    bottom: 55px !important;
-  }
-  .maturity-rating {
-    font-size: 12px !important;
-    padding: 4px 15px 4px 8px !important;
-  }
-  .media-card {
-    flex: 0 0 calc(33.33vw - 20px) !important;
-    height: auto !important;
-  }
-  .detail-body { 
-    flex-direction: column !important; 
-  }
-  .nav-links { 
-    display: none !important; 
-  }
-  .row-content {
-    margin-top: -10px !important;
-    margin-bottom: -15px !important;
-    padding-top: 10px !important;
-    padding-bottom: 15px !important;
-    gap: 6px !important;
-    height: auto !important;
-  }
-}
-
-@media (max-width: 576px) {
-  body {
-    padding-bottom: 70px !important;
-  }
-  .slider-container {
-    margin-top: -20px !important;
-    padding: 0 4% 20px 4% !important;
-  }
-  .hero-billboard {
-    height: 50vh !important;
-    min-height: 320px !important;
-  }
-  .hero-info {
-    max-width: 90vw !important;
-    bottom: 40px !important;
-  }
-  .hero-title {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    margin-bottom: 6px !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-  }
-  .hero-desc {
-    font-size: 11px !important;
-    margin-bottom: 10px !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-  }
-  .hero-buttons {
-    gap: 8px !important;
-  }
-  .btn {
-    padding: 5px 10px !important;
-    font-size: 11px !important;
-    border-radius: 4px !important;
-  }
-  .hero-controls {
-    bottom: 40px !important;
-  }
-  .maturity-rating {
-    font-size: 11px !important;
-    padding: 3px 12px 3px 6px !important;
-  }
-  .media-card {
-    flex: 0 0 calc(50vw - 12px) !important;
-    height: auto !important;
-  }
-  .row-content {
-    margin-top: -10px !important;
-    margin-bottom: -12px !important;
-    padding-top: 10px !important;
-    padding-bottom: 12px !important;
-    gap: 4px !important;
-    height: auto !important;
-  }
-}
-
-/* Mobile Bottom Navigation Bar Styles */
-.mobile-bottom-nav {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background-color: #121212;
-  border-top: 1px solid #252525;
-  z-index: 9999;
-  justify-content: space-around;
-  align-items: center;
-  padding: 5px 10px;
-}
-.mobile-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  color: #858585;
-  font-size: 10px;
-  cursor: pointer;
-  transition: color 0.2s, transform 0.2s;
-  user-select: none;
-}
-.mobile-nav-item.active {
-  color: #fff;
-}
-.mobile-nav-item svg {
-  margin-bottom: 2px;
-  color: #858585;
-  transition: transform 0.2s, color 0.2s;
-}
-.mobile-nav-item.active svg {
-  color: #e50914 !important; /* Netflix Red */
-  transform: scale(1.15);
+@media (max-width: 768px) {
+  .hero-title { font-size: 8vw; }
+  .media-card { flex: 0 0 calc(100% / 3 - 8px); }
+  .detail-body { flex-direction: column; }
+  .nav-links { display: none; }
 }
 
 /* Search Bar */
@@ -1332,7 +1165,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > 
 
 /* CSS 16: Category row 1 title header in dashboard */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-left: 4% !important;
+  padding-left: 10px !important;
   font-family: Inter, sans-serif !important;
   font-size: 21px !important;
 }
@@ -1340,31 +1173,31 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-ty
 /* CSS 17: Category row 2 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
   font-size: 21px !important;
-  padding-left: 4% !important;
+  padding-left: 10px !important;
 }
 
 /* CSS 18: Category row 3 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) {
-  padding-left: 4% !important;
+  padding-left: 10px !important;
   font-size: 21px !important;
 }
 
 /* CSS 19: Category row 4 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) {
   font-size: 21px !important;
-  padding-left: 4% !important;
+  padding-left: 10px !important;
 }
 
 /* CSS 20: Category row 5 title header */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1) {
-  padding-left: 4% !important;
+  padding-left: 10px !important;
   font-size: 21px !important;
 }
 
 /* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) */
 div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
-  padding-left: 0px !important;
-  padding-right: 0px !important;
+  padding-left: 50px !important;
+  padding-right: 50px !important;
   margin-top: -200px !important;
   padding-bottom: 0px !important;
 }
@@ -1374,7 +1207,80 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
   display: none !important;
 }
 
+/* CSS 21: Row 1 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) {
+  margin-top: -150px !important;
+  margin-bottom: -220px !important;
+  padding-left: 60px !important;
+  padding-right: 60px !important;
+  padding-top: 150px !important;
+  padding-bottom: 220px !important;
+  height: calc(163px + 370px) !important;
+  overflow-y: hidden !important;
+}
 
+/* CSS 22: Row 2 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) {
+  margin-top: -150px !important;
+  margin-bottom: -220px !important;
+  padding-left: 60px !important;
+  padding-right: 60px !important;
+  padding-top: 150px !important;
+  padding-bottom: 220px !important;
+  height: calc(163px + 370px) !important;
+  overflow-y: hidden !important;
+}
+
+/* CSS Selector 3: Row 3 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) {
+  margin-top: -150px !important;
+  margin-bottom: -220px !important;
+  padding-left: 60px !important;
+  padding-right: 60px !important;
+  padding-top: 150px !important;
+  padding-bottom: 220px !important;
+  height: calc(163px + 370px) !important;
+  overflow-y: hidden !important;
+}
+
+/* CSS 26: Row 3 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(1) {
+  height: 163px !important;
+}
+
+/* CSS 27: Row 4 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(3) {
+  padding-top: 150px !important;
+  padding-bottom: 220px !important;
+  padding-left: 60px !important;
+  padding-right: 60px !important;
+  margin-top: -150px !important;
+  margin-bottom: -220px !important;
+  height: calc(163px + 370px) !important;
+  overflow-y: hidden !important;
+}
+
+/* CSS 28: Row 5 content container (slider list) */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) {
+  margin-top: -150px !important;
+  margin-bottom: -220px !important;
+  padding-top: 150px !important;
+  padding-bottom: 220px !important;
+  padding-left: 60px !important;
+  padding-right: 60px !important;
+  height: calc(163px + 370px) !important;
+  overflow-y: hidden !important;
+}
+
+/* CSS 32: Row 5 first item dimensions */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(1) {
+  height: 163px !important;
+}
+
+/* CSS 33: Row 5 second item dimensions */
+div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(3) > div:nth-of-type(2) {
+  height: 163px !important;
+}
 
 /* CSS 35: Nav list items */
 div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(4) > span:nth-of-type(1) {
