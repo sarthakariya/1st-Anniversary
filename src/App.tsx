@@ -35,6 +35,8 @@ export default function App() {
         <BrowseScreen 
           profile={selectedProfile} 
           isMorning={isMorning}
+          onSwitchProfile={setSelectedProfile}
+          onSignOut={() => setSelectedProfile(null)}
         />
       )}
     </div>
