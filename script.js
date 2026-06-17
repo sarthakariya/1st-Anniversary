@@ -1,6 +1,36 @@
-import { db } from './src/firebase.js';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { db, auth } from './src/firebase.js';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { animate, stagger } from 'motion';
+
+const OperationType = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  LIST: 'list',
+  GET: 'get',
+  WRITE: 'write',
+};
+
+function handleFirestoreError(error, operationType, path) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth?.currentUser?.uid || null,
+      email: auth?.currentUser?.email || null,
+      emailVerified: auth?.currentUser?.emailVerified || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || null,
+      tenantId: auth?.currentUser?.tenantId || null,
+      providerInfo: auth?.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 function transitionView(v) { 
   if (appState.view === v) return;
@@ -11,10 +41,16 @@ function transitionView(v) {
   }
   
   try {
-    document.startViewTransition(() => {
+    const transition = document.startViewTransition(() => {
       appState.view = v;
       render();
     });
+    
+    if (transition) {
+      if (transition.ready) transition.ready.catch(() => {});
+      if (transition.finished) transition.finished.catch(() => {});
+      if (transition.updateCallbackDone) transition.updateCallbackDone.catch(() => {});
+    }
   } catch(e) {
     appState.view = v;
     render();
@@ -118,63 +154,91 @@ window.getNormalizedCategory = (cat) => {
 };
 
 async function loadData() {
-  const cachedState = sessionStorage.getItem('netflix_state');
-  const cachedMemories = sessionStorage.getItem('netflix_memories');
-  if (cachedState && cachedMemories) {
-    const data = JSON.parse(cachedState);
-    if(data.myList) appState.myList = data.myList;
-    if(data.continueWatching) appState.continueWatching = data.continueWatching;
-    if(data.likedMemories) appState.likedMemories = data.likedMemories;
-    if(data.settings) appState.settings = data.settings;
-    if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
-    appState.memories = JSON.parse(cachedMemories);
-    return;
-  }
-
-  const stateDoc = await getDoc(doc(db, 'user_state', 'household'));
-  if (stateDoc.exists()) {
-    const data = stateDoc.data();
-    if(data.myList) appState.myList = data.myList;
-    if(data.continueWatching) appState.continueWatching = data.continueWatching;
-    if(data.likedMemories) appState.likedMemories = data.likedMemories;
-    if(data.settings) appState.settings = data.settings;
-    if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
-  } else {
-    appState.profiles = [...initialProfiles];
-    await setDoc(doc(db, 'user_state', 'household'), {
-      myList: appState.myList,
-      continueWatching: appState.continueWatching,
-      likedMemories: appState.likedMemories,
-      settings: appState.settings,
-      profiles: appState.profiles
-    });
-  }
-
-  const memSnapshot = await getDocs(collection(db, 'memories'));
-  appState.memories = memSnapshot.docs.map(d => d.data());
-  
-  sessionStorage.setItem('netflix_state', JSON.stringify({
-    myList: appState.myList,
-    continueWatching: appState.continueWatching,
-    likedMemories: appState.likedMemories,
-    settings: appState.settings,
-    profiles: appState.profiles
-  }));
-  sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
-
-  if (appState.currentProfile) {
-    const pfData = appState.profiles.find(p => p.name === appState.currentProfile);
-    if (!pfData) {
-      appState.currentProfile = null;
-      localStorage.removeItem('sarthak_netflix_profile');
+  // Pre-load from sessionStorage for instant visual layout (no flickering on reload)
+  try {
+    const cachedState = sessionStorage.getItem('netflix_state');
+    const cachedMemories = sessionStorage.getItem('netflix_memories');
+    if (cachedState) {
+      const data = JSON.parse(cachedState);
+      if(data.myList) appState.myList = data.myList;
+      if(data.continueWatching) appState.continueWatching = data.continueWatching;
+      if(data.likedMemories) appState.likedMemories = data.likedMemories;
+      if(data.settings) appState.settings = data.settings;
+      if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
     }
+    if (cachedMemories) {
+      appState.memories = JSON.parse(cachedMemories);
+    }
+  } catch (e) {
+    console.error("Error loading cached data", e);
   }
+
+  // Set up real-time listener for household user state
+  onSnapshot(doc(db, 'user_state', 'household'), (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      if(data.myList) appState.myList = data.myList;
+      if(data.continueWatching) appState.continueWatching = data.continueWatching;
+      if(data.likedMemories) appState.likedMemories = data.likedMemories;
+      if(data.settings) appState.settings = data.settings;
+      if(data.profiles && data.profiles.length > 0) {
+        appState.profiles = data.profiles;
+        // Verify current profile is still valid
+        if (appState.currentProfile) {
+          const pfData = appState.profiles.find(p => p.name === appState.currentProfile);
+          if (!pfData) {
+            appState.currentProfile = null;
+            localStorage.removeItem('sarthak_netflix_profile');
+          }
+        }
+      }
+      
+      sessionStorage.setItem('netflix_state', JSON.stringify({
+        myList: appState.myList,
+        continueWatching: appState.continueWatching,
+        likedMemories: appState.likedMemories,
+        settings: appState.settings,
+        profiles: appState.profiles
+      }));
+      render();
+    } else {
+      // Seed first time if document doesn't exist
+      const defaultProfiles = [...initialProfiles];
+      setDoc(doc(db, 'user_state', 'household'), {
+        myList: appState.myList || [],
+        continueWatching: appState.continueWatching || [],
+        likedMemories: appState.likedMemories || [],
+        settings: appState.settings || { autoPlayPreviews: true, autoPlayNextEpisode: true },
+        profiles: defaultProfiles
+      }).catch(err => handleFirestoreError(err, OperationType.WRITE, 'user_state/household'));
+    }
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, 'user_state/household');
+  });
+
+  // Set up real-time listener for memories
+  onSnapshot(collection(db, 'memories'), (snapshot) => {
+    const list = snapshot.docs.map(d => d.data());
+    // Sort descending by dateAdded (newest first)
+    list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+    appState.memories = list;
+    
+    sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
+    render();
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, 'memories');
+  });
+
   window.currentHeroIndex = undefined;
 }
 
 async function saveMemoryToDB(memory) {
   if(!memory.id) memory.id = "m_" + Date.now();
-  await setDoc(doc(db, 'memories', memory.id), memory);
+  try {
+    await setDoc(doc(db, 'memories', memory.id), memory);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id}`);
+  }
 }
 
 async function saveStateList(key, data) {
@@ -186,9 +250,13 @@ async function saveStateList(key, data) {
     settings: appState.settings,
     profiles: appState.profiles
   }));
-  await setDoc(doc(db, 'user_state', 'household'), {
-    [key]: data
-  }, { merge: true });
+  try {
+    await setDoc(doc(db, 'user_state', 'household'), {
+      [key]: data
+    }, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, 'user_state/household');
+  }
 };
 
 document.addEventListener('keydown', (e) => {
