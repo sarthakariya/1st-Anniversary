@@ -1043,8 +1043,7 @@ function createHero() {
       ${backgroundVideoHtml}
       <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
     </div>
-    <div class="hero-overlay-top" style="z-index: 5;"></div>
-    <div class="hero-overlay-left" style="z-index: 5;"></div>
+    <div class="hero-overlay" style="z-index: 5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5;">
       <div class="hero-title">${heroMem.title}</div>
@@ -1059,8 +1058,13 @@ function createHero() {
       </div>
     </div>
     <div class="hero-controls" style="z-index: 5;">
-      <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-right: 1.1vw;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      <div class="mute-btn" id="hero-shuffle-btn" onclick="shuffleHero()" title="Next Title">
+        <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+      </div>
+      <div class="mute-btn" id="hero-mute-btn" onclick="toggleHeroMute()" title="Toggle Mute">
+        ${(appState.isHeroMuted === true) ? 
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>` :
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`}
       </div>
       <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
@@ -1280,7 +1284,6 @@ function createRow(title, memories, index = 0) {
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
         </div>
-        <div class="hc-title">${m.title}</div>
         <div class="hc-meta">
           <span class="hc-match">98% Match</span>
           <span class="hc-rating">${m.rating || 'TV-14'}</span>

@@ -1,4 +1,4 @@
-import { Search, Bell, Info, Play, X, ChevronRight, Check } from 'lucide-react';
+import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES } from '../data';
 import { Memory, Profile } from '../types';
@@ -11,6 +11,7 @@ interface BrowseScreenProps {
 
 export default function BrowseScreen({ profile, isMorning }: BrowseScreenProps) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -87,42 +88,90 @@ export default function BrowseScreen({ profile, isMorning }: BrowseScreenProps) 
       </nav>
 
       {/* Hero Section */}
-      <div className="relative h-[60vh] md:h-[450px] w-full">
-        <div className="absolute inset-0">
-          <img src={MAIN_FEATURE.coverUrl} alt="Hero" className="w-full h-full object-cover" />
-          {/* Gradient Overlay based on theme */}
-          <div className={`absolute inset-0 bg-gradient-to-r ${isMorning ? 'from-[#f5f5f1] via-[#f5f5f1]/50 to-transparent' : 'from-[#141414] via-[#141414]/50 to-transparent'}`} />
-          <div className={`absolute inset-0 bg-gradient-to-t ${isMorning ? 'from-[#f5f5f1] via-transparent to-transparent' : 'from-[#141414] via-transparent to-transparent'}`} />
+      <div className="relative h-[80vh] md:h-[90vh] w-full bg-neutral-900 overflow-hidden flex flex-col justify-end">
+        {/* Video Background (using image as placeholder to match current app structure) */}
+        <div className="absolute inset-0 w-full h-full">
+            <img src={MAIN_FEATURE.coverUrl} alt="Hero" className="w-full h-full object-cover" />
         </div>
         
-        <div className="absolute inset-0 px-4 md:px-[60px] flex flex-col justify-center w-full md:w-[600px]">
+        {/* 1. Header Drop-Shadow (Top "Sky Safeguard") */}
+        <div 
+           className="absolute top-0 left-0 right-0 h-32 z-10 pointer-events-none" 
+           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 100%)' }} 
+        />
+
+        {/* 2. Horizontal Vignette (Left "Reading Pocket" Veil) */}
+        <div 
+           className="absolute top-0 bottom-0 left-0 w-[80%] md:w-[45%] z-10 pointer-events-none" 
+           style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.8) 0%, transparent 100%)' }} 
+        />
+
+        {/* 3. Vertical Fade (Bottom "Floor" Melt) */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-[40%] z-10 pointer-events-none"
+          style={{
+             background: `linear-gradient(to bottom, transparent 0%, rgba(${isMorning ? '245, 245, 241' : '20, 20, 20'}, 0.1) 50%, rgba(${isMorning ? '245, 245, 241' : '20, 20, 20'}, 0.4) 75%, rgba(${isMorning ? '245, 245, 241' : '20, 20, 20'}, 1) 100%)`
+          }}
+        />
+
+        {/* Hero Content */}
+        <div className="relative z-20 px-4 md:px-[60px] pb-24 md:pb-32 w-full md:w-[60%] flex flex-col items-start text-left">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="w-full"
           >
             <div className="flex items-center gap-2 mb-2">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="N" className="h-6 w-auto" style={{filter: isMorning ? 'grayscale(100%) brightness(0)' : 'none'}}/>
-              <span className={`tracking-[0.2em] text-xs font-bold ${isMorning ? 'text-black' : 'text-gray-300'}`}>SERIES</span>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="N" className="h-6 w-auto" />
+              <span className={`tracking-[0.2em] text-xs font-bold text-gray-300`}>SERIES</span>
             </div>
             
-            <h1 className={`text-4xl md:text-[60px] font-bold leading-none mb-[15px] ${isScrolled && isMorning ? 'text-black' : 'text-white'}`} style={{textShadow: isMorning ? 'none' : '2px 2px 4px rgba(0,0,0,0.5)'}}>
+            <h1 className={`text-5xl md:text-[80px] font-bold leading-none mb-[15px] text-white tracking-tight`} style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>
               {MAIN_FEATURE.title}
             </h1>
             
-            <p className={`hidden md:block ${isScrolled && isMorning ? 'text-gray-800' : 'text-white'} text-[18px] leading-[1.4] mb-[20px] max-w-[500px]`} style={{textShadow: isMorning ? 'none' : '2px 2px 4px rgba(0,0,0,0.5)'}}>
+            <p className={`hidden md:block text-white/95 text-[18px] font-medium leading-[1.4] mb-[30px] max-w-[600px]`} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}>
               {MAIN_FEATURE.description}
             </p>
             
             <div className="flex gap-[12px]">
-              <button className={`px-[25px] py-[10px] rounded-[4px] flex items-center gap-[8px] font-bold text-[18px] transition-transform hover:scale-105 bg-white text-black`}>
-                <Play className="w-5 h-5 fill-current" /> Play
+              <button className={`px-[25px] py-[10px] rounded-[4px] flex items-center justify-center gap-[8px] font-bold text-[18px] bg-white text-black transition-colors hover:bg-white/80`}>
+                <Play className="w-6 h-6 fill-current" /> Play
               </button>
-              <button className={`px-[25px] py-[10px] rounded-[4px] flex items-center gap-[8px] font-bold text-[18px] transition-transform hover:scale-105 bg-[#6d6d6e]/70 text-white`}>
-                <Info className="w-5 h-5" /> More Info
+              <button className={`hidden sm:flex px-[25px] py-[10px] rounded-[4px] items-center justify-center gap-[8px] font-bold text-[18px] bg-neutral-500/50 text-white transition-colors hover:bg-neutral-500/30 backdrop-blur-sm`}>
+                <Info className="w-6 h-6" /> More Info
               </button>
             </div>
           </motion.div>
+        </div>
+
+        {/* Specialty Circular Icons (Replay / Sound) aligned right */}
+        <div className="absolute right-4 md:right-[60px] bottom-24 md:bottom-32 flex items-center space-x-3 z-30">
+            {/* Replay */}
+            <button 
+                className="flex items-center justify-center w-[36px] h-[36px] rounded-full border-[1.5px] border-white/80 bg-transparent hover:bg-white/10 transition-all duration-200 hover:scale-[1.06] ease-out"
+                style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
+            >
+                <RefreshCw size={16} strokeWidth={1.5} className="text-white" style={{ strokeLinecap: 'round', strokeLinejoin: 'round' }} />
+            </button>
+            {/* Sound Toggle */}
+            <button 
+                onClick={() => setIsMuted(!isMuted)}
+                className="flex items-center justify-center w-[36px] h-[36px] rounded-full border-[1.5px] border-white/80 bg-transparent hover:bg-white/10 transition-all duration-200 hover:scale-[1.06] ease-out"
+                style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
+            >
+                {isMuted ? (
+                    <VolumeX size={16} strokeWidth={1.5} className="text-white" style={{ strokeLinecap: 'round', strokeLinejoin: 'round' }} />
+                ) : (
+                    <Volume2 size={16} strokeWidth={1.5} className="text-white" style={{ strokeLinecap: 'round', strokeLinejoin: 'round' }} />
+                )}
+            </button>
+            {/* Age Rating Box */}
+            <div className="hidden md:flex items-center bg-black/60 border-l-[3px] border-white pl-4 py-1.5 pr-12 text-white text-sm font-bold backdrop-blur-sm"
+                 style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                16+
+            </div>
         </div>
       </div>
 
