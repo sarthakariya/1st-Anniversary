@@ -320,16 +320,17 @@ async function loadData() {
 
   // Set up real-time listener for memories
   onSnapshot(collection(db, 'memories'), (snapshot) => {
+    if (appState.bulkTransactionActive) {
+      console.log("Caching real-time snapshot update during bulk database transaction.");
+      window.pendingMemoriesSnapshot = snapshot;
+      return;
+    }
+    
     const list = snapshot.docs.map(d => d.data());
     // Sort descending by dateAdded (newest first)
     list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
     appState.memories = list;
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    
-    if (appState.bulkTransactionActive) {
-      console.log("Caching real-time snapshot update during bulk database transaction.");
-      return;
-    }
     render();
   }, (err) => {
     handleFirestoreError(err, OperationType.GET, 'memories');
@@ -1409,6 +1410,32 @@ window.shuffleHero = () => {
     nextIndex = (nextIndex + 1) % vids.length;
   }
   window.currentHeroIndex = nextIndex;
+
+  // Swipe/scroll the carousel row smoothly to focus the new hero item
+  const nextHeroMem = vids[nextIndex];
+  if (nextHeroMem) {
+    const rows = document.querySelectorAll('.row');
+    rows.forEach(row => {
+      const header = row.querySelector('.row-header');
+      if (header && (header.textContent.includes("Today's Top Picks") || header.textContent.includes("Picks for You"))) {
+        const cardsContainer = row.querySelector('.row-cards');
+        if (cardsContainer) {
+          const card = Array.from(cardsContainer.querySelectorAll('.media-card')).find(c => {
+            const clickAttr = c.getAttribute('onclick') || '';
+            const dataId = c.getAttribute('data-id') || '';
+            return clickAttr.includes(nextHeroMem.id) || dataId === nextHeroMem.id;
+          });
+          if (card) {
+            const offsetLeft = card.offsetLeft - (cardsContainer.clientWidth / 2) + (card.clientWidth / 2);
+            cardsContainer.scrollTo({
+              left: Math.max(0, offsetLeft),
+              behavior: 'smooth'
+            });
+          }
+        }
+      }
+    });
+  }
   
   const container = document.getElementById('hero-carousel-container');
   const currentHero = container ? container.querySelector('.hero-billboard') : document.querySelector('.hero-billboard');
@@ -2389,10 +2416,27 @@ window.deleteMemory = async (id) => {
   if (confirm("Are you sure you want to delete this memory?")) {
     appState.memories = appState.memories.filter(m => m.id !== id);
     appState.myList = appState.myList.filter(lId => lId !== id);
-    try { await deleteDoc(doc(db, 'memories', id)); } catch(e){}
+    appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
+    if (appState.likedMemories) {
+      appState.likedMemories = appState.likedMemories.filter(lId => lId !== id);
+    }
+    
+    try { 
+      await deleteDoc(doc(db, 'memories', id)); 
+    } catch(e) {
+      console.error("Error deleting memory from DB:", e);
+    }
+    
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    saveStateList('myList', appState.myList);
-    document.getElementById('detailModal').remove();
+    await saveStateList('myList', appState.myList);
+    await saveStateList('continueWatching', appState.continueWatching);
+    if (appState.likedMemories) {
+      await saveStateList('likedMemories', appState.likedMemories);
+    }
+    
+    const dm = document.getElementById('detailModal');
+    if (dm) dm.remove();
+    
     render();
   }
 };
@@ -3449,6 +3493,9 @@ window.openBulkManagerModal = () => {
         </div>
         
         <div class="bm-actions-container hidden" id="bm-bulk-actions">
+          <input type="text" id="bulk-title-input" class="bm-input" placeholder="New Title (Bulk)" style="width: 130px;">
+          <input type="text" id="bulk-desc-input" class="bm-input" placeholder="New Description (Bulk)" style="width: 155px;">
+          
           <select id="bulk-category-select" class="bm-select-input">
             <option value="">-- Change Category --</option>
             <option value="Moments">Moments (Photos)</option>
@@ -3563,40 +3610,55 @@ window.updateBulkToolbar = () => {
 window.applyBulkEdit = async () => {
   if (window.selectedBulkIds.length === 0) return;
   
+  const titleVal = document.getElementById('bulk-title-input').value.trim();
+  const descVal = document.getElementById('bulk-desc-input').value.trim();
   const catVal = document.getElementById('bulk-category-select').value;
   const yearVal = document.getElementById('bulk-year-input').value;
   const ratingVal = document.getElementById('bulk-rating-select').value;
   const thumbVal = document.getElementById('bulk-thumbnail-input').value.trim();
   
-  if (!catVal && !yearVal && !ratingVal && !thumbVal) {
+  if (!titleVal && !descVal && !catVal && !yearVal && !ratingVal && !thumbVal) {
     window.showToast('Please specify at least one metadata change field.');
     return;
   }
   
   let updatedCount = 0;
   
-  // Activate bulk transaction to block live listener interferes
+  // Activate bulk transaction to block live listener interference and avoid race conditions
   appState.bulkTransactionActive = true;
   
   try {
+    const promises = [];
     for (const id of window.selectedBulkIds) {
       const m = appState.memories.find(item => item.id === id);
       if (m) {
+        if (titleVal) m.title = titleVal;
+        if (descVal) m.desc = descVal;
         if (catVal) m.category = catVal;
         if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
         if (ratingVal) m.rating = ratingVal;
         if (thumbVal) m.thumbnail = thumbVal;
         
-        try {
-          await saveMemoryToDB(m);
-          updatedCount++;
-        } catch (err) {
-          console.error('Error saving in bulk:', err);
-        }
+        promises.push((async () => {
+          try {
+            await saveMemoryToDB(m);
+            updatedCount++;
+          } catch (err) {
+            console.error('Error saving in bulk:', err);
+          }
+        })());
       }
     }
+    await Promise.all(promises);
   } finally {
     appState.bulkTransactionActive = false;
+    if (window.pendingMemoriesSnapshot) {
+      const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
+      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      appState.memories = list;
+      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+      window.pendingMemoriesSnapshot = null;
+    }
     render();
   }
   
@@ -3623,20 +3685,23 @@ window.applyBulkDelete = async () => {
   
   let deletedCount = 0;
   
-  // Activate bulk transaction to block live listener interferes
+  // Activate bulk transaction to block live listener interference and avoid race conditions
   appState.bulkTransactionActive = true;
   
   try {
+    const promises = [];
     for (const id of window.selectedBulkIds) {
       const mIndex = appState.memories.findIndex(item => item.id === id);
       if (mIndex !== -1) {
         appState.memories.splice(mIndex, 1);
-        try {
-          await deleteDoc(doc(db, 'memories', id));
-          deletedCount++;
-        } catch (err) {
-          console.error('Error deleting from db:', err);
-        }
+        promises.push((async () => {
+          try {
+            await deleteDoc(doc(db, 'memories', id));
+            deletedCount++;
+          } catch (err) {
+            console.error('Error deleting from db:', err);
+          }
+        })());
       }
       
       appState.myList = appState.myList.filter(item => item !== id);
@@ -3645,14 +3710,24 @@ window.applyBulkDelete = async () => {
         appState.likedMemories = appState.likedMemories.filter(item => item !== id);
       }
     }
+    await Promise.all(promises);
   } finally {
     appState.bulkTransactionActive = false;
+    if (window.pendingMemoriesSnapshot) {
+      const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
+      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      appState.memories = list;
+      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+      window.pendingMemoriesSnapshot = null;
+    }
     render();
   }
   
   await saveStateList('myList', appState.myList);
   await saveStateList('continueWatching', appState.continueWatching);
-  await saveStateList('likedMemories', appState.likedMemories);
+  if (appState.likedMemories) {
+    await saveStateList('likedMemories', appState.likedMemories);
+  }
   window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
   
   window.showToast(`Deleted ${deletedCount} memories in bulk.`);

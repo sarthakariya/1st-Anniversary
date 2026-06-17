@@ -1009,7 +1009,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 10;
 }
 .detail-title {
-  font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: bold; margin-bottom: 20px;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: bold; margin-bottom: 20px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1174,19 +1174,19 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* --- AIS FOCUS MODE STYLES --- */
 
 /* CSS 1: Hero title size - fluid clamp style */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) {
+.hero-title {
   font-size: clamp(28px, 4.5vw, 60px) !important;
   line-height: 1.1 !important;
 }
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1).title-long {
+.hero-title.title-long {
   font-size: clamp(22px, 3.2vw, 42px) !important;
 }
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1).title-very-long {
+.hero-title.title-very-long {
   font-size: clamp(18px, 2.5vw, 32px) !important;
 }
 
 /* CSS 3: Nav links container - flexible and auto-wrapping */
-div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-type(1) {
+.navbar ul {
   width: auto !important;
   max-width: none !important;
   height: auto !important;
@@ -1202,7 +1202,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > ul:nth-of-typ
 }
 
 /* CSS 6: Nav logo image - adaptive width */
-div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(1) > img#nav-logo-img:nth-of-type(1) {
+#nav-logo-img {
   height: clamp(50px, 6vw, 85px) !important;
   width: auto !important;
   max-width: 180px !important;
@@ -1210,7 +1210,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-ty
 }
 
 /* CSS 7: Hero background image overlay - 100% full screen fluid width */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(1) > img#hero-img-overlay:nth-of-type(1) {
+#hero-img-overlay {
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
@@ -1218,44 +1218,38 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > 
 }
 
 /* CSS 8: Nav right section - beautiful right edge align auto-responsive */
-div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) {
+.navbar .nav-right {
   width: auto !important;
   height: 40px !important;
   margin-left: auto !important;
 }
 
 /* CSS 9: Nav profile image - stable profile dimensions */
-div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > img:nth-of-type(1) {
+.navbar .nav-profile-img {
   width: 36px !important;
   height: 36px !important;
 }
 
 /* CSS 11: Hero description width - fluid bound */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) {
+.hero-desc {
   max-width: 500px !important;
   width: 90% !important;
 }
 
 /* CSS 13: Hero play button padding - scalable tap target */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(3) > button:nth-of-type(1) {
+#hero-section .hero-buttons > button:first-child {
   padding-right: clamp(16px, 2vw, 31px) !important;
   padding-left: clamp(16px, 2vw, 31px) !important;
   padding-top: 10px !important;
 }
 
 /* CSS 15: Hero controls height - auto scaling */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div#hero-section:nth-of-type(1) > div:nth-of-type(5) {
+#hero-section .hero-controls {
   height: auto !important;
   min-height: 40px !important;
 }
 
 /* CSS 16-20: Category and row title headers in dashboard - clean adaptive text size */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(1),
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1),
 .slider-container .row-header {
   padding-left: 0px !important;
   font-family: inherit !important;
@@ -1264,7 +1258,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth
 }
 
 /* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) - responsive spacing */
-div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) {
+.slider-container {
   padding-left: clamp(15px, 4%, 50px) !important;
   padding-right: clamp(15px, 4%, 50px) !important;
   margin-top: clamp(-70px, -5vw, -100px) !important;
