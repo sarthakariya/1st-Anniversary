@@ -658,7 +658,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: #222;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s, border-color 0.4s;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.4s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -928,7 +928,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 .playback-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: #000; z-index: 20000;
-  animation: expandFullscreen 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation: expandFullscreen 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.playback-overlay.no-animation {
+  animation: none !important;
+  transition: none !important;
 }
 .playback-overlay video {
   width: 100%; height: 100%; object-fit: cover;

@@ -320,16 +320,16 @@ async function loadData() {
 
   // Set up real-time listener for memories
   onSnapshot(collection(db, 'memories'), (snapshot) => {
-    if (appState.bulkTransactionActive) {
-      console.log("Ignoring real-time snapshot update during bulk database transaction.");
-      return;
-    }
     const list = snapshot.docs.map(d => d.data());
     // Sort descending by dateAdded (newest first)
     list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
     appState.memories = list;
-    
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+    
+    if (appState.bulkTransactionActive) {
+      console.log("Caching real-time snapshot update during bulk database transaction.");
+      return;
+    }
     render();
   }, (err) => {
     handleFirestoreError(err, OperationType.GET, 'memories');
@@ -344,6 +344,7 @@ async function saveMemoryToDB(memory) {
     await setDoc(doc(db, 'memories', memory.id), memory);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id}`);
+    throw err;
   }
 }
 
@@ -454,14 +455,14 @@ function internalRender() {
     // Entrance Animation
     profs.style.opacity = '0';
     setTimeout(() => {
-      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: "easeOut" });
+      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
       const cards = profs.querySelectorAll('.profile-card');
       if (cards.length > 0) {
         cards.forEach(c => c.style.animation = 'none'); // override css
         animate(
           cards, 
           { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
-          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
+          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
         );
       }
     }, 50);
@@ -474,14 +475,14 @@ function internalRender() {
     // Entrance Animation
     dashboard.style.opacity = '0';
     setTimeout(() => {
-      animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+      animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: [0.16, 1, 0.3, 1] });
       
       const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
       if (elements.length > 0) {
           animate(
             elements, 
             { y: [40, 0], opacity: [0, 1] }, 
-            { duration: 0.7, delay: stagger(0.15, { startDelay: 0.2 }), ease: "easeOut" }
+            { duration: 0.7, delay: stagger(0.15, { startDelay: 0.2 }), ease: [0.16, 1, 0.3, 1] }
           );
       }
     }, 50);
@@ -1047,13 +1048,13 @@ function loginProfile(pf, p) {
   // Dashboard emerges from shadows
   dashboard.style.opacity = '0';
   setTimeout(() => {
-    animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: "easeOut" });
+    animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: [0.16, 1, 0.3, 1] });
     const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
     if (elements.length > 0) {
         animate(
           elements, 
           { y: [40, 0], opacity: [0, 1] }, 
-          { duration: 0.8, delay: stagger(0.1, { startDelay: 0.1 }), ease: "easeOut" }
+          { duration: 0.8, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
         );
     }
   }, 50);
@@ -3001,9 +3002,11 @@ window.viewPhotoStatic = (id) => {
   let c = document.getElementById('playbackOverlay');
   if (!c) {
     c = document.createElement('div');
-    c.className = 'playback-overlay';
+    c.className = 'playback-overlay no-animation';
     c.id = 'playbackOverlay';
     document.body.appendChild(c);
+  } else {
+    c.className = 'playback-overlay no-animation';
   }
   
   c.style.display = 'block';
@@ -3015,20 +3018,15 @@ window.viewPhotoStatic = (id) => {
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
     <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
-       <img src="${m.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+       <img src="${m.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius: 0; filter: none;">
     </div>
   `;
 
   const closePlayer = () => {
      if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
-     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s';
-     c.style.transform = 'translateY(100%)';
-     c.style.opacity = '0';
-     setTimeout(() => {
-       c.innerHTML = '';
-       c.style.display = 'none';
-       document.body.style.overflow = '';
-     }, 400);
+     c.style.display = 'none';
+     c.innerHTML = '';
+     document.body.style.overflow = '';
   };
   
   document.getElementById('photo-close-btn').onclick = closePlayer;
@@ -3228,6 +3226,7 @@ window.openBulkUploadModal = () => {
     
     // Clear the transaction active flag
     appState.bulkTransactionActive = false;
+    render();
 
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     
@@ -3263,12 +3262,12 @@ window.startMomentsSlideshow = (startId) => {
   if (startId) {
     const mem = appState.memories.find(m => m.id === startId);
     if (mem && String(mem.category).toLowerCase() !== 'moments') {
-        mems = appState.memories.filter(m => m.category === mem.category && !m.videoUrl);
+        mems = appState.memories.filter(m => m.category === mem.category);
         if (mems.length === 0) mems = [mem];
     }
   }
   
-  if (mems.length === 0) return alert('No photos available to play.');
+  if (mems.length === 0) return alert('No moments available to play.');
 
   let c = document.getElementById('playbackOverlay');
   if (!c) {
@@ -3278,6 +3277,8 @@ window.startMomentsSlideshow = (startId) => {
     document.body.appendChild(c);
   }
   
+  // Remove no-animation class to ensure transitions work for the slideshow
+  c.classList.remove('no-animation');
   c.style.display = 'block';
   c.style.transform = 'translateY(0)';
   c.style.opacity = '1';
@@ -3297,27 +3298,72 @@ window.startMomentsSlideshow = (startId) => {
     <div class="playback-back close-btn" id="ss-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
-    <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
-       <img id="ss-image" src="${mems[currentIndex].thumbnail}" style="width:100%; height:100%; object-fit:contain; transition: opacity 1.5s ease-in-out;">
+    <div id="ss-content-container" style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+       <!-- Content injected here dynamically -->
     </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
   `;
 
-  const imgEl = document.getElementById('ss-image');
-  const duration = 4000;
-  let slideshowInterval;
-  
+  const container = document.getElementById('ss-content-container');
+  let slideshowTimeout = null;
+  let activeVideoEl = null;
+
+  const renderCurrentSlide = () => {
+    if (!container) return;
+    const currentMem = mems[currentIndex];
+    
+    // Fade out container slightly during transition
+    container.style.opacity = '0.3';
+    
+    setTimeout(() => {
+      if (currentMem.videoUrl) {
+        // Video slide with volume and audio playback enabled
+        container.innerHTML = `
+          <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain;"></video>
+        `;
+        const videoEl = document.getElementById('ss-video');
+        activeVideoEl = videoEl;
+        if (videoEl) {
+          videoEl.muted = false;
+          videoEl.volume = 1.0;
+          
+          videoEl.play().catch(e => {
+            console.warn("Video play interrupted/denied, retrying with volume", e);
+            videoEl.muted = true;
+            videoEl.play().catch(err => console.error("Error playing video momentum", err));
+          });
+          
+          videoEl.onended = () => {
+            advanceSlide();
+          };
+          videoEl.onerror = () => {
+            advanceSlide();
+          };
+        }
+      } else {
+        // Photo slide (Silent, highest possible quality, smooth transition)
+        container.innerHTML = `
+          <img src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain;">
+        `;
+        activeVideoEl = null;
+        // Schedule next slide after 4.5 seconds
+        slideshowTimeout = setTimeout(advanceSlide, 4500);
+      }
+      
+      container.style.opacity = '1';
+    }, 300);
+  };
+
+  const advanceSlide = () => {
+    if (slideshowTimeout) clearTimeout(slideshowTimeout);
+    currentIndex = (currentIndex + 1) % mems.length;
+    renderCurrentSlide();
+  };
+
   const startSlideshowLoop = () => {
     const introP = document.getElementById('introPlayer');
     if(introP) introP.style.display = 'none';
-    slideshowInterval = setInterval(() => {
-      imgEl.style.opacity = '0';
-      setTimeout(() => {
-        currentIndex = (currentIndex + 1) % mems.length;
-        imgEl.src = mems[currentIndex].thumbnail;
-        imgEl.style.opacity = '1';
-      }, 1500); // Wait for fade out to complete
-    }, duration);
+    renderCurrentSlide();
   };
 
   const introPlayer = document.getElementById('introPlayer');
@@ -3326,7 +3372,7 @@ window.startMomentsSlideshow = (startId) => {
     introPlayer.volume = 1.0;  // set maximum volume
     if (introPlayer.play() !== undefined) {
       introPlayer.play().catch(() => {
-        // Fallback to muted playback if the browser's autoplay block overrides the active click
+        // Fallback to muted playback if user hasn't interacted yet
         introPlayer.muted = true;
         introPlayer.play().catch(() => startSlideshowLoop());
       });
@@ -3338,9 +3384,14 @@ window.startMomentsSlideshow = (startId) => {
   }
 
   const closePlayer = () => {
-     clearInterval(slideshowInterval);
+     if (slideshowTimeout) clearTimeout(slideshowTimeout);
+     if (activeVideoEl) {
+       activeVideoEl.pause();
+       activeVideoEl = null;
+     }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
-     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';
+     
+     c.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease';
      c.style.transform = 'translateY(100%)';
      c.style.opacity = '0';
      setTimeout(() => {
@@ -3546,6 +3597,7 @@ window.applyBulkEdit = async () => {
     }
   } finally {
     appState.bulkTransactionActive = false;
+    render();
   }
   
   window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
@@ -3595,6 +3647,7 @@ window.applyBulkDelete = async () => {
     }
   } finally {
     appState.bulkTransactionActive = false;
+    render();
   }
   
   await saveStateList('myList', appState.myList);
