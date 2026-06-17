@@ -1,5 +1,5 @@
 import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES, PROFILES } from '../data';
 import { Memory, Profile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,6 +18,50 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // Global Floating Hover State
+  const [hoveredMemory, setHoveredMemory] = useState<Memory | null>(null);
+  const [hoveredRect, setHoveredRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+  const leaveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnterThumbnail = (memory: Memory, e: React.MouseEvent<HTMLDivElement>) => {
+    if (leaveTimeout.current) clearTimeout(leaveTimeout.current);
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const top = rect.top + window.scrollY;
+    const left = rect.left + window.scrollX;
+    
+    hoverTimeout.current = setTimeout(() => {
+      setHoveredMemory(memory);
+      setHoveredRect({
+        top,
+        left,
+        width: rect.width,
+        height: rect.height
+      });
+    }, 380); // Classic Netflix feel transition delay
+  };
+
+  const handleMouseLeaveThumbnail = () => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    leaveTimeout.current = setTimeout(() => {
+      setHoveredMemory(null);
+      setHoveredRect(null);
+    }, 180);
+  };
+
+  const handleMouseEnterFloating = () => {
+    if (leaveTimeout.current) clearTimeout(leaveTimeout.current);
+  };
+
+  const handleMouseLeaveFloating = () => {
+    leaveTimeout.current = setTimeout(() => {
+      setHoveredMemory(null);
+      setHoveredRect(null);
+    }, 150);
+  };
 
   // Theme-aware colors
   const bgColor = isMorning ? 'bg-[#f5f5f1]' : 'bg-[#141414]';
@@ -289,27 +333,15 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
               {category.memories.map(memory => (
                 <div 
                   key={memory.id} 
-                  className="flex-none w-[130px] sm:w-[200px] md:w-[240px] snap-center relative rounded-[4px] cursor-pointer transition-all duration-300 ease-out transform md:hover:scale-115 hover:z-30 md:hover:-translate-y-6 will-change-transform transform-gpu"
+                  className="flex-none w-[130px] sm:w-[200px] md:w-[240px] snap-center relative rounded-[4px] cursor-pointer transition-all duration-300 ease-out transform hover:scale-[1.03] hover:z-30 will-change-transform transform-gpu"
+                  onMouseEnter={(e) => handleMouseEnterThumbnail(memory, e)}
+                  onMouseLeave={handleMouseLeaveThumbnail}
                   onClick={() => setSelectedMemory(memory)}
                 >
                   <div className="aspect-video relative rounded-[4px] overflow-hidden border border-transparent hover:border-white/20 transition-colors">
                     <img src={memory.thumbnailUrl} alt={memory.title} className="w-full h-full object-cover rounded-[4px] select-none" />
                   </div>
-                  {/* Hover Info card - Desktop mostly */}
-                  <div className={`hidden md:block absolute bottom-0 left-0 right-0 p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 ${modalBg} shadow-2xl rounded-b-[4px] border border-t-0 ${isMorning ? 'border-gray-200' : 'border-neutral-800'} z-30`} style={{ transform: 'translateY(100%)' }}>
-                    <div className="flex justify-between items-center mb-2">
-                       <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-black hover:bg-neutral-200 transition-colors">
-                         <Play className="w-4 h-4 fill-current ml-0.5" />
-                       </div>
-                       <Check className={`w-6 h-6 rounded-full border-2 p-1 ${isMorning ? 'border-gray-400 text-gray-500 hover:text-black hover:border-black' : 'border-neutral-700 text-neutral-400 hover:text-white hover:border-white'} transition-colors`} />
-                    </div>
-                    <p className="text-[#46d369] text-xs font-bold mb-1">{memory.matchPercentage}% Match</p>
-                    <div className="flex items-center gap-2 text-[10px] font-bold mb-2">
-                      <span className={`px-1 rounded-sm text-[9px] border ${isMorning ? 'border-gray-400' : 'border-neutral-700'}`}>{memory.maturityRating}</span>
-                      <span>{memory.duration}</span>
-                    </div>
-                    <p className={`text-[10px] ${isMorning ? 'text-gray-700' : 'text-gray-300'} font-bold line-clamp-1`}>{memory.tags.join(' • ')}</p>
-                  </div>
+
                 </div>
               ))}
             </div>
@@ -385,6 +417,94 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                 </div>
              </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Hover Preview Card (Netflix-style absolute overlay) */}
+      <AnimatePresence>
+        {hoveredMemory && hoveredRect && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1.15 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 350, damping: 28 }}
+            onMouseEnter={handleMouseEnterFloating}
+            onMouseLeave={handleMouseLeaveFloating}
+            onClick={() => {
+              setSelectedMemory(hoveredMemory);
+              setHoveredMemory(null);
+            }}
+            className={`fixed rounded-md shadow-[0_12px_44px_rgba(0,0,0,0.85)] z-[60] overflow-hidden ${modalBg} border ${isMorning ? 'border-gray-200' : 'border-neutral-800'} cursor-pointer flex flex-col`}
+            style={{
+              top: hoveredRect.top - window.scrollY - 30,
+              left: Math.max(12, Math.min(
+                hoveredRect.left - window.scrollX - ((hoveredRect.width * 1.3 - hoveredRect.width) / 2),
+                (typeof window !== 'undefined' ? window.innerWidth : 1200) - (hoveredRect.width * 1.3) - 12
+              )),
+              width: hoveredRect.width * 1.3,
+              transformOrigin: 'center center',
+            }}
+          >
+            {/* Aspect Video for trailer/teaser preview */}
+            <div className="relative aspect-video w-full bg-neutral-900 overflow-hidden">
+               <video 
+                 src="https://assets.mixkit.co/videos/preview/mixkit-romantic-couple-by-the-lake-at-sunset-42907-large.mp4"
+                 className="w-full h-full object-cover select-none absolute inset-0"
+                 autoPlay
+                 loop
+                 muted
+                 playsInline
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+               
+               {/* Small title layered neat */}
+               <div className="absolute bottom-2 left-3 right-3 z-10">
+                 <p className="text-white text-[12px] font-bold font-mono tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] uppercase">
+                   {hoveredMemory.title}
+                 </p>
+               </div>
+            </div>
+
+            {/* Expanded metadata below */}
+            <div className="p-3.5 flex flex-col flex-grow">
+               <div className="flex justify-between items-center mb-1.5 col-span-2">
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center bg-white text-black hover:bg-neutral-200 transition-colors shadow">
+                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                    </div>
+                    <div className={`w-7 h-7 rounded-full border flex items-center justify-center ${isMorning ? 'border-gray-400 text-gray-700 hover:bg-gray-100' : 'border-neutral-700 text-neutral-300 hover:bg-neutral-800'} transition-colors shadow`}>
+                      <Plus className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${isMorning ? 'border-gray-300 text-gray-600' : 'border-neutral-700 text-neutral-400'}`}>
+                    {hoveredMemory.maturityRating}
+                  </div>
+               </div>
+
+               {/* Stats tags layout */}
+               <div className="flex items-center gap-2 text-[10px] font-bold mb-1.5">
+                  <span className="text-[#46d369]">{hoveredMemory.matchPercentage}% Match</span>
+                  <span className={isMorning ? 'text-gray-500' : 'text-neutral-400'}>{hoveredMemory.year}</span>
+                  <span className={isMorning ? 'text-gray-500' : 'text-neutral-400'}>{hoveredMemory.duration}</span>
+               </div>
+
+               {/* Very small fonted descriptive snippet */}
+               <div className="mb-2">
+                  <p className={`text-[10px] sm:text-[11px] font-medium leading-snug line-clamp-2 ${isMorning ? 'text-gray-700' : 'text-gray-300'}`}>
+                    {hoveredMemory.description}
+                  </p>
+               </div>
+
+               {/* Genre badges flex items */}
+               <div className="flex items-center flex-wrap gap-1 mt-1">
+                 {hoveredMemory.tags.map(tag => (
+                   <span key={tag} className="text-[8px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                     {tag}
+                   </span>
+                 ))}
+               </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

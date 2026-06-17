@@ -55,15 +55,9 @@ window.addEventListener('storage', (e) => {
     if(newState.settings) appState.settings = newState.settings;
     if(newState.profiles) appState.profiles = newState.profiles;
     
-    // Smooth layout reflow
-    const dashboard = document.querySelector('.dashboard-container');
-    if (dashboard) {
-      dashboard.style.opacity = '0.5';
-      setTimeout(() => {
-        window.refreshRowsView();
-        dashboard.style.transition = 'opacity 0.4s ease';
-        dashboard.style.opacity = '1';
-      }, 300);
+    // Smooth, silent layout update
+    if (typeof window.refreshRowsView === 'function') {
+      window.refreshRowsView(null, null, true);
     }
   }
 });
@@ -177,7 +171,12 @@ document.addEventListener('keydown', (e) => {
     const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
     openModals.forEach(m => {
       m.classList.remove('open');
-      setTimeout(() => { m.remove(); render(); }, 400);
+      setTimeout(() => { 
+        m.remove(); 
+        if (typeof window.refreshRowsView === 'function') {
+          window.refreshRowsView(null, null, true);
+        }
+      }, 400);
     });
   }
 });
@@ -186,7 +185,12 @@ document.addEventListener('click', (e) => {
   openModals.forEach(m => {
     if (e.target === m) {
       m.classList.remove('open');
-      setTimeout(() => { m.remove(); render(); }, 300);
+      setTimeout(() => { 
+        m.remove(); 
+        if (typeof window.refreshRowsView === 'function') {
+          window.refreshRowsView(null, null, true);
+        }
+      }, 300);
     }
   });
 });
@@ -319,169 +323,174 @@ window.toggleNotifications = () => {
   document.getElementById('notifPanel').classList.toggle('active');
 };
 
-window.refreshRowsView = (rcNode, heroNode) => {
+window.refreshRowsView = (rcNode, heroNode, silent = false) => {
   const rc = rcNode || document.querySelector('.slider-container');
   const hero = heroNode || document.getElementById('hero-section');
   if(!rc) return;
   
-  rc.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-  rc.style.opacity = '0';
-  rc.style.transform = 'translateY(10px)';
-  
-  setTimeout(() => {
+  const rebuild = () => {
     rc.innerHTML = '';
     
     // Show skeletons while data is null
-  if (appState.memories === null) {
-    if(hero) hero.style.display = 'block'; // Keep hero area while loading
-    for (let i = 0; i < 3; i++) {
-        const row = document.createElement('div');
-        row.className = 'row';
-        row.innerHTML = `<h2 class="row-header" style="color: #444;">Loading...</h2><div class="row-content" style="display:flex; gap:8px;">
-          ${Array(6).fill('<div class="skeleton-card media-card"></div>').join('')}
-        </div>`;
-        rc.appendChild(row);
+    if (appState.memories === null) {
+      if(hero) hero.style.display = 'block'; // Keep hero area while loading
+      for (let i = 0; i < 3; i++) {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.innerHTML = `<h2 class="row-header" style="color: #444;">Loading...</h2><div class="row-content" style="display:flex; gap:8px;">
+            ${Array(6).fill('<div class="skeleton-card media-card"></div>').join('')}
+          </div>`;
+          rc.appendChild(row);
+      }
+      return;
     }
-    return;
-  }
-  
-  if(appState.searchQuery) {
-    if(hero) hero.style.display = 'none';
-    const q = appState.searchQuery;
-    const mems = appState.memories.filter(m => 
-      m.title.toLowerCase().includes(q) || 
-      (m.desc && m.desc.toLowerCase().includes(q)) || 
-      (m.year && m.year.toString().includes(q)) ||
-      (m.category && m.category.toLowerCase().includes(q))
-    );
-    if(mems.length) rc.appendChild(createRow('Search Results', mems));
-    else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
     
-    requestAnimationFrame(() => {
-      rc.style.opacity = '1';
-      rc.style.transform = 'translateY(0)';
-    });
-    return;
-  }
-  
-  if(hero) hero.style.display = 'block';
-  
-  let rowIndex = 0;
-  
-  if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
-    const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
-    if(cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
-  }
-  
-  if (appState.activeCategory === 'My List') {
-    rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id)), rowIndex++));
-  } else if (appState.activeCategory === 'Categories') {
-    subCategories.forEach(cat => {
-      const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
-      if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
-    });
-  } else if (appState.activeCategory === 'Moments') {
-    // Show local array instantly to feel responsive, then fetch from firestore
-    const fetchAndRenderGallery = async () => {
-      let galleryItems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
+    if(appState.searchQuery) {
+      if(hero) hero.style.display = 'none';
+      const q = appState.searchQuery;
+      const mems = appState.memories.filter(m => 
+        m.title.toLowerCase().includes(q) || 
+        (m.desc && m.desc.toLowerCase().includes(q)) || 
+        (m.year && m.year.toString().includes(q)) ||
+        (m.category && m.category.toLowerCase().includes(q))
+      );
+      if(mems.length) rc.appendChild(createRow('Search Results', mems));
+      else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
       
-      rc.innerHTML = '';
-      
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
-      
-      const headerBox = document.createElement('div');
-      headerBox.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
-      headerBox.innerHTML = `
-        <h2 style="font-size: 1.4vw; font-weight: 700; margin: 0;">Moments</h2>
-        <div style="display:flex; gap:10px;">
-          <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="startMomentsSlideshow()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
-          </button>
-          <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openBulkUploadModal()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Photos
-          </button>
-        </div>
-      `;
-      wrapper.appendChild(headerBox);
-      
-      const grid = document.createElement('div');
-      grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
-      
-      galleryItems.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'media-card';
-        div.style.flex = "unset";
-        div.onmouseenter = () => {
-          const r = div.getBoundingClientRect();
-          if (r.left < 50) {
-            div.style.transformOrigin = 'left center';
-          } else if (window.innerWidth - r.right < 50) {
-            div.style.transformOrigin = 'right center';
-          } else {
-            div.style.transformOrigin = 'center center';
-          }
-        };
-        div.onclick = () => { 
-          if (!appState.memories.find(mem => mem.id === m.id)) {
-            appState.memories.push(m);
-          }
-          openDetailModal(m.id); 
-        };
-        div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
-        grid.appendChild(div);
+      requestAnimationFrame(() => {
+        rc.style.opacity = '1';
+        rc.style.transform = 'translateY(0)';
       });
-      wrapper.appendChild(grid);
-      rc.appendChild(wrapper);
-    };
-
-    fetchAndRenderGallery();
-  } else {
-    // For Home
-    if (appState.activeCategory === 'Home') {
+      return;
+    }
+    
+    if(hero) hero.style.display = 'block';
+    
+    let rowIndex = 0;
+    
+    if (['Home', 'Dates'].includes(appState.activeCategory) && appState.continueWatching.length > 0) {
+      const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
+      if(cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+    }
+    
+    if (appState.activeCategory === 'My List') {
+      rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id)), rowIndex++));
+    } else if (appState.activeCategory === 'Categories') {
       subCategories.forEach(cat => {
         const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
         if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
       });
-      rc.appendChild(createRow('Recent Additions', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
-    }
-    // For Dates
-    if (appState.activeCategory === 'Dates') {
-      rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
-    }
-  }
-  
-  // Fade back in
-  requestAnimationFrame(() => {
-    rc.style.opacity = '1';
-    rc.style.transform = 'translateY(0)';
-    
-    // Scramble Cipher Animation
-    const chars = '!<>-_\\\\/[]{}—=+*^?#________';
-    rc.querySelectorAll('.scramble-text').forEach(el => {
-      const targetText = el.getAttribute('data-text');
-      if (!targetText) return;
-      let frame = 0;
-      const duration = 20; // ~450ms at 60fps
-      const runScramble = () => {
-        if (frame >= duration) {
-           el.innerText = targetText;
-           return;
-        }
-        let scrambled = '';
-        for (let i = 0; i < targetText.length; i++) {
-           if (targetText[i] === ' ') scrambled += ' ';
-           else if (Math.random() < (frame / duration)) scrambled += targetText[i];
-           else scrambled += chars[Math.floor(Math.random() * chars.length)];
-        }
-        el.innerText = scrambled;
-        frame++;
-        requestAnimationFrame(runScramble);
+    } else if (appState.activeCategory === 'Moments') {
+      // Show local array instantly to feel responsive, then fetch from firestore
+      const fetchAndRenderGallery = async () => {
+        let galleryItems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
+        
+        rc.innerHTML = '';
+        
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
+        
+        const headerBox = document.createElement('div');
+        headerBox.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
+        headerBox.innerHTML = `
+          <h2 style="font-size: 1.4vw; font-weight: 700; margin: 0;">Moments</h2>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="startMomentsSlideshow()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
+            </button>
+            <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" onclick="openBulkUploadModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Photos
+            </button>
+          </div>
+        `;
+        wrapper.appendChild(headerBox);
+        
+        const grid = document.createElement('div');
+        grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
+        
+        galleryItems.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'media-card';
+          div.style.flex = "unset";
+          div.onmouseenter = () => {
+            const r = div.getBoundingClientRect();
+            if (r.left < 50) {
+              div.style.transformOrigin = 'left center';
+            } else if (window.innerWidth - r.right < 50) {
+              div.style.transformOrigin = 'right center';
+            } else {
+              div.style.transformOrigin = 'center center';
+            }
+          };
+          div.onclick = () => { 
+            if (!appState.memories.find(mem => mem.id === m.id)) {
+              appState.memories.push(m);
+            }
+            openDetailModal(m.id); 
+          };
+          div.innerHTML = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
+          grid.appendChild(div);
+        });
+        wrapper.appendChild(grid);
+        rc.appendChild(wrapper);
       };
-      runScramble();
+  
+      fetchAndRenderGallery();
+    } else {
+      // For Home
+      if (appState.activeCategory === 'Home') {
+        subCategories.forEach(cat => {
+          const mems = appState.memories.filter(m => String(m.category).toLowerCase() === cat.toLowerCase());
+          if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
+        });
+        rc.appendChild(createRow('Recent Additions', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded5 || b.dateAdded - a.dateAdded), rowIndex++));
+      }
+      // For Dates
+      if (appState.activeCategory === 'Dates') {
+        rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => String(m.category).toLowerCase() !== 'moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
+      }
+    }
+    
+    // Fade back in
+    requestAnimationFrame(() => {
+      rc.style.opacity = '1';
+      rc.style.transform = 'translateY(0)';
+      
+      // Scramble Cipher Animation
+      const chars = '!<>-_\\\\/[]{}—=+*^?#________';
+      rc.querySelectorAll('.scramble-text').forEach(el => {
+        const targetText = el.getAttribute('data-text');
+        if (!targetText) return;
+        let frame = 0;
+        const duration = 20; // ~450ms at 60fps
+        const runScramble = () => {
+          if (frame >= duration) {
+             el.innerText = targetText;
+             return;
+          }
+          let scrambled = '';
+          for (let i = 0; i < targetText.length; i++) {
+            if (targetText[i] === ' ') scrambled += ' ';
+            else if (Math.random() < (frame / duration)) scrambled += targetText[i];
+            else scrambled += chars[Math.floor(Math.random() * chars.length)];
+          }
+          el.innerText = scrambled;
+          frame++;
+          requestAnimationFrame(runScramble);
+        };
+        runScramble();
+      });
     });
-  });
-  }, 300);
+  };
+
+  if (silent) {
+    rebuild();
+  } else {
+    rc.style.transition = 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+    rc.style.opacity = '0';
+    rc.style.transform = 'translateY(10px)';
+    setTimeout(rebuild, 240);
+  }
 };
 
 window.toggleSetting = (settingKey) => {
@@ -923,7 +932,7 @@ function createNavbar() {
       <div class="nav-logo" onclick="setCategory('Home')">
         <img id="nav-logo-img" style="height: 85px; width: 180px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
-      <ul class="nav-links" style="gap: 25px; margin-left: 40px; position:relative; font-size: 14px; font-weight: 500;">
+      <ul class="nav-links" style="position:relative; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>
         ${mainTabs.map(cat => {
           let icon = '';
@@ -1600,13 +1609,13 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.classList.remove('open'); setTimeout(() => { dm.remove(); render(); }, 300);">&times;</button>
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.classList.remove('open'); setTimeout(() => { dm.remove(); }, 300);">&times;</button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
@@ -1643,7 +1652,7 @@ window.openDetailModal = (id, e, editMode = false) => {
       <div class="detail-body">
         <div class="detail-left">
           <div class="detail-meta">
-            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="quality">4K Ultra HD</span>
+            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
           </div>
           <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
           <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
@@ -1663,6 +1672,60 @@ window.openDetailModal = (id, e, editMode = false) => {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Dynamically fetch and display actual duration
+  if (m.videoUrl) {
+    const isYt = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+    if (isYt) {
+      const handleYtDurationMsg = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'infoDelivery' && data.info && typeof data.info.duration === 'number') {
+            const sec = data.info.duration;
+            if (sec > 0) {
+              const formatted = window.formatDuration(sec);
+              const durationEl = document.getElementById('dm-duration');
+              if (durationEl) {
+                durationEl.innerText = formatted;
+                durationEl.style.display = 'inline-block';
+                window.removeEventListener('message', handleYtDurationMsg);
+              }
+            }
+          }
+        } catch (e) {}
+      };
+      window.addEventListener('message', handleYtDurationMsg);
+      
+      // Fallback default duration in case oembed loader or delay
+      setTimeout(() => {
+        const dEl = document.getElementById('dm-duration');
+        if (dEl && !dEl.innerText) {
+          dEl.innerText = m.videoUrl === 'dQw4w9WgXcQ' ? '3h 32m' : '2m 14s';
+          dEl.style.display = 'inline-block';
+        }
+      }, 2500);
+    } else {
+      // Local video tag preview
+      const tempVideo = document.createElement('video');
+      tempVideo.src = m.videoUrl;
+      tempVideo.preload = 'metadata';
+      tempVideo.addEventListener('loadedmetadata', () => {
+        const sec = tempVideo.duration;
+        if (sec > 0) {
+          const formatted = window.formatDuration(sec);
+          const durationEl = document.getElementById('dm-duration');
+          if (durationEl) {
+            durationEl.innerText = formatted;
+            durationEl.style.display = 'inline-block';
+          }
+        }
+        tempVideo.remove();
+      });
+      tempVideo.addEventListener('error', () => {
+        tempVideo.remove();
+      });
+    }
+  }
   
   if (editMode) {
      toggleDetailEdit();
@@ -2259,7 +2322,12 @@ window.openBulkUploadModal = () => {
     
     sessionStorage.setItem('netflix_memories', JSON.stringify(appState.memories));
     modal.classList.remove('open');
-    setTimeout(() => { modal.remove(); render(); }, 400);
+    setTimeout(() => { 
+      modal.remove(); 
+      if (typeof window.refreshRowsView === 'function') {
+        window.refreshRowsView(null, null, true);
+      }
+    }, 400);
   };
 };
 
