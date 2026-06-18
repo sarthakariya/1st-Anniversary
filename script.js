@@ -619,6 +619,8 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     
     if(appState.searchQuery) {
       if(hero) hero.style.display = 'none';
+      rc.style.setProperty('margin-top', '140px', 'important');
+      rc.style.setProperty('padding-top', '10px', 'important');
       const q = appState.searchQuery;
       const mems = appState.memories.filter(m => 
         m.title.toLowerCase().includes(q) || 
@@ -636,6 +638,8 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
       return;
     }
     
+    rc.style.removeProperty('margin-top');
+    rc.style.removeProperty('padding-top');
     if(hero) hero.style.display = 'block';
     
     let rowIndex = 0;
@@ -1066,25 +1070,73 @@ function loginProfile(pf, p) {
   window.currentHeroIndex = undefined;
   appState.currentProfile = pf.name;
   window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
-  appState.view = 'dashboard';
-  app.innerHTML = '';
   
-  const dashboard = createDashboard();
-  app.appendChild(dashboard);
-  
-  // Dashboard emerges from shadows
-  dashboard.style.opacity = '0';
-  setTimeout(() => {
-    animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: [0.16, 1, 0.3, 1] });
-    const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
-    if (elements.length > 0) {
-        animate(
-          elements, 
-          { y: [40, 0], opacity: [0, 1] }, 
-          { duration: 0.8, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
-        );
+  const pfList = document.getElementById('pfList');
+  if (pfList) pfList.style.pointerEvents = 'none';
+
+  const title = document.querySelector('.profile-selection h1');
+  const manageBtn = document.querySelector('.manage-profiles-btn');
+  if (title) try { animate(title, { opacity: 0, y: -20 }, { duration: 0.4 }); } catch(err) {}
+  if (manageBtn) try { animate(manageBtn, { opacity: 0, y: 20 }, { duration: 0.4 }); } catch(err) {}
+
+  const cards = document.querySelectorAll('.profile-card');
+  cards.forEach(card => {
+    if (card !== p) {
+      try { animate(card, { opacity: 0, scale: 0.8 }, { duration: 0.4, ease: [0.16, 1, 0.3, 1] }); } catch(err) {}
+    } else {
+      const avatarWrapper = card.querySelector('.profile-avatar-wrapper');
+      const name = card.querySelector('.profile-name');
+      const outline = card.querySelector('.profile-outline-svg');
+      if (name) try { animate(name, { opacity: 0, y: 10 }, { duration: 0.3 }); } catch(err) {}
+      if (outline) try { animate(outline, { opacity: 0 }, { duration: 0.3 }); } catch(err) {}
+      if (avatarWrapper) {
+        try {
+          animate(avatarWrapper, { 
+            scale: 1.25, 
+            boxShadow: '0 0 40px rgba(229, 9, 20, 0.8)'
+          }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
+        } catch(err) {}
+      }
     }
-  }, 50);
+  });
+
+  setTimeout(() => {
+    const pSelection = document.querySelector('.profile-selection');
+    if (pSelection) {
+      try {
+        animate(pSelection, { opacity: 0, scale: 1.05 }, { duration: 0.4, ease: [0.16, 1, 0.3, 1] }).then(() => {
+          appState.view = 'dashboard';
+          app.innerHTML = '';
+          
+          const dashboard = createDashboard();
+          app.appendChild(dashboard);
+          
+          dashboard.style.opacity = '0';
+          setTimeout(() => {
+            animate(dashboard, { opacity: [0, 1] }, { duration: 0.8, ease: [0.16, 1, 0.3, 1] });
+            const elements = dashboard.querySelectorAll('.navbar, .hero-billboard, .row');
+            if (elements.length > 0) {
+                animate(
+                  elements, 
+                  { y: [40, 0], opacity: [0, 1] }, 
+                  { duration: 0.8, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
+                );
+            }
+          }, 50);
+        });
+      } catch(e) {
+        appState.view = 'dashboard';
+        app.innerHTML = '';
+        const dashboard = createDashboard();
+        app.appendChild(dashboard);
+      }
+    } else {
+      appState.view = 'dashboard';
+      app.innerHTML = '';
+      const dashboard = createDashboard();
+      app.appendChild(dashboard);
+    }
+  }, 750);
 }
 
 function showPinModal(pf, pElement) {
@@ -1566,7 +1618,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%);border:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -1876,8 +1928,8 @@ function createRow(title, memories, index = 0) {
             wrap.className = 'media-card-hover-video';
             wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px;';
             const v = document.createElement('iframe');
-            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080&disablekb=1`;
-            v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.25);';
+            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd2160&disablekb=1`;
+            v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.35);';
             wrap.appendChild(v);
             card.appendChild(wrap);
           } else {
@@ -2704,7 +2756,7 @@ window.playVideo = (id) => {
   const startMainVideo = () => {
     introPlayer.style.display = 'none';
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd2160&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
     
@@ -2719,14 +2771,44 @@ window.playVideo = (id) => {
   if (introPlayer) {
     introPlayer.muted = false;
     introPlayer.volume = 1.0;
+    
+    c.style.transition = 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    c.style.opacity = '0';
+    c.style.transform = 'scale(0.95)';
+    
+    requestAnimationFrame(() => {
+      c.style.opacity = '1';
+      c.style.transform = 'scale(1)';
+    });
+
     if(introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => {
+      introPlayer.play().then(() => {
+        try { introPlayer.playbackRate = 1.8; } catch(err) {}
+      }).catch(() => {
         introPlayer.muted = true;
-        introPlayer.play().catch(() => startMainVideo());
+        introPlayer.play().then(() => {
+          try { introPlayer.playbackRate = 1.8; } catch(err) {}
+        }).catch(() => startMainVideo());
       });
     }
-    introPlayer.onended = startMainVideo;
     introPlayer.onerror = startMainVideo;
+    
+    const fallbackTimeout = setTimeout(() => {
+      if (introPlayer.style.display !== 'none') {
+        try {
+          animate(introPlayer, { opacity: 0, scale: 1.1 }, { duration: 0.3 }).then(() => {
+            startMainVideo();
+          });
+        } catch(e) {
+          startMainVideo();
+        }
+      }
+    }, 850);
+    
+    introPlayer.onended = () => {
+      clearTimeout(fallbackTimeout);
+      startMainVideo();
+    };
   } else {
     startMainVideo();
   }

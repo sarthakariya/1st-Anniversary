@@ -1,11 +1,11 @@
 import { Category, Profile } from './types';
 
 // Replace these URLs with your actual photos and videos!
-const PLACEHOLDER_IMG_1 = "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800&auto=format&fit=crop";
-const PLACEHOLDER_IMG_2 = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop";
-const PLACEHOLDER_IMG_3 = "https://images.unsplash.com/photo-1494774157365-9e04c6720e47?q=80&w=800&auto=format&fit=crop";
-const PLACEHOLDER_IMG_4 = "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=800&auto=format&fit=crop";
-const HERO_BG = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=1920&auto=format&fit=crop";
+const PLACEHOLDER_IMG_1 = "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=3840&auto=format&fit=crop";
+const PLACEHOLDER_IMG_2 = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=3840&auto=format&fit=crop";
+const PLACEHOLDER_IMG_3 = "https://images.unsplash.com/photo-1494774157365-9e04c6720e47?q=80&w=3840&auto=format&fit=crop";
+const PLACEHOLDER_IMG_4 = "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=3840&auto=format&fit=crop";
+const HERO_BG = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=4096&auto=format&fit=crop";
 
 export const PROFILES: Profile[] = [
   { id: '1', name: '1 month', avatar: PLACEHOLDER_IMG_1 },
@@ -78,7 +78,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm10',
         title: 'Our Rooftop Evening',
         description: 'Looking at the city lights and sharing secrets under the warm starlit sky.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 97,
         year: '2023',
         duration: '3h 10m',
@@ -90,7 +90,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm11',
         title: 'Picnic in the Park',
         description: 'Homemade sandwiches and laughing until our hearts was light.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 94,
         year: '2023',
         duration: '2h',
@@ -102,7 +102,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm12',
         title: 'Starlight Wishes',
         description: 'Counting shooting stars on a cold, serene November night.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 99,
         year: '2023',
         duration: '1h 15m',
@@ -156,7 +156,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm13',
         title: 'The Rain Coffee Hunt',
         description: 'Getting completely drenched laughing our way into the nearest espresso shop.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 98,
         year: '2024',
         duration: '1h 20m',
@@ -168,7 +168,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm14',
         title: 'Arcade Rivalry',
         description: 'A legendary competition over pinball and racing games. Aman lost.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 92,
         year: '2024',
         duration: '2h',
@@ -180,7 +180,7 @@ export const MOVIE_CATEGORIES: Category[] = [
         id: 'm15',
         title: 'Sunrise Walk',
         description: 'Waking up early to catch the first golden rays on the ocean tide.',
-        thumbnailUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop",
+        thumbnailUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=3840&auto=format&fit=crop",
         matchPercentage: 99,
         year: '2024',
         duration: '1h 50m',
