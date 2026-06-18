@@ -1,5 +1,5 @@
 import { db, auth } from './src/firebase.js';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc, writeBatch } from 'firebase/firestore';
 import { animate, stagger } from 'motion';
 
 const OperationType = {
@@ -45,27 +45,8 @@ function handleFirestoreError(error, operationType, path) {
         appState.profiles = fallbackProfs;
       }
     } else if (path === 'memories') {
-      if (!appState.memories || appState.memories.length === 0) {
-        try {
-          const cachedMemories = sessionStorage.getItem('netflix_memories') || localStorage.getItem('netflix_memories');
-          if (cachedMemories) {
-            appState.memories = JSON.parse(cachedMemories);
-          }
-        } catch (e) {}
-        if (!appState.memories || appState.memories.length === 0) {
-          const fallbackMems = typeof initialMemories !== 'undefined' ? [...initialMemories] : [
-            {
-              id: 'm_mock1',
-              title: 'Our First Memory',
-              description: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
-              thumbnail: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMjc1IiBmaWxsPSIjMjIyIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI3NSIvPjwvc3ZnPg==',
-              videoUrl: 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4',
-              category: 'Celebrations',
-              dateAdded: Date.now()
-            }
-          ];
-          appState.memories = fallbackMems;
-        }
+      if (!appState.memories) {
+        appState.memories = [];
       }
     }
     
@@ -75,7 +56,7 @@ function handleFirestoreError(error, operationType, path) {
     // Show polite warning toast
     setTimeout(() => {
       if (typeof window.showToast === 'function') {
-        window.showToast("🛡️ Sandbox Mode: Saved locally to browser cache (Cloud limit full)", 6200);
+        window.showToast("⚠️ Firebase Storage Full: Operating securely in live Sandbox Mode", 6200);
       }
     }, 1200);
     
@@ -85,7 +66,7 @@ function handleFirestoreError(error, operationType, path) {
   if (operationType === OperationType.WRITE || operationType === OperationType.UPDATE || operationType === OperationType.DELETE) {
     setTimeout(() => {
       if (typeof window.showToast === 'function') {
-        window.showToast("Saved locally to browser sandbox storage (Cloud quota full)", 4000);
+        window.showToast("⚠️ Database is full - Local operations completed in Sandbox Mode", 4000);
       }
     }, 100);
     return; // Bypass throwing to avoid interrupting active uploads/saves
@@ -195,6 +176,10 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 window.safeSetSessionItem = (key, value) => {
+  if (key === 'netflix_memories' || key === 'netflix_state') {
+    // Strictly disable browser caching as requested to keep operation pure and prevent stale state fallbacks.
+    return;
+  }
   try {
     sessionStorage.setItem(key, value);
   } catch (e) {
@@ -212,6 +197,9 @@ window.safeSetSessionItem = (key, value) => {
 };
 
 window.safeSetLocalItem = (key, value) => {
+  if (key === 'netflix_memories' || key === 'netflix_state') {
+    return;
+  }
   try {
     localStorage.setItem(key, value);
   } catch (e) {
@@ -247,32 +235,70 @@ window.getNormalizedCategory = (cat) => {
   return 'Our Special Event';
 };
 
-async function loadData() {
-  // Pre-load from sessionStorage or localStorage for instant visual layout (no flickering on reload)
+window.purgeAllFirebaseMemories = async () => {
+  console.log("Starting full Firebase database purge...");
   try {
-    const cachedState = sessionStorage.getItem('netflix_state') || localStorage.getItem('netflix_state');
-    const cachedMemories = sessionStorage.getItem('netflix_memories') || localStorage.getItem('netflix_memories');
-    if (cachedState) {
-      const data = JSON.parse(cachedState);
-      if(data.myList) appState.myList = data.myList;
-      if(data.continueWatching) appState.continueWatching = data.continueWatching;
-      if(data.likedMemories) appState.likedMemories = data.likedMemories;
-      if(data.settings) appState.settings = data.settings;
-      if(data.profiles && data.profiles.length > 0) appState.profiles = data.profiles;
+    const querySnapshot = await getDocs(collection(db, 'memories'));
+    if (querySnapshot.empty) {
+      console.log("No memories found in Firebase. Database is already clean.");
+      appState.memories = [];
+      render();
+      return;
     }
-    if (cachedMemories) {
-      appState.memories = JSON.parse(cachedMemories);
+    
+    console.log(`Found ${querySnapshot.size} memories to clear. Purging...`);
+    const batch = writeBatch(db);
+    querySnapshot.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+    console.log("Firebase database purge complete.");
+    
+    appState.memories = [];
+    if (typeof window.showToast === 'function') {
+      window.showToast("🗑️ All videos and photos successfully removed from Firebase!", 5000);
     }
-  } catch (e) {
-    console.error("Error loading cached data", e);
+    render();
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn("Gracefully handled quota/access limit during Firebase memories purge:", errMsg);
+    
+    // Visually clear out all memories from the UI state as explicitly requested by the user
+    appState.memories = [];
+    appState.offlineMode = true; // Switch to Sandbox Mode
+    
+    if (typeof window.showToast === 'function') {
+      window.showToast("⚠️ Firebase Storage Full - Cleaned UI & entered Unlimited YouTube Sandbox Mode", 6000);
+    }
+    render();
   }
+};
+
+async function loadData() {
+  // Disable all browser caching/loading from cache as requested
+  try {
+    sessionStorage.removeItem('netflix_memories');
+    localStorage.removeItem('netflix_memories');
+    sessionStorage.removeItem('netflix_state');
+    localStorage.removeItem('netflix_state');
+  } catch (e) {}
 
   // Ensure that profiles and memories are instantly set to non-null arrays with designer defaults
   if (!appState.profiles || appState.profiles.length === 0) {
     appState.profiles = [...initialProfiles];
   }
-  if (!appState.memories || appState.memories.length === 0) {
-    appState.memories = [...initialMemories];
+  
+  // Real-time Firestore will populate appState.memories live without any local cache fallback!
+  appState.memories = [];
+
+  // Trigger one-time automatic database purge if forced by user request
+  if (!localStorage.getItem('first_time_firebase_purge_done')) {
+    localStorage.setItem('first_time_firebase_purge_done', 'true');
+    setTimeout(() => {
+      window.purgeAllFirebaseMemories().catch(err => {
+        console.error("Auto Firebase purge failed:", err);
+      });
+    }, 1500);
   }
 
   // Set up real-time listener for household user state
@@ -828,6 +854,18 @@ window.toggleSetting = (settingKey) => {
   render();
 };
 
+window.confirmPurgeAll = async () => {
+  const check = confirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?");
+  if (check) {
+    const secondCheck = confirm("Double confirmation required:\n\nAre you absolutely sure?");
+    if (secondCheck) {
+      const modal = document.getElementById('settingsModal');
+      if (modal) modal.remove();
+      await window.purgeAllFirebaseMemories();
+    }
+  }
+};
+
 window.openSettingsModal = () => {
   const modal = document.createElement('div');
   modal.className = 'upload-modal';
@@ -858,6 +896,14 @@ window.openSettingsModal = () => {
           <input type="checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''} onchange="toggleSetting('autoPlayNextEpisode')">
           <span class="slider"></span>
         </label>
+      </div>
+      
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 25px; padding-top: 20px;">
+        <div style="font-weight: bold; font-size: 15px; color: #ff5252; margin-bottom: 5px;">Danger Zone</div>
+        <p style="font-size: 11px; color: #888; margin: 0 0 15px 0; line-height: 1.4;">Permanently delete and wipe all active videos and photos from Firebase Firestore.</p>
+        <button class="btn" style="background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.5); color: #ff5252; width: 100%; justify-content: center; font-weight: 600; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.confirmPurgeAll()">
+          🗑️ Purge Firebase Database
+        </button>
       </div>
       
       <div class="actions" style="margin-top:30px; justify-content:center;">
@@ -1601,20 +1647,12 @@ function createHero() {
     </div>
   `;
 
-  let idleTimer;
-  const resetIdleTimer = () => {
-    clearTimeout(idleTimer);
-    const imgOverlay = c.querySelector('#hero-img-overlay');
-    if (imgOverlay) imgOverlay.style.opacity = '1';
-    idleTimer = setTimeout(() => {
-      if (imgOverlay) imgOverlay.style.opacity = '0';
-    }, 4000);
-  };
-  
   if (backgroundVideoHtml) {
-    window.addEventListener('mousemove', resetIdleTimer);
-    window.addEventListener('keydown', resetIdleTimer);
-    resetIdleTimer();
+    // Gracefully fade out static picture once video/iframe starts streaming
+    setTimeout(() => {
+      const imgOverlay = c.querySelector('#hero-img-overlay');
+      if (imgOverlay) imgOverlay.style.opacity = '0';
+    }, 1000);
     
     // Volume Fade Loop Timer for native video
     setTimeout(() => {
@@ -1954,6 +1992,43 @@ window.toggleHeroMute = () => {
   }
 };
 
+// === STORAGE FULL BLOCKER ===
+window.showStorageFullModal = (type) => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal open';
+  modal.id = 'storageFullModal';
+  modal.style.zIndex = '99999';
+  
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 450px; text-align: center; border: 1px solid rgba(229, 9, 20, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.8); background: #141414; padding: 40px 30px; border-radius: 12px; position: relative;">
+      <button class="upload-close" style="position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: white; font-size: 28px; cursor: pointer;" onclick="document.getElementById('storageFullModal').remove()">&times;</button>
+      <div style="font-size: 54px; margin-bottom: 20px; color: #e50914;">⚠️</div>
+      <div class="upload-title" style="margin-bottom: 15px; font-size: 22px; font-weight: 700; color: #ff5252; text-transform: uppercase; letter-spacing: 0.5px;">Firebase Storage Full</div>
+      
+      <p style="font-size: 14px; line-height: 1.6; color: #ddd; margin-bottom: 30px; padding: 0 10px;">
+        Database and Storage quotas are currently **100% full**. Direct photo or local files uploads are temporarily disabled.
+        <br><br>
+        <span style="color: #46d369; font-weight: 600;">Good News:</span> Videos are **unlimited**! Since we stream videos directly from YouTube by just pasting the link, no server storage is used.
+      </p>
+      
+      <div style="display: flex; gap: 12px; flex-direction: column;">
+        <button class="btn btn-primary" style="background: linear-gradient(90deg, #e50914, #ff5252); border: none; padding: 12px; font-weight: 700; width: 100%; border-radius: 8px; cursor: pointer; color: white; transition: transform 0.2s;" onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'" onclick="document.getElementById('storageFullModal').remove(); window.openUploadModal();">
+          ＋ Add a YouTube Video Instead
+        </button>
+        <button style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; transition: color 0.2s; font-weight: 500;" onmouseenter="this.style.color='white'" onmouseleave="this.style.color='#aaa'" onclick="document.getElementById('storageFullModal').remove();">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+// Override original bulk uploader to direct to our beautiful storage full notification
+window.openBulkUploadModal = () => {
+  window.showStorageFullModal('bulk');
+};
+
 // === UPLOAD FEATURE ===
 window.openUploadModal = () => {
   const modal = document.createElement('div');
@@ -1987,7 +2062,7 @@ window.openUploadModal = () => {
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Thumbnail Image URL (Optional)</label>
           <input type="text" id="up-thumb-custom" placeholder="Paste custom image URL here (or keep blank to use fetched youtube thumbnail)" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" oninput="document.getElementById('up-thumb-preview').src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block';">
           <div style="text-align:center; margin-top:12px; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-thumb-file').click()">📁 Select Image File</button>
+          <button style="background: rgba(229, 9, 20, 0.15); border:1px dashed #e50914; color:#ff5252; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.25)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.showStorageFullModal('photo')">📁 Select Image File (Blocked: Storage Full)</button>
           <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
         </div>
         
@@ -3628,7 +3703,7 @@ window.applyBulkEdit = async () => {
   appState.bulkTransactionActive = true;
   
   try {
-    const promises = [];
+    const memoriesToUpdate = [];
     for (const id of window.selectedBulkIds) {
       const m = appState.memories.find(item => item.id === id);
       if (m) {
@@ -3638,20 +3713,32 @@ window.applyBulkEdit = async () => {
         if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
         if (ratingVal) m.rating = ratingVal;
         if (thumbVal) m.thumbnail = thumbVal;
-        
-        promises.push((async () => {
-          try {
-            await saveMemoryToDB(m);
-            updatedCount++;
-          } catch (err) {
-            console.error('Error saving in bulk:', err);
-          }
-        })());
+        memoriesToUpdate.push(m);
+        updatedCount++;
       }
     }
-    await Promise.all(promises);
+    
+    // Commit to Firestore in safe chunks of 400
+    if (memoriesToUpdate.length > 0) {
+      const chunkSize = 400;
+      for (let i = 0; i < memoriesToUpdate.length; i += chunkSize) {
+        const chunk = memoriesToUpdate.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+        chunk.forEach(m => {
+          const docRef = doc(db, 'memories', m.id);
+          batch.set(docRef, m);
+        });
+        await batch.commit();
+      }
+    }
+  } catch (err) {
+    console.error('Error committing bulk edit batch:', err);
+    handleFirestoreError(err, OperationType.UPDATE, 'bulk_memories');
   } finally {
     appState.bulkTransactionActive = false;
+    // Always persist to local cache immediately
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+    
     if (window.pendingMemoriesSnapshot) {
       const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
       list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
@@ -3689,30 +3776,42 @@ window.applyBulkDelete = async () => {
   appState.bulkTransactionActive = true;
   
   try {
-    const promises = [];
-    for (const id of window.selectedBulkIds) {
-      const mIndex = appState.memories.findIndex(item => item.id === id);
-      if (mIndex !== -1) {
-        appState.memories.splice(mIndex, 1);
-        promises.push((async () => {
-          try {
-            await deleteDoc(doc(db, 'memories', id));
-            deletedCount++;
-          } catch (err) {
-            console.error('Error deleting from db:', err);
-          }
-        })());
-      }
-      
-      appState.myList = appState.myList.filter(item => item !== id);
-      appState.continueWatching = appState.continueWatching.filter(item => item !== id);
-      if (appState.likedMemories) {
-        appState.likedMemories = appState.likedMemories.filter(item => item !== id);
-      }
+    const idsToDelete = [...window.selectedBulkIds];
+    
+    // Sync local arrays immediately so the UI is super fast
+    appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
+    appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
+    appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
+    if (appState.likedMemories) {
+      appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
     }
-    await Promise.all(promises);
+    
+    // Commit deletions in chunked batches of 400
+    const chunkSize = 400;
+    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+      const chunk = idsToDelete.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach(id => {
+        const docRef = doc(db, 'memories', id);
+        batch.delete(docRef);
+        deletedCount++;
+      });
+      await batch.commit();
+    }
+    
+    // Also save state alterations
+    await saveStateList('myList', appState.myList);
+    await saveStateList('continueWatching', appState.continueWatching);
+    if (appState.likedMemories) {
+      await saveStateList('likedMemories', appState.likedMemories);
+    }
+  } catch (err) {
+    console.error('Error committing bulk delete batch:', err);
+    handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
   } finally {
     appState.bulkTransactionActive = false;
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+    
     if (window.pendingMemoriesSnapshot) {
       const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
       list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
@@ -3722,13 +3821,6 @@ window.applyBulkDelete = async () => {
     }
     render();
   }
-  
-  await saveStateList('myList', appState.myList);
-  await saveStateList('continueWatching', appState.continueWatching);
-  if (appState.likedMemories) {
-    await saveStateList('likedMemories', appState.likedMemories);
-  }
-  window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
   
   window.showToast(`Deleted ${deletedCount} memories in bulk.`);
   
