@@ -11,267 +11,6 @@ const OperationType = {
   WRITE: 'write',
 };
 
-window.PremiumModal = {
-  open(options) {
-    const parentId = 'premium-modal-container';
-    let container = document.getElementById(parentId);
-    if (container) container.remove();
-    
-    container = document.createElement('div');
-    container.id = parentId;
-    container.style.cssText = `
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(10, 10, 10, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 10000000;
-      opacity: 0;
-    `;
-    
-    const content = document.createElement('div');
-    content.className = 'premium-modal-content';
-    content.style.cssText = `
-      background: #181818;
-      border: 1px solid rgba(229, 9, 20, 0.45);
-      border-radius: 8px;
-      padding: 35px;
-      max-width: 480px;
-      width: 90%;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.95), 0 0 30px rgba(229, 9, 20, 0.2);
-      font-family: 'Inter', system-ui, sans-serif;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    `;
-    
-    let initialTransform = 'scale(0.95)';
-    let targetTransform = 'scale(1)';
-    if (options.animation === 'slide-down') {
-      initialTransform = 'translateY(-100px) scale(0.98)';
-      targetTransform = 'translateY(0) scale(1)';
-    } else if (options.animation === 'zoom') {
-      initialTransform = 'scale(0.8) translateY(20px)';
-      targetTransform = 'scale(1) translateY(0)';
-    }
-    
-    content.style.transform = initialTransform;
-    
-    const titleHtml = options.title ? `
-      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #fff; margin: 0 0 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; letter-spacing: -0.5px;">
-        ${options.title}
-      </h3>
-    ` : '';
-    
-    const bodyContainer = document.createElement('div');
-    bodyContainer.className = 'premium-modal-body';
-    bodyContainer.style.cssText = `
-      font-size: 15px;
-      color: #e5e5e5;
-      line-height: 1.6;
-      margin-bottom: 28px;
-    `;
-    if (typeof options.body === 'string') {
-      bodyContainer.innerHTML = options.body;
-    } else {
-      bodyContainer.appendChild(options.body);
-    }
-    
-    const actionsContainer = document.createElement('div');
-    actionsContainer.style.cssText = `
-      display: flex;
-      gap: 12px;
-      width: 100%;
-      justify-content: flex-end;
-    `;
-    
-    options.actions.forEach(act => {
-      const btn = document.createElement('button');
-      btn.innerText = act.label;
-      if (act.type === 'primary') {
-        btn.className = 'btn btn-primary';
-        btn.style.cssText = `
-          padding: 10px 24px;
-          background: #E50914;
-          color: #fff;
-          font-weight: 700;
-          border-radius: 4px;
-          border: none;
-          cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-        `;
-      } else {
-        btn.className = 'btn btn-secondary';
-        btn.style.cssText = `
-          padding: 10px 24px;
-          background: rgba(255,255,255,0.1);
-          color: #fff;
-          font-weight: 600;
-          border-radius: 4px;
-          border: 1px solid rgba(255,255,255,0.15);
-          cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-        `;
-      }
-      
-      btn.onclick = () => {
-        if (act.onClick) {
-          act.onClick();
-        }
-        window.PremiumModal.close();
-      };
-      actionsContainer.appendChild(btn);
-    });
-    
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = titleHtml;
-    if (tempDiv.firstElementChild) {
-      content.appendChild(tempDiv.firstElementChild);
-    }
-    content.appendChild(bodyContainer);
-    content.appendChild(actionsContainer);
-    container.appendChild(content);
-    document.body.appendChild(container);
-    
-    animate(container, { opacity: [0, 1] }, { duration: 0.35, ease: 'easeOut' });
-    animate(content, { transform: [initialTransform, targetTransform] }, { duration: 0.45, ease: [0.16, 1, 0.3, 1] });
-    
-    window.PremiumModal._currentAnimation = options.animation || 'slide-down';
-    window.PremiumModal._onClose = options.onClose;
-  },
-  
-  close() {
-    const container = document.getElementById('premium-modal-container');
-    if (!container) return;
-    
-    const content = container.querySelector('.premium-modal-content');
-    const animation = window.PremiumModal._currentAnimation || 'slide-down';
-    
-    let exitTransform = 'scale(0.95)';
-    if (animation === 'slide-down') {
-      exitTransform = 'translateY(-100px) scale(0.98)';
-    } else if (animation === 'zoom') {
-      exitTransform = 'scale(0.85) translateY(20px)';
-    }
-    
-    Promise.all([
-      animate(container, { opacity: 0 }, { duration: 0.25, ease: 'easeIn' }).finished,
-      content ? animate(content, { transform: exitTransform }, { duration: 0.25, ease: 'easeIn' }).finished : Promise.resolve()
-    ]).then(() => {
-      container.remove();
-      if (window.PremiumModal._onClose) {
-        window.PremiumModal._onClose();
-      }
-    });
-  }
-};
-
-window.showNetflixAlert = (message, title = "Notification", callback = null) => {
-  window.PremiumModal.open({
-    title,
-    body: message.replace(/\n/g, '<br>'),
-    animation: 'slide-down',
-    actions: [
-      { label: 'OK', type: 'primary', onClick: callback }
-    ]
-  });
-};
-
-window.showNetflixConfirm = (message, onConfirm, title = "Confirmation", onCancel = null) => {
-  window.PremiumModal.open({
-    title,
-    body: message.replace(/\n/g, '<br>'),
-    animation: 'slide-down',
-    actions: [
-      { label: 'Cancel', type: 'secondary', onClick: onCancel },
-      { label: 'Confirm', type: 'primary', onClick: onConfirm }
-    ]
-  });
-};
-
-window.showNetflixPrompt = (message, defaultValue, onInputReceived, title = "Input") => {
-  const body = document.createElement('div');
-  body.innerHTML = `
-    <p style="margin: 0 0 15px 0;">${message.replace(/\n/g, '<br>')}</p>
-    <input type="text" id="premium-prompt-input" value="${defaultValue || ''}" style="width: 100%; background: #222; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 12px; color: #fff; outline: none; font-size: 15px; box-sizing: border-box; transition: border-color 0.25s;" onfocus="this.style.borderColor='#E50914'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
-  `;
-  
-  window.PremiumModal.open({
-    title,
-    body,
-    animation: 'slide-down',
-    actions: [
-      { label: 'Cancel', type: 'secondary' },
-      {
-        label: 'Submit',
-        type: 'primary',
-        onClick: () => {
-          const input = document.getElementById('premium-prompt-input');
-          if (onInputReceived && input) {
-            onInputReceived(input.value);
-          }
-        }
-      }
-    ]
-  });
-  
-  setTimeout(() => {
-    const input = document.getElementById('premium-prompt-input');
-    if (input) {
-      input.focus();
-      input.select();
-    }
-  }, 100);
-};
-
-// --- GLOBAL PREMIUM LOADING SPINNER SYSTEM WITH SMOOTH FADE-IN ---
-window.showPremiumLoading = (message = "Loading...") => {
-  let spinner = document.getElementById('premium-loading-spinner');
-  if (spinner) {
-    const textEl = spinner.querySelector('.loading-text');
-    if (textEl) textEl.innerText = message;
-    return;
-  }
-  
-  spinner = document.createElement('div');
-  spinner.id = 'premium-loading-spinner';
-  spinner.style.cssText = `
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(20, 20, 20, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 10000000;
-    opacity: 0;
-  `;
-  
-  spinner.innerHTML = `
-    <div class="spinner-wheel" style="width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.08); border-top: 3px solid #E50914; border-radius: 50%; margin-bottom: 24px; animation: spin 0.8s linear infinite;"></div>
-    <div class="loading-text" style="color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 500; letter-spacing: 0.5px; opacity: 0; transform: translateY(10px);">${message}</div>
-  `;
-  
-  document.body.appendChild(spinner);
-  
-  animate(spinner, { opacity: [0, 1] }, { duration: 0.35, ease: "easeOut" });
-  animate(spinner.querySelector('.loading-text'), { opacity: [0, 1], y: [10, 0] }, { duration: 0.45, delay: 0.1, ease: "easeOut" });
-};
-
-window.hidePremiumLoading = () => {
-  const spinner = document.getElementById('premium-loading-spinner');
-  if (!spinner) return Promise.resolve();
-  
-  const textEl = spinner.querySelector('.loading-text');
-  return Promise.all([
-    animate(spinner, { opacity: 0 }, { duration: 0.3, ease: "easeIn" }).finished,
-    textEl ? animate(textEl, { opacity: 0, y: -10 }, { duration: 0.25, ease: "easeIn" }).finished : Promise.resolve()
-  ]).then(() => {
-    spinner.remove();
-  });
-};
-
 function handleFirestoreError(error, operationType, path) {
   const errMsg = error instanceof Error ? error.message : String(error);
   const errInfo = {
@@ -362,7 +101,6 @@ let appState = {
   currentProfile: null,
   activeCategory: 'Home',
   searchQuery: '',
-  searchHistory: JSON.parse(localStorage.getItem('netflix_search_history') || '[]'),
   settings: {
     autoPlayPreviews: true,
     autoPlayNextEpisode: true
@@ -773,61 +511,8 @@ window.logoutProfile = () => {
   }, 500);
 };
 
-let searchSaveTimeout = null;
-
-window.saveSearchToHistory = (query) => {
-  const trimmed = query.trim();
-  if (!trimmed || trimmed.length < 2) return;
-  let history = [...(appState.searchHistory || [])];
-  history = history.filter(item => item.trim().toLowerCase() !== trimmed.toLowerCase());
-  history.unshift(trimmed);
-  history = history.slice(0, 5);
-  appState.searchHistory = history;
-  localStorage.setItem('netflix_search_history', JSON.stringify(history));
-  window.refreshRowsView();
-};
-
-window.applyHistorySearch = (item) => {
-  appState.searchQuery = item.toLowerCase();
-  const input = document.getElementById('searchInput');
-  if (input) {
-    input.value = item;
-  }
-  const container = document.getElementById('searchContainer');
-  if (container) {
-    container.classList.add('active');
-  }
-  window.refreshRowsView();
-};
-
-window.removeHistoryItem = (item, event) => {
-  if (event) {
-    event.stopPropagation();
-    event.preventDefault();
-  }
-  let history = [...(appState.searchHistory || [])];
-  history = history.filter(i => i.trim().toLowerCase() !== item.trim().toLowerCase());
-  appState.searchHistory = history;
-  localStorage.setItem('netflix_search_history', JSON.stringify(history));
-  window.refreshRowsView();
-};
-
-window.clearSearchHistory = () => {
-  appState.searchHistory = [];
-  localStorage.setItem('netflix_search_history', '[]');
-  window.refreshRowsView();
-};
-
 window.handleSearch = (e) => {
-  const value = e.target.value;
-  appState.searchQuery = value.toLowerCase();
-  
-  clearTimeout(searchSaveTimeout);
-  if (value.trim()) {
-    searchSaveTimeout = setTimeout(() => {
-      window.saveSearchToHistory(value);
-    }, 1200);
-  }
+  appState.searchQuery = e.target.value.toLowerCase();
   window.refreshRowsView();
 };
 
@@ -941,37 +626,8 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         (m.year && m.year.toString().includes(q)) ||
         (m.category && m.category.toLowerCase().includes(q))
       );
-      
-      const searchPane = document.createElement('div');
-      searchPane.style.cssText = "width: 100%; display: flex; flex-direction: column; padding-top: 30px;";
-      
-      if (appState.searchHistory && appState.searchHistory.length > 0) {
-        const historyRow = document.createElement('div');
-        historyRow.className = "search-history-pills-row";
-        historyRow.style.cssText = "padding: 0 4% 20px 4%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: fadeIn 0.35s ease both;";
-        historyRow.innerHTML = `
-          <span style="color: #666; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Recent Queries:</span>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            ${appState.searchHistory.map(item => `
-              <div class="history-pill" onclick="window.applyHistorySearch('${item.replace(/'/g, "\\'")}')" style="display: inline-flex; align-items: center; background: rgba(30, 30, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; color: #eee; gap: 8px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
-                <span>${item}</span>
-                <span onclick="window.removeHistoryItem('${item.replace(/'/g, "\\'")}', event)" style="font-weight: bold; font-size: 14px; opacity: 0.5; transition: opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.5'">&times;</span>
-              </div>
-            `).join('')}
-            <span onclick="window.clearSearchHistory()" style="color: #E50914; font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 10px; transition: color 0.2s;" onmouseenter="this.style.color='#ff3b47'" onmouseleave="this.style.color='#E50914'">Clear History</span>
-          </div>
-        `;
-        searchPane.appendChild(historyRow);
-      }
-      
-      const resultsContainer = document.createElement('div');
-      if(mems.length) {
-        resultsContainer.appendChild(createRow('Search Results', mems));
-      } else {
-        resultsContainer.innerHTML = '<div style="color:#888; padding:60px; font-size: 15px; text-align:center; font-family: \'Space Grotesk\', sans-serif;">No matches found for "' + q + '"</div>';
-      }
-      searchPane.appendChild(resultsContainer);
-      rc.appendChild(searchPane);
+      if(mems.length) rc.appendChild(createRow('Search Results', mems));
+      else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
       
       requestAnimationFrame(() => {
         rc.style.opacity = '1';
@@ -1178,22 +834,16 @@ window.toggleSetting = (settingKey) => {
   render();
 };
 
-window.confirmPurgeAll = () => {
-  window.showNetflixConfirm(
-    "⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?",
-    () => {
-      window.showNetflixConfirm(
-        "Double confirmation required:\n\nAre you absolutely sure?",
-        async () => {
-          const modal = document.getElementById('settingsModal');
-          if (modal) modal.remove();
-          await window.purgeAllFirebaseMemories();
-        },
-        "CRITICAL PURGE CONFIRMATION"
-      );
-    },
-    "DATABASE PURGE WARNING"
-  );
+window.confirmPurgeAll = async () => {
+  const check = confirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?");
+  if (check) {
+    const secondCheck = confirm("Double confirmation required:\n\nAre you absolutely sure?");
+    if (secondCheck) {
+      const modal = document.getElementById('settingsModal');
+      if (modal) modal.remove();
+      await window.purgeAllFirebaseMemories();
+    }
+  }
 };
 
 window.openSettingsModal = () => {
@@ -1706,7 +1356,7 @@ function createNavbar() {
           <div class="search-icon" onclick="toggleSearch()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
-          <input type="text" id="searchInput" class="search-input" placeholder="Titles, people, genres" oninput="handleSearch(event)" onkeydown="if(event.key === 'Enter') { window.saveSearchToHistory(this.value); this.blur(); }" value="${appState.searchQuery || ''}">
+          <input type="text" id="searchInput" class="search-input" placeholder="Titles, people, genres" oninput="handleSearch(event)" value="${appState.searchQuery || ''}">
         </div>
 
         <div class="notification-container">
@@ -2423,10 +2073,7 @@ window.openUploadModal = () => {
 
   document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
-    if (!link) {
-      window.showNetflixAlert("Please paste a YouTube link first.", "Missing Link");
-      return;
-    }
+    if (!link) return alert("Please paste a YouTube link first.");
 
     let videoId = '';
     const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -2437,13 +2084,10 @@ window.openUploadModal = () => {
       videoId = link.length === 11 ? link : null;
     }
 
-    if (!videoId) {
-      window.showNetflixAlert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.", "Invalid Link");
-      return;
-    }
+    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
     
     extractedVideoId = videoId;
-    window.showPremiumLoading("Fetching YouTube video metadata...");
+    document.getElementById('up-fetch').innerText = "Fetching...";
     
     try {
       const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
@@ -2463,8 +2107,6 @@ window.openUploadModal = () => {
          currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
          document.getElementById('up-thumb-preview').src = currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
-    } finally {
-      window.hidePremiumLoading();
     }
     
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
@@ -2472,19 +2114,11 @@ window.openUploadModal = () => {
   
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
-    if(!title) {
-      window.showNetflixAlert("Title required", "Form Incomplete");
-      return;
-    }
-    if(!extractedVideoId) {
-      window.showNetflixAlert("Please fetch a valid YouTube link first.", "Verification Needed");
-      return;
-    }
+    if(!title) return alert("Title required");
+    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
-
-    window.showPremiumLoading("Adding your premium memory to our story...");
 
     const customThumbVal = document.getElementById('up-thumb-custom').value.trim();
     const finalThumb = (localThumbBase64 && customThumbVal.startsWith('Local File Selected:')) ?
@@ -2503,21 +2137,15 @@ window.openUploadModal = () => {
       uploadedBy: appState.currentProfile
     };
 
-    try {
-      await saveMemoryToDB(mem);
-      appState.memories.unshift(mem);
-      window.justUploadedId = mem.id;
-      const modalEl = document.getElementById('uploadModal');
-      if (modalEl) modalEl.classList.remove('open');
-      setTimeout(() => {
-        if (modalEl) modalEl.remove();
-        render();
-      }, 600);
-    } catch(err) {
-      window.showNetflixAlert("Failed to save your memory: " + err, "Sync Error");
-    } finally {
-      window.hidePremiumLoading();
-    }
+    await saveMemoryToDB(mem);
+    appState.memories.unshift(mem);
+    window.justUploadedId = mem.id;
+    const modalEl = document.getElementById('uploadModal');
+    modalEl.classList.remove('open');
+    setTimeout(() => {
+      modalEl.remove();
+      render();
+    }, 600);
   };
 };
 
@@ -2789,37 +2417,33 @@ window.saveDetailEdit = async (id) => {
   toggleDetailEdit();
 };
 
-window.deleteMemory = (id) => {
-  window.showNetflixConfirm(
-    "Are you sure you want to permanently delete this memory?",
-    async () => {
-      appState.memories = appState.memories.filter(m => m.id !== id);
-      appState.myList = appState.myList.filter(lId => lId !== id);
-      appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
-      if (appState.likedMemories) {
-        appState.likedMemories = appState.likedMemories.filter(lId => lId !== id);
-      }
-      
-      try { 
-        await deleteDoc(doc(db, 'memories', id)); 
-      } catch(e) {
-        console.error("Error deleting memory from DB:", e);
-      }
-      
-      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-      await saveStateList('myList', appState.myList);
-      await saveStateList('continueWatching', appState.continueWatching);
-      if (appState.likedMemories) {
-        await saveStateList('likedMemories', appState.likedMemories);
-      }
-      
-      const dm = document.getElementById('detailModal');
-      if (dm) dm.remove();
-      
-      render();
-    },
-    "Delete Memory"
-  );
+window.deleteMemory = async (id) => {
+  if (confirm("Are you sure you want to delete this memory?")) {
+    appState.memories = appState.memories.filter(m => m.id !== id);
+    appState.myList = appState.myList.filter(lId => lId !== id);
+    appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
+    if (appState.likedMemories) {
+      appState.likedMemories = appState.likedMemories.filter(lId => lId !== id);
+    }
+    
+    try { 
+      await deleteDoc(doc(db, 'memories', id)); 
+    } catch(e) {
+      console.error("Error deleting memory from DB:", e);
+    }
+    
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+    await saveStateList('myList', appState.myList);
+    await saveStateList('continueWatching', appState.continueWatching);
+    if (appState.likedMemories) {
+      await saveStateList('likedMemories', appState.likedMemories);
+    }
+    
+    const dm = document.getElementById('detailModal');
+    if (dm) dm.remove();
+    
+    render();
+  }
 };
 
 window.showToast = (msg, duration = 3000) => {
@@ -2954,25 +2578,19 @@ window.shareVideo = (id) => {
   const link = window.location.origin + window.location.pathname + "?v=" + id;
   if(navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(link).then(() => {
-      window.showNetflixAlert("Memory link copied to clipboard!\n\n" + link, "Share Memory");
+      alert("Memory link copied to clipboard!\n" + link);
     }).catch(() => {
-      window.showNetflixPrompt("Copy this link to share:", link, null, "Share Link");
+      prompt("Copy this link to share:", link);
     });
   } else {
-    window.showNetflixPrompt("Copy this link to share:", link, null, "Share Link");
+    prompt("Copy this link to share:", link);
   }
 }
 window.downloadVideo = () => {
-  window.showNetflixPrompt(
-    "Select Download Quality:\nEnter '1' for High (4K Ultra HD)\nEnter '2' for Standard (1080p HD)",
-    "1",
-    (quality) => {
-      if (quality) {
-        window.showNetflixAlert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...", "Offline Mode");
-      }
-    },
-    "Download Quality"
-  );
+  const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
+  if (quality) {
+    alert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...");
+  }
 }
 
 // === FULLSCREEN PLAYBACK ===
@@ -3390,32 +3008,24 @@ window.handleAddMemoryClick = () => {
 window.generateDescriptionWithAI = () => {
   const link = document.getElementById('up-yt-link').value.trim();
   
-  let videoId = '';
-  if (link) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = link.match(regExp);
-    if (match && match[2].length === 11) {
-      videoId = match[2];
-    } else if (link.length === 11) {
-      videoId = link;
-    }
-  }
-  
-  const formattedStableLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : link;
-  
-  const prompt = `CRITICAL ASSIGNMENT: Please process this YouTube link on-demand, analyze the actual video contents, and fetch the full transcript and captions:
-${formattedStableLink || '(Not provided)'}
+  const prompt = `CRITICAL ASSIGNMENT: Please process this YouTube link, watch/analyze its exact content, and retrieve its actual transcripts/captions:
+${link || '(Not provided)'}
 
-MANDATORY INSTRUCTIONS FOR FULL COMPREHENSION AND ANALYSIS:
-1. DO NOT shortcut, give partial lines, or ask the user for clarification (e.g. do not ask "Please give me one sentence so I can analyze it").
-2. Perform a complete, thorough, deep end-to-end reading of the transcript. Take your time to digest every scene, spoken word, and emotion conveyed in the video.
-3. Once fully summarized, forge the analysis into:
-   - A highly cohesive, cinematic, Netflix-styled custom Title for this memory.
-   - A captivating, nostalgic streaming description (max 35-40 words, perfect for a Netflix card catalog blurb).
+MANDATORY RULES:
+1. You must base your output ONLY on the real events, theme, and spoken characters of the provided YouTube link. DO NOT write a generic guess or general cinematic filler if you cannot see the video!
+2. If you are UNABLE to access this specific video due to YouTube blocks, server-side filters, or private/unlisted flags, DO NOT HALLUCINATE OR MAKE UP A STORY. Instead, output the following starting template so the user can describe it:
+Title: [Please replace with a 1-sentence summary of your video so I can style it!]
+Description: [Please replace with a 1-sentence description of your video so I can style it!]
 
-Your output MUST fit this exact, clean format with no other text, greetings, codeblocks, or conversational fluff:
-Title: [Cinematic Title]
-Description: [Full Exhaustive Cinematic Summary]`;
+3. If you CAN successfully access/process the video, please generate and output:
+- A catchy, cinematic custom Video Title (Netflix style) that conveys the actual narrative/events of the video.
+- A nostalgic, romantic, cinematic professional blurb/description for our streaming catalogue (under 2 lines, around 30-40 words maximum).
+
+Your final output format must be EXACTLY:
+Title: [Your Generated Cinematic Title]
+Description: [Your Generated Description]
+
+(Do not include any greeting, markdown, brackets, introduction, conversational filler, or bold fonts! Keep the title and description as pure, clean text.)`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Gemini prompt copied! Opening Google Gemini...");
@@ -3423,7 +3033,7 @@ Description: [Full Exhaustive Cinematic Summary]`;
       window.open('https://gemini.google.com/app', '_blank');
     }, 1000);
   }).catch((err) => {
-    window.showNetflixAlert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt, "Gemini Prompt");
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
     window.open('https://gemini.google.com/app', '_blank');
   });
 };
@@ -3556,7 +3166,7 @@ window.openBulkUploadModal = () => {
     }
     
     if (toUpload.length === 0) {
-      window.showNetflixAlert(`All ${maxFiles.length} selected photo${maxFiles.length > 1 ? 's' : ''} already exist in your gallery.\n\nNo duplicates were uploaded.`, "Duplicate Gallery Items");
+      alert(`All ${maxFiles.length} selected photo${maxFiles.length > 1 ? 's' : ''} already exist in your gallery.\n\nNo duplicates were uploaded.`);
       const dm = document.getElementById('bulkUploadModal');
       if (dm) {
         dm.classList.remove('open');
@@ -3681,6 +3291,7 @@ window.openBulkUploadModal = () => {
     }
     
     window.showToast(endMsg, 6000);
+    alert(endMsg);
     
     const dm = document.getElementById('bulkUploadModal');
     if (dm) {
@@ -3705,10 +3316,7 @@ window.startMomentsSlideshow = (startId) => {
     }
   }
   
-  if (mems.length === 0) {
-    window.showNetflixAlert('No moments available to play.', "Empty Slideshow");
-    return;
-  }
+  if (mems.length === 0) return alert('No moments available to play.');
 
   let c = document.getElementById('playbackOverlay');
   if (!c) {
@@ -4084,76 +3692,74 @@ window.applyBulkEdit = async () => {
   }
 };
 
-window.applyBulkDelete = () => {
+window.applyBulkDelete = async () => {
   if (window.selectedBulkIds.length === 0) return;
   
   const count = window.selectedBulkIds.length;
-  window.showNetflixConfirm(
-    `Are you sure you want to permanently delete all ${count} selected memories?`,
-    async () => {
-      let deletedCount = 0;
-      
-      // Activate bulk transaction to block live listener interference and avoid race conditions
-      appState.bulkTransactionActive = true;
-      
-      try {
-        const idsToDelete = [...window.selectedBulkIds];
-        
-        // Sync local arrays immediately so the UI is super fast
-        appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
-        appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
-        appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
-        if (appState.likedMemories) {
-          appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
-        }
-        
-        // Commit deletions in chunked batches of 400
-        const chunkSize = 400;
-        for (let i = 0; i < idsToDelete.length; i += chunkSize) {
-          const chunk = idsToDelete.slice(i, i + chunkSize);
-          const batch = writeBatch(db);
-          chunk.forEach(id => {
-            const docRef = doc(db, 'memories', id);
-            batch.delete(docRef);
-            deletedCount++;
-          });
-          await batch.commit();
-        }
-        
-        // Also save state alterations
-        await saveStateList('myList', appState.myList);
-        await saveStateList('continueWatching', appState.continueWatching);
-        if (appState.likedMemories) {
-          await saveStateList('likedMemories', appState.likedMemories);
-        }
-      } catch (err) {
-        console.error('Error committing bulk delete batch:', err);
-        handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
-      } finally {
-        appState.bulkTransactionActive = false;
-        window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-        
-        if (window.pendingMemoriesSnapshot) {
-          const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
-          list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
-          appState.memories = list;
-          window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-          window.pendingMemoriesSnapshot = null;
-        }
-        render();
-      }
-      
-      window.showToast(`Deleted ${deletedCount} memories in bulk.`);
-      
-      const dm = document.getElementById('bulkManagerModal');
-      if (dm) {
-        dm.classList.remove('open');
-        setTimeout(() => {
-          dm.remove();
-          window.refreshRowsView(null, null, true);
-        }, 300);
-      }
-    },
-    "Bulk Delete"
-  );
+  if (!confirm(`Are you sure you want to permanently delete all ${count} selected memories?`)) {
+    return;
+  }
+  
+  let deletedCount = 0;
+  
+  // Activate bulk transaction to block live listener interference and avoid race conditions
+  appState.bulkTransactionActive = true;
+  
+  try {
+    const idsToDelete = [...window.selectedBulkIds];
+    
+    // Sync local arrays immediately so the UI is super fast
+    appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
+    appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
+    appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
+    if (appState.likedMemories) {
+      appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
+    }
+    
+    // Commit deletions in chunked batches of 400
+    const chunkSize = 400;
+    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+      const chunk = idsToDelete.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach(id => {
+        const docRef = doc(db, 'memories', id);
+        batch.delete(docRef);
+        deletedCount++;
+      });
+      await batch.commit();
+    }
+    
+    // Also save state alterations
+    await saveStateList('myList', appState.myList);
+    await saveStateList('continueWatching', appState.continueWatching);
+    if (appState.likedMemories) {
+      await saveStateList('likedMemories', appState.likedMemories);
+    }
+  } catch (err) {
+    console.error('Error committing bulk delete batch:', err);
+    handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
+  } finally {
+    appState.bulkTransactionActive = false;
+    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+    
+    if (window.pendingMemoriesSnapshot) {
+      const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
+      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      appState.memories = list;
+      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+      window.pendingMemoriesSnapshot = null;
+    }
+    render();
+  }
+  
+  window.showToast(`Deleted ${deletedCount} memories in bulk.`);
+  
+  const dm = document.getElementById('bulkManagerModal');
+  if (dm) {
+    dm.classList.remove('open');
+    setTimeout(() => {
+      dm.remove();
+      window.refreshRowsView(null, null, true);
+    }, 300);
+  }
 };
