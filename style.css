@@ -126,38 +126,63 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
 }
 
 /* Manage Profiles */
+/* Manage Profiles & Input Form Styling */
 .floating-input-group {
   position: relative;
   width: 100%;
   margin-bottom: 20px;
+  height: 56px;
 }
-.floating-input-group input, .floating-input-group textarea {
+.floating-input-group input, 
+.floating-input-group textarea,
+.floating-input-group select {
   width: 100%;
-  background: rgba(255,255,255,0.1); border: none;
+  height: 56px;
+  background: #2b2b2b !important;
+  border: 1px solid transparent;
   padding: 24px 16px 8px 16px;
   border-radius: 8px;
   color: white; outline: none;
   font-family: inherit;
-  transition: background 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  font-size: 15px;
+  transition: background 0.3s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   box-sizing: border-box;
 }
-.floating-input-group input:focus, .floating-input-group textarea:focus {
-  background: rgba(255,255,255,0.2);
+.floating-input-group textarea {
+  height: auto;
+  min-height: 100px;
+}
+.floating-input-group input:focus, 
+.floating-input-group textarea:focus,
+.floating-input-group select:focus {
+  background: #383838 !important;
+  border-color: rgba(220, 220, 220, 0.7) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 .floating-input-group label {
   position: absolute;
-  top: 16px; left: 16px;
-  color: #888;
+  top: 18px; left: 16px;
+  color: #8c8c8c;
   pointer-events: none;
-  transition: 0.2s cubic-bezier(0.25, 1, 0.5, 1) all;
-  font-size: 14px;
+  transition: top 0.2s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), font-size 0.2s cubic-bezier(0.25, 1, 0.5, 1), color 0.2s;
+  transform-origin: left top;
+  font-size: 15px;
+  line-height: 1;
 }
 .floating-input-group input:focus ~ label,
+.floating-input-group input:not(:placeholder-shown) ~ label,
 .floating-input-group input:valid ~ label,
 .floating-input-group textarea:focus ~ label,
-.floating-input-group textarea:valid ~ label {
-  top: 6px; left: 16px;
-  font-size: 11px; color: #ccc;
+.floating-input-group textarea:valid ~ label,
+.floating-input-group select ~ label {
+  top: 6px;
+  transform: scale(0.7);
+  color: #ccc;
+}
+.floating-input-group.has-value label {
+  top: 6px;
+  transform: scale(0.7);
+  color: #ccc;
 }
 .manage-profiles-btn {
   background: transparent;
@@ -656,7 +681,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: #222;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s, border-color 0.8s;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s, border-color 0.35s;
+  transition-delay: 0s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -669,6 +695,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 99;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
   box-shadow: 0 15px 40px rgba(0,0,0,0.85);
+  transition-delay: 0.18s; /* Intelligent intent delay - prevents flashing when passing mouse over */
 }
 .media-card img {
   width: 100%; height: 100%;
@@ -688,12 +715,13 @@ input:checked + .slider:before { transform: translateX(20px); }
   box-shadow: 0 10px 30px rgba(0,0,0,0.75);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s;
+  transition: opacity 0.25s ease;
+  transition-delay: 0s;
 }
 .media-card:hover .hover-chassis {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0.65s;
+  transition-delay: 0.18s; /* Match intent delay */
 }
 .hc-buttons { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
 .hc-btn {
@@ -831,38 +859,37 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 
 
-/* Upload Panel Modal */
+/* Upload Panel Modal - Sleek Vertical Sliding Side-Drawer */
 .upload-modal {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(15px) saturate(140%);
+  -webkit-backdrop-filter: blur(15px) saturate(140%);
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
   z-index: 11000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .upload-modal.open {
   opacity: 1;
   pointer-events: auto;
 }
 .upload-modal-content {
-  background: rgba(20, 20, 20, 0.4);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border-left: 1px solid rgba(255,255,255,0.1);
-  width: 100%; max-width: 500px;
-  padding: 40px 30px;
-  position: relative;
+  background: rgba(20, 24, 26, 0.92);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%; max-width: 480px;
   height: 100vh;
-  overflow-y: auto;
-  box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+  padding: 0;
+  position: relative;
+  box-shadow: -15px 0 45px rgba(0,0,0,0.75);
   transform: translateX(100%);
-  transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
 }
@@ -1486,7 +1513,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 
 /* 1. Shine and card hover glow additions */
 .media-card {
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .media-card:hover {
@@ -1620,5 +1647,18 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   transform: translateX(0);
   opacity: 1;
 }
+
+/* Cinematic Title Logo Perfect Transparency Blending */
+.hero-title-logo-img, 
+.detail-title-logo-img,
+#up-title-img-preview,
+#detailModal img.detail-title-logo-img {
+  mix-blend-mode: screen !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  outline: none;
+  border: none;
+}
+
 
 

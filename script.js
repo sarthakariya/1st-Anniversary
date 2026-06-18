@@ -1645,7 +1645,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -1896,7 +1896,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2269,107 +2269,205 @@ window.openUploadModal = () => {
     <div class="upload-modal-content" style="display:flex; flex-direction:column; padding:0;">
       <div style="padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
         <h2 style="margin:0; font-size: 20px; font-weight:600; letter-spacing:0.5px;">Add New Memory</h2>
-        <button class="upload-close" style="position:static; background:transparent; font-size:28px;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">&times;</button>
+        <button class="upload-close" style="position:static; background:transparent; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s; padding:0;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       
-      <div style="padding: 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:25px;">
-        <div style="padding: 15px 20px; background: rgba(229, 9, 20, 0.15); border-left: 3px solid #e50914; border-radius: 4px;">
-          <p style="margin: 0 0 10px 0; font-size: 13px; color: #ccc;">Please upload your video to YouTube Studio first.</p>
-          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 8px 15px; border-radius:4px; font-size:13px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="window.open('https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload', '_blank')">
-            🡥 Open YouTube Studio
+      <div style="padding: 25px 30px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:20px; box-sizing:border-box;">
+        
+        <!-- THE ATMOSPHERIC NOTICE BANNER -->
+        <div style="padding: 14px 20px; background: rgba(30,30,30,0.45); border-left: 3px solid #e50914; border-radius: 6px; display: flex; gap: 12px; align-items: flex-start;">
+          <div style="color: #e50914; flex-shrink: 0; margin-top: 2px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 13px; color: #d0d0d0; font-weight: 500; line-height: 1.4;">
+              Please upload your video to YouTube Studio first.
+            </span>
+            <a href="https://studio.youtube.com/channel/UC3b6az9clhBSOjpXJW0-mFA/videos/upload" target="_blank" style="color: #e50914; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: color 0.2s;" onmouseenter="this.style.color='#ff333f';" onmouseleave="this.style.color='#e50914';">
+              Open YouTube Studio <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+            </a>
+          </div>
+        </div>
+        
+        <!-- YOUTUBE VIDEO LINK (56px) WITH EMBEDDED FETCH -->
+        <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
+          <input type="text" id="up-yt-link" placeholder=" " required style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 100px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 15px; box-sizing: border-box; transition: all 0.3s;" oninput="window.updateFetchButtonState(this)" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="if(!this.value){this.style.background='#2b2b2b'; this.style.borderColor='transparent';}">
+          <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">YouTube Video Link</label>
+          <button id="up-fetch" type="button" style="position: absolute; right: 12px; top: 12px; bottom: 12px; background: transparent; border: none; color: #555; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 12px; border-radius: 4px; cursor: pointer; transition: all 0.3s; pointer-events: none; line-height: 1; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
+            <span>Fetch</span>
           </button>
         </div>
 
-        <div>
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">YouTube Video Link</label>
-          <div style="display:flex; gap:10px;">
-            <input type="text" id="up-yt-link" placeholder="https://www.youtube.com/watch?v=..." style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; font-family:monospace; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
-            <button id="up-fetch" style="background:#fff; color:#000; border:none; padding:0 20px; border-radius:8px; font-weight:600; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='#ddd'" onmouseleave="this.style.background='#fff'">Fetch</button>
-          </div>
+        <!-- TITLE (56px) -->
+        <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
+          <input type="text" id="up-title" placeholder=" " required style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 16px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 15px; box-sizing: border-box; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="if(!this.value){this.style.background='#2b2b2b'; this.style.borderColor='transparent';}">
+          <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">Title</label>
         </div>
-
-        <div>
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Thumbnail Image URL (Optional)</label>
-          <input type="text" id="up-thumb-custom" placeholder="Paste custom image URL here (or keep blank to use fetched youtube thumbnail)" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" oninput="document.getElementById('up-thumb-preview').src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block';">
-          <div style="text-align:center; margin-top:12px; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-thumb-file').click()">📁 Select Image File</button>
+        
+        <!-- POLISHED THUMBNAIL IMAGE CARD -->
+        <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>Memory Thumbnail Image</span>
+            <span style="color:#e50914; font-size:10px; font-weight:700;">Netflix Cinematic Design</span>
+          </div>
+          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Select a custom image backdrop, upload any local file, or generate a stunning cinematic scene prompt.</div>
+          
+          <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
+            <input type="text" id="up-thumb-custom" placeholder=" " style="width:100%; height: 44px; background:rgba(255,255,255,0.06); border:none; padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-thumb-preview'); if(preview) { preview.src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block'; }">
+            <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Thumbnail Image URL</label>
+          </div>
+          
+          <div style="display:flex; gap:10px;">
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-thumb-file').click()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Local File
+            </button>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>Generate Prompt</span>
+            </button>
+          </div>
           <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
         </div>
         
         <div id="up-preview-container" style="display: none; text-align:center;">
-          <img id="up-thumb-preview" src="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <div style="position:relative; width: 100%; height: 160px; border-radius: 8px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <img id="up-thumb-preview" src="" style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.7); font-size:10px; color:#ccc; padding:3px 6px; border-radius:4px; display:flex; align-items:center; gap:4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#46d369" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Active Preview
+            </div>
+          </div>
         </div>
 
-        <div class="floating-input-group">
-          <input type="text" id="up-title" required>
-          <label for="up-title">Title</label>
-        </div>
-
-        <div style="border: 1px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+        <!-- POLISHED LOGO SUB-BOX CARD -->
+        <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
             <span>Custom Title Logo Image (Optional)</span>
-            <span style="color:#e50914; font-size:10px;">Netflix Brand Style</span>
+            <span style="color:#e50914; font-size:10px; font-weight:700;">Netflix Brand Logo Style</span>
           </div>
-          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Upload or generate a stylized transparent logo PNG that Netflix uses instead of plain text headings.</div>
+          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Upload or generate a stylized green-screen Title Logo that displays dynamically instead of plain text.</div>
           
-          <input type="text" id="up-title-img-url" placeholder="Paste transparent PNG image URL..." style="width:100%; background:rgba(255,255,255,0.06); border:none; padding:10px 14px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+          <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
+            <input type="text" id="up-title-img-url" placeholder=" " style="width:100%; height: 44px; background:rgba(255,255,255,0.06); border:none; padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+            <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Title Logo Image URL</label>
+          </div>
           
           <div style="display:flex; gap:10px;">
-            <button type="button" style="flex:1; background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px; border-radius:6px; font-size:12px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.18)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-title-img-file').click()">📁 Select Title File</button>
-            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 10px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">✨ Generate Prompt</button>
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Local File
+            </button>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>Generate Prompt</span>
+            </button>
           </div>
           <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
           
-          <div style="text-align:center;">
-             <img id="up-title-img-preview" src="" style="max-height:80px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
+          <div style="text-align:center; padding-top: 4px;">
+             <img id="up-title-img-preview" src="" style="max-height:50px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
+          </div>
+        </div>
+        
+        <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
+        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 162px;" id="desc-box-container">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
+          <textarea id="up-desc" rows="3" required style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
+          
+          <!-- SPARKLE UTILITY STRIP -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+            <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              <span>Generate with Gemini AI</span>
+            </div>
           </div>
         </div>
 
-        <div class="floating-input-group">
-          <textarea id="up-desc" rows="3" required></textarea>
-          <label for="up-desc">Description</label>
-        </div>
-
-        <div style="margin-top:-10px; margin-bottom:5px;">
-          <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateDescriptionWithAI()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Generate Description with AI
-          </button>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-          <div>
-            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Category</label>
-            <select id="up-cat" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
+        <!-- COMPACT METADATA STRIP -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- CATEGORY -->
+          <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
+            <select id="up-cat" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
               <option value="Celebration Parties" style="background:#141414;">Celebration Parties</option>
               <option value="Our Romantic Scenes" style="background:#141414;">Our Romantic Scenes</option>
               <option value="Our Special Event" style="background:#141414;">Our Special Event</option>
             </select>
+            <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Category</label>
+            <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
           </div>
-          <div>
-            <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Date / Year</label>
-            <input type="date" id="up-date" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'" value="${new Date().toISOString().split('T')[0]}">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <!-- DATE PICKER -->
+            <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
+              <input type="date" id="up-date" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';" value="${new Date().toISOString().split('T')[0]}">
+              <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Date / Year</label>
+              <div style="position: absolute; right: 16px; top: 20px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </div>
+            </div>
+            
+            <!-- MATURITY RATING -->
+            <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
+              <select id="up-rating" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
+                <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
+                <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
+                <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
+                <option value="U/A 18+" selected style="background:#141414;">U/A 18+</option>
+                <option value="A" style="background:#141414;">A</option>
+              </select>
+              <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Maturity</label>
+              <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div>
-          <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Maturity Rating</label>
-          <select id="up-rating" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" onfocus="this.style.background='rgba(255,255,255,0.2)'" onblur="this.style.background='rgba(255,255,255,0.1)'">
-            <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
-            <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
-            <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
-            <option value="U/A 18+" selected style="background:#141414;">U/A 18+</option>
-            <option value="A" style="background:#141414;">A</option>
-          </select>
-        </div>
+        
       </div>
       
-      <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end;">
-        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
-        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:10px 30px; font-weight:bold; border-radius:8px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Publish Memory</button>
+      <!-- THE FOOTER BUTTON BALANCE -->
+      <div style="padding: 20px 30px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:15px; justify-content:flex-end; align-items:center;">
+        <button id="up-cancel" style="background:transparent; border:none; color:#a0a0a0; padding:0 24px; height:48px; min-width:110px; font-weight:600; font-size:14px; cursor:pointer; transition: opacity 0.2s, color 0.2s;" onmouseenter="this.style.color='#fff';" onmouseleave="this.style.color='#a0a0a0';" onclick="const p = document.getElementById('uploadModal'); p.classList.remove('open'); setTimeout(() => p.remove(), 600);">Cancel</button>
+        <button id="up-publish" style="background:#e50914; border:none; color:white; padding:0 32px; height:48px; font-weight:700; font-size:14px; border-radius:8px; cursor:pointer; box-shadow: 0 4px 15px rgba(229,9,20,0.3); transition: opacity 0.2s, transform 0.1s;" onmouseenter="this.style.opacity='0.9';" onmouseleave="this.style.opacity='1';" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">Publish Memory</button>
       </div>
     </div>
   `;
+
+  window.updateFetchButtonState = (input) => {
+    const fetchBtn = document.getElementById('up-fetch');
+    if (!fetchBtn) return;
+    const val = input.value.trim();
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const isValid = val.length === 11 || val.match(regExp);
+    if (isValid) {
+      fetchBtn.style.color = '#fff';
+      fetchBtn.style.background = '#e50914';
+      fetchBtn.style.pointerEvents = 'auto';
+    } else {
+      fetchBtn.style.color = '#555';
+      fetchBtn.style.background = 'transparent';
+      fetchBtn.style.pointerEvents = 'none';
+    }
+  };
+
+  window.generateUploadDescriptionWithAI = () => {
+    const badge = document.getElementById('desc-sparkle-btn');
+    const uTitle = document.getElementById('up-title').value.trim();
+    if (!uTitle) return alert("Please enter a Title first, so Gemini can generate a matching description.");
+    if (badge) {
+      badge.innerHTML = '<span>⚙ Copying Prompt...</span>';
+    }
+    window.generateDescriptionWithAI();
+    setTimeout(() => {
+      if (badge) {
+        badge.innerHTML = '<span>✨ Generate with Gemini AI</span>';
+      }
+    }, 1500);
+  };
   
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('open'), 10);
@@ -2516,7 +2614,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
@@ -2597,8 +2695,12 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Thumbnail Image URL</div>
             <input type="text" id="dm-thumb-url-input" value="${m.thumbnail || ''}" placeholder="Paste Thumbnail Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;">
             <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select Image File</button>
+            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s; margin-bottom:12px;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select Image File</button>
             <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
+            
+            <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s; margin-bottom:12px;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateThumbnailPromptWithAI()">
+              ✨ Generate Thumbnail Prompt with AI
+            </button>
           </div>
 
           <div id="dm-title-image-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
@@ -3493,13 +3595,52 @@ window.generateTitleLogoPromptWithAI = () => {
      vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
   }
   
-  const prompt = `Create a striking, horizontal movie wordmark logo / typography PNG.
-Text must read EXACTLY block letters: "${title}"
-The typeface style must look like a high-budget Netflix original series, specifically designed for: ${vibe}.
-The background must be completely TRANSPARENT (alpha channel). The logo must be clean, isolated, with crisp edges, high contrast, and zero mockup backgrounds, boxes, billboards, or borders around it. Just the elegant text art.`;
+  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
+Text must read EXACTLY: "${title}"
+The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
+Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Branded Title logo prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch(() => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
+};
+
+// Copy detailed cinematic movie thumbnail prompt and load Gemini
+window.generateThumbnailPromptWithAI = () => {
+  const upTitleInput = document.getElementById('up-title');
+  const dmTitleInput = document.getElementById('dm-title-edit');
+  const title = (upTitleInput ? upTitleInput.value.trim() : '') || (dmTitleInput ? dmTitleInput.value.trim() : '') || 'Our Love Story';
+  
+  const upDescInput = document.getElementById('up-desc');
+  const dmDescInput = document.getElementById('dm-desc-edit');
+  const desc = (upDescInput ? upDescInput.value.trim() : '') || (dmDescInput ? dmDescInput.value.trim() : '') || 'A beautiful memory worth reliving.';
+  
+  const upCat = document.getElementById('up-cat');
+  const dmCat = document.getElementById('dm-cat-edit');
+  const category = (upCat ? upCat.value : '') || (dmCat ? dmCat.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, nostalgic warmth, beautiful soft sunrise and sunset lighting, pastel tones, cozy intimate atmosphere';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'vibrant energy, colorful party lighting, laughter, motion blur, glittering sparklers, festive warm ambiance';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
+  }
+  
+  const prompt = `Create a spectacular, photo-realistic 16:9 cinematic movie scene cover that will act as the background thumbnail artwork.
+Concepts/Details: A stunning and emotionally resonant shot inspired by: "${title}".
+Description of the scene: ${desc}.
+Visual Vibe: ${vibe}.
+Style: Shot with 35mm anamorphic camera lens, rich cinematic color grading, beautiful shallow depth of field, natural dramatic lighting. The image must feel premium, high-budget, and tell a story (like a professional Netflix original movie poster background).
+CRITICAL: Do NOT add ANY text, titles, subtitles, words, logos, letterings, watermarks, frames, borders, or banners anywhere on the image. It must be a clean, pure, photo-realistic movie scene thumbnail.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
     setTimeout(() => {
       window.open('https://gemini.google.com/app', '_blank');
     }, 1000);
