@@ -474,15 +474,17 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: clamp(180px, 23%, 240px);
+  bottom: clamp(100px, 15%, 210px);
   width: 90%;
   max-width: 650px;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 .hero-title {
   font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 800;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
   line-height: 1.1;
   color: #fff;
@@ -494,7 +496,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   font-size: clamp(0.9rem, 1.25vw, 1.1rem);
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -502,13 +504,11 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow: hidden;
 }
 .hero-buttons {
-  position: absolute;
-  left: 4%;
-  bottom: clamp(110px, 15%, 170px);
   z-index: 10;
   display: flex;
   gap: 12px;
-  padding: 10px 0;
+  padding: 8px 0;
+  margin-top: 4px;
 }
 .btn {
   display: flex;
@@ -665,7 +665,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: #222;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.4s;
+  /* Butter-smooth, responsive exit transition with 0s delay when cursor leaves */
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.28s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  transition-delay: 0s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -674,10 +676,14 @@ input:checked + .slider:before { transform: translateX(20px); }
   isolation: isolate; /* Stacking context isolation */
 }
 .media-card:hover {
+  /* Deliberate, high-end delayed zoom expansion (hesitation effect) */
   transform: scale(1.35) translateY(-8px) translateZ(0) !important;
   z-index: 99;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.85);
+  border: 1px solid rgba(229, 9, 20, 0.85) !important; /* Elegant red border touch */
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95), 0 0 16px rgba(229, 9, 20, 0.2);
+  /* The slow animation curve wait */
+  transition: transform 0.45s cubic-bezier(0.33, 1, 0.68, 1), box-shadow 0.45s cubic-bezier(0.33, 1, 0.68, 1), border-color 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+  transition-delay: 0.35s; /* Hover hesitation parameter! */
 }
 .media-card img {
   width: 100%; height: 100%;
@@ -697,12 +703,13 @@ input:checked + .slider:before { transform: translateX(20px); }
   box-shadow: 0 10px 30px rgba(0,0,0,0.75);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s ease;
+  transition-delay: 0s;
 }
 .media-card:hover .hover-chassis {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0.4s;
+  transition-delay: 0.35s; /* matches card scale delay exactly! */
 }
 .hc-buttons { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
 .hc-btn {
@@ -1496,5 +1503,36 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 }
 .media-card {
   animation: cardScaleFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Premium Search History Pills Styles & Micro-Animations */
+.history-pill {
+  user-select: none;
+}
+.history-pill:hover {
+  background: rgba(229, 9, 20, 0.15) !important;
+  border-color: rgba(229, 9, 20, 0.6) !important;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 16px rgba(229, 9, 20, 0.25);
+  color: #fff !important;
+}
+.history-pill span:last-child {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 14px;
+}
+.history-pill span:last-child:hover {
+  color: #ff3b47 !important;
+  transform: scale(1.2);
+}
+
+/* Extra premium micro-interactions */
+.btn-primary:active, .btn-secondary:active, .add-memory-btn:active, .slider-arrow:active {
+  transform: scale(0.95);
+  transition-duration: 0.1s;
+}
+
+.history-pill:active {
+  transform: scale(0.97);
 }
 

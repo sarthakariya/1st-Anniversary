@@ -308,6 +308,7 @@ let appState = {
   currentProfile: null,
   activeCategory: 'Home',
   searchQuery: '',
+  searchHistory: JSON.parse(localStorage.getItem('netflix_search_history') || '[]'),
   settings: {
     autoPlayPreviews: true,
     autoPlayNextEpisode: true
@@ -718,8 +719,61 @@ window.logoutProfile = () => {
   }, 500);
 };
 
+let searchSaveTimeout = null;
+
+window.saveSearchToHistory = (query) => {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return;
+  let history = [...(appState.searchHistory || [])];
+  history = history.filter(item => item.trim().toLowerCase() !== trimmed.toLowerCase());
+  history.unshift(trimmed);
+  history = history.slice(0, 5);
+  appState.searchHistory = history;
+  localStorage.setItem('netflix_search_history', JSON.stringify(history));
+  window.refreshRowsView();
+};
+
+window.applyHistorySearch = (item) => {
+  appState.searchQuery = item.toLowerCase();
+  const input = document.getElementById('searchInput');
+  if (input) {
+    input.value = item;
+  }
+  const container = document.getElementById('searchContainer');
+  if (container) {
+    container.classList.add('active');
+  }
+  window.refreshRowsView();
+};
+
+window.removeHistoryItem = (item, event) => {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  let history = [...(appState.searchHistory || [])];
+  history = history.filter(i => i.trim().toLowerCase() !== item.trim().toLowerCase());
+  appState.searchHistory = history;
+  localStorage.setItem('netflix_search_history', JSON.stringify(history));
+  window.refreshRowsView();
+};
+
+window.clearSearchHistory = () => {
+  appState.searchHistory = [];
+  localStorage.setItem('netflix_search_history', '[]');
+  window.refreshRowsView();
+};
+
 window.handleSearch = (e) => {
-  appState.searchQuery = e.target.value.toLowerCase();
+  const value = e.target.value;
+  appState.searchQuery = value.toLowerCase();
+  
+  clearTimeout(searchSaveTimeout);
+  if (value.trim()) {
+    searchSaveTimeout = setTimeout(() => {
+      window.saveSearchToHistory(value);
+    }, 1200);
+  }
   window.refreshRowsView();
 };
 
@@ -833,8 +887,37 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         (m.year && m.year.toString().includes(q)) ||
         (m.category && m.category.toLowerCase().includes(q))
       );
-      if(mems.length) rc.appendChild(createRow('Search Results', mems));
-      else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
+      
+      const searchPane = document.createElement('div');
+      searchPane.style.cssText = "width: 100%; display: flex; flex-direction: column; padding-top: 30px;";
+      
+      if (appState.searchHistory && appState.searchHistory.length > 0) {
+        const historyRow = document.createElement('div');
+        historyRow.className = "search-history-pills-row";
+        historyRow.style.cssText = "padding: 0 4% 20px 4%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: fadeIn 0.35s ease both;";
+        historyRow.innerHTML = `
+          <span style="color: #666; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Recent Queries:</span>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            ${appState.searchHistory.map(item => `
+              <div class="history-pill" onclick="window.applyHistorySearch('${item.replace(/'/g, "\\'")}')" style="display: inline-flex; align-items: center; background: rgba(30, 30, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; color: #eee; gap: 8px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+                <span>${item}</span>
+                <span onclick="window.removeHistoryItem('${item.replace(/'/g, "\\'")}', event)" style="font-weight: bold; font-size: 14px; opacity: 0.5; transition: opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.5'">&times;</span>
+              </div>
+            `).join('')}
+            <span onclick="window.clearSearchHistory()" style="color: #E50914; font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 10px; transition: color 0.2s;" onmouseenter="this.style.color='#ff3b47'" onmouseleave="this.style.color='#E50914'">Clear History</span>
+          </div>
+        `;
+        searchPane.appendChild(historyRow);
+      }
+      
+      const resultsContainer = document.createElement('div');
+      if(mems.length) {
+        resultsContainer.appendChild(createRow('Search Results', mems));
+      } else {
+        resultsContainer.innerHTML = '<div style="color:#888; padding:60px; font-size: 15px; text-align:center; font-family: \'Space Grotesk\', sans-serif;">No matches found for "' + q + '"</div>';
+      }
+      searchPane.appendChild(resultsContainer);
+      rc.appendChild(searchPane);
       
       requestAnimationFrame(() => {
         rc.style.opacity = '1';
@@ -1569,7 +1652,7 @@ function createNavbar() {
           <div class="search-icon" onclick="toggleSearch()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
-          <input type="text" id="searchInput" class="search-input" placeholder="Titles, people, genres" oninput="handleSearch(event)" value="${appState.searchQuery || ''}">
+          <input type="text" id="searchInput" class="search-input" placeholder="Titles, people, genres" oninput="handleSearch(event)" onkeydown="if(event.key === 'Enter') { window.saveSearchToHistory(this.value); this.blur(); }" value="${appState.searchQuery || ''}">
         </div>
 
         <div class="notification-container">
