@@ -11,211 +11,265 @@ const OperationType = {
   WRITE: 'write',
 };
 
+window.PremiumModal = {
+  open(options) {
+    const parentId = 'premium-modal-container';
+    let container = document.getElementById(parentId);
+    if (container) container.remove();
+    
+    container = document.createElement('div');
+    container.id = parentId;
+    container.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(10, 10, 10, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000000;
+      opacity: 0;
+    `;
+    
+    const content = document.createElement('div');
+    content.className = 'premium-modal-content';
+    content.style.cssText = `
+      background: #181818;
+      border: 1px solid rgba(229, 9, 20, 0.45);
+      border-radius: 8px;
+      padding: 35px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.95), 0 0 30px rgba(229, 9, 20, 0.2);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    `;
+    
+    let initialTransform = 'scale(0.95)';
+    let targetTransform = 'scale(1)';
+    if (options.animation === 'slide-down') {
+      initialTransform = 'translateY(-100px) scale(0.98)';
+      targetTransform = 'translateY(0) scale(1)';
+    } else if (options.animation === 'zoom') {
+      initialTransform = 'scale(0.8) translateY(20px)';
+      targetTransform = 'scale(1) translateY(0)';
+    }
+    
+    content.style.transform = initialTransform;
+    
+    const titleHtml = options.title ? `
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #fff; margin: 0 0 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; letter-spacing: -0.5px;">
+        ${options.title}
+      </h3>
+    ` : '';
+    
+    const bodyContainer = document.createElement('div');
+    bodyContainer.className = 'premium-modal-body';
+    bodyContainer.style.cssText = `
+      font-size: 15px;
+      color: #e5e5e5;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    `;
+    if (typeof options.body === 'string') {
+      bodyContainer.innerHTML = options.body;
+    } else {
+      bodyContainer.appendChild(options.body);
+    }
+    
+    const actionsContainer = document.createElement('div');
+    actionsContainer.style.cssText = `
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: flex-end;
+    `;
+    
+    options.actions.forEach(act => {
+      const btn = document.createElement('button');
+      btn.innerText = act.label;
+      if (act.type === 'primary') {
+        btn.className = 'btn btn-primary';
+        btn.style.cssText = `
+          padding: 10px 24px;
+          background: #E50914;
+          color: #fff;
+          font-weight: 700;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+        `;
+      } else {
+        btn.className = 'btn btn-secondary';
+        btn.style.cssText = `
+          padding: 10px 24px;
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+          font-weight: 600;
+          border-radius: 4px;
+          border: 1px solid rgba(255,255,255,0.15);
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+        `;
+      }
+      
+      btn.onclick = () => {
+        if (act.onClick) {
+          act.onClick();
+        }
+        window.PremiumModal.close();
+      };
+      actionsContainer.appendChild(btn);
+    });
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = titleHtml;
+    if (tempDiv.firstElementChild) {
+      content.appendChild(tempDiv.firstElementChild);
+    }
+    content.appendChild(bodyContainer);
+    content.appendChild(actionsContainer);
+    container.appendChild(content);
+    document.body.appendChild(container);
+    
+    animate(container, { opacity: [0, 1] }, { duration: 0.35, ease: 'easeOut' });
+    animate(content, { transform: [initialTransform, targetTransform] }, { duration: 0.45, ease: [0.16, 1, 0.3, 1] });
+    
+    window.PremiumModal._currentAnimation = options.animation || 'slide-down';
+    window.PremiumModal._onClose = options.onClose;
+  },
+  
+  close() {
+    const container = document.getElementById('premium-modal-container');
+    if (!container) return;
+    
+    const content = container.querySelector('.premium-modal-content');
+    const animation = window.PremiumModal._currentAnimation || 'slide-down';
+    
+    let exitTransform = 'scale(0.95)';
+    if (animation === 'slide-down') {
+      exitTransform = 'translateY(-100px) scale(0.98)';
+    } else if (animation === 'zoom') {
+      exitTransform = 'scale(0.85) translateY(20px)';
+    }
+    
+    Promise.all([
+      animate(container, { opacity: 0 }, { duration: 0.25, ease: 'easeIn' }).finished,
+      content ? animate(content, { transform: exitTransform }, { duration: 0.25, ease: 'easeIn' }).finished : Promise.resolve()
+    ]).then(() => {
+      container.remove();
+      if (window.PremiumModal._onClose) {
+        window.PremiumModal._onClose();
+      }
+    });
+  }
+};
+
 window.showNetflixAlert = (message, title = "Notification", callback = null) => {
-  const modalId = 'netflix-custom-alert';
-  let modal = document.getElementById(modalId);
-  if (modal) modal.remove();
-  
-  modal = document.createElement('div');
-  modal.id = modalId;
-  modal.style.cssText = `
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999999;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  `;
-  
-  const content = document.createElement('div');
-  content.style.cssText = `
-    background: #181111;
-    border: 1px solid rgba(229, 9, 20, 0.4);
-    border-radius: 8px;
-    padding: 30px;
-    max-width: 480px;
-    width: 90%;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-    text-align: center;
-    transform: scale(0.9);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-    font-family: 'Inter', system-ui, sans-serif;
-  `;
-  
-  content.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
-    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 24px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
-    <div style="display: flex; justify-content: center;">
-      <button id="netflix-alert-ok" class="btn btn-primary" style="padding: 10px 30px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">OK</button>
-    </div>
-  `;
-  
-  modal.appendChild(content);
-  document.body.appendChild(modal);
-  
-  // Force reflow
-  modal.offsetHeight;
-  modal.style.opacity = '1';
-  content.style.transform = 'scale(1)';
-  
-  const closeAlert = () => {
-    modal.style.opacity = '0';
-    content.style.transform = 'scale(0.9)';
-    setTimeout(() => {
-      modal.remove();
-      if (callback) callback();
-    }, 250);
-  };
-  
-  modal.querySelector('#netflix-alert-ok').onclick = closeAlert;
-  modal.onclick = (e) => {
-    if (e.target === modal) closeAlert();
-  };
+  window.PremiumModal.open({
+    title,
+    body: message.replace(/\n/g, '<br>'),
+    animation: 'slide-down',
+    actions: [
+      { label: 'OK', type: 'primary', onClick: callback }
+    ]
+  });
 };
 
 window.showNetflixConfirm = (message, onConfirm, title = "Confirmation", onCancel = null) => {
-  const modalId = 'netflix-custom-confirm';
-  let modal = document.getElementById(modalId);
-  if (modal) modal.remove();
-  
-  modal = document.createElement('div');
-  modal.id = modalId;
-  modal.style.cssText = `
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999999;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  `;
-  
-  const content = document.createElement('div');
-  content.style.cssText = `
-    background: #181111;
-    border: 1px solid rgba(229, 9, 20, 0.4);
-    border-radius: 8px;
-    padding: 30px;
-    max-width: 480px;
-    width: 90%;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-    text-align: center;
-    transform: scale(0.9);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-    font-family: 'Inter', system-ui, sans-serif;
-  `;
-  
-  content.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
-    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 24px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
-    <div style="display: flex; justify-content: center; gap: 14px;">
-      <button id="netflix-confirm-cancel" class="btn btn-secondary" style="padding: 10px 24px; font-size: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none; background: rgba(255,255,255,0.15); color: #fff;">Cancel</button>
-      <button id="netflix-confirm-yes" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">Confirm</button>
-    </div>
-  `;
-  
-  modal.appendChild(content);
-  document.body.appendChild(modal);
-  
-  // Force reflow
-  modal.offsetHeight;
-  modal.style.opacity = '1';
-  content.style.transform = 'scale(1)';
-  
-  const closeConfirm = (confirmed) => {
-    modal.style.opacity = '0';
-    content.style.transform = 'scale(0.9)';
-    setTimeout(() => {
-      modal.remove();
-      if (confirmed && onConfirm) onConfirm();
-      else if (!confirmed && onCancel) onCancel();
-    }, 250);
-  };
-  
-  modal.querySelector('#netflix-confirm-yes').onclick = () => closeConfirm(true);
-  modal.querySelector('#netflix-confirm-cancel').onclick = () => closeConfirm(false);
-  modal.onclick = (e) => {
-    if (e.target === modal) closeConfirm(false);
-  };
+  window.PremiumModal.open({
+    title,
+    body: message.replace(/\n/g, '<br>'),
+    animation: 'slide-down',
+    actions: [
+      { label: 'Cancel', type: 'secondary', onClick: onCancel },
+      { label: 'Confirm', type: 'primary', onClick: onConfirm }
+    ]
+  });
 };
 
 window.showNetflixPrompt = (message, defaultValue, onInputReceived, title = "Input") => {
-  const modalId = 'netflix-custom-prompt';
-  let modal = document.getElementById(modalId);
-  if (modal) modal.remove();
+  const body = document.createElement('div');
+  body.innerHTML = `
+    <p style="margin: 0 0 15px 0;">${message.replace(/\n/g, '<br>')}</p>
+    <input type="text" id="premium-prompt-input" value="${defaultValue || ''}" style="width: 100%; background: #222; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 12px; color: #fff; outline: none; font-size: 15px; box-sizing: border-box; transition: border-color 0.25s;" onfocus="this.style.borderColor='#E50914'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
+  `;
   
-  modal = document.createElement('div');
-  modal.id = modalId;
-  modal.style.cssText = `
+  window.PremiumModal.open({
+    title,
+    body,
+    animation: 'slide-down',
+    actions: [
+      { label: 'Cancel', type: 'secondary' },
+      {
+        label: 'Submit',
+        type: 'primary',
+        onClick: () => {
+          const input = document.getElementById('premium-prompt-input');
+          if (onInputReceived && input) {
+            onInputReceived(input.value);
+          }
+        }
+      }
+    ]
+  });
+  
+  setTimeout(() => {
+    const input = document.getElementById('premium-prompt-input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 100);
+};
+
+// --- GLOBAL PREMIUM LOADING SPINNER SYSTEM WITH SMOOTH FADE-IN ---
+window.showPremiumLoading = (message = "Loading...") => {
+  let spinner = document.getElementById('premium-loading-spinner');
+  if (spinner) {
+    const textEl = spinner.querySelector('.loading-text');
+    if (textEl) textEl.innerText = message;
+    return;
+  }
+  
+  spinner = document.createElement('div');
+  spinner.id = 'premium-loading-spinner';
+  spinner.style.cssText = `
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999999;
+    background: rgba(20, 20, 20, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 10000000;
     opacity: 0;
-    transition: opacity 0.25s ease;
   `;
   
-  const content = document.createElement('div');
-  content.style.cssText = `
-    background: #181111;
-    border: 1px solid rgba(229, 9, 20, 0.4);
-    border-radius: 8px;
-    padding: 30px;
-    max-width: 480px;
-    width: 90%;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-    text-align: center;
-    transform: scale(0.9);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-    font-family: 'Inter', system-ui, sans-serif;
+  spinner.innerHTML = `
+    <div class="spinner-wheel" style="width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.08); border-top: 3px solid #E50914; border-radius: 50%; margin-bottom: 24px; animation: spin 0.8s linear infinite;"></div>
+    <div class="loading-text" style="color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 500; letter-spacing: 0.5px; opacity: 0; transform: translateY(10px);">${message}</div>
   `;
   
-  content.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
-    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 16px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
-    <div style="margin-bottom: 24px;">
-      <input type="text" id="netflix-prompt-input" value="${defaultValue || ''}" style="width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:12px 16px; border-radius:8px; color:white; font-size:14px; text-align:center; outline:none; transition: border-color 0.3s;" onfocus="this.style.borderColor='#e50914'">
-    </div>
-    <div style="display: flex; justify-content: center; gap: 14px;">
-      <button id="netflix-prompt-cancel" class="btn btn-secondary" style="padding: 10px 24px; font-size: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none; background: rgba(255,255,255,0.15); color: #fff;">Cancel</button>
-      <button id="netflix-prompt-submit" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">Submit</button>
-    </div>
-  `;
+  document.body.appendChild(spinner);
   
-  modal.appendChild(content);
-  document.body.appendChild(modal);
+  animate(spinner, { opacity: [0, 1] }, { duration: 0.35, ease: "easeOut" });
+  animate(spinner.querySelector('.loading-text'), { opacity: [0, 1], y: [10, 0] }, { duration: 0.45, delay: 0.1, ease: "easeOut" });
+};
+
+window.hidePremiumLoading = () => {
+  const spinner = document.getElementById('premium-loading-spinner');
+  if (!spinner) return Promise.resolve();
   
-  // Force reflow
-  modal.offsetHeight;
-  modal.style.opacity = '1';
-  content.style.transform = 'scale(1)';
-  
-  const closePrompt = (submitted) => {
-    const val = modal.querySelector('#netflix-prompt-input').value;
-    modal.style.opacity = '0';
-    content.style.transform = 'scale(0.9)';
-    setTimeout(() => {
-      modal.remove();
-      if (submitted && onInputReceived) onInputReceived(val);
-    }, 250);
-  };
-  
-  modal.querySelector('#netflix-prompt-submit').onclick = () => closePrompt(true);
-  modal.querySelector('#netflix-prompt-cancel').onclick = () => closePrompt(false);
-  modal.querySelector('#netflix-prompt-input').onkeydown = (e) => {
-    if (e.key === 'Enter') closePrompt(true);
-  };
-  modal.onclick = (e) => {
-    if (e.target === modal) closePrompt(false);
-  };
+  const textEl = spinner.querySelector('.loading-text');
+  return Promise.all([
+    animate(spinner, { opacity: 0 }, { duration: 0.3, ease: "easeIn" }).finished,
+    textEl ? animate(textEl, { opacity: 0, y: -10 }, { duration: 0.25, ease: "easeIn" }).finished : Promise.resolve()
+  ]).then(() => {
+    spinner.remove();
+  });
 };
 
 function handleFirestoreError(error, operationType, path) {
@@ -2389,7 +2443,7 @@ window.openUploadModal = () => {
     }
     
     extractedVideoId = videoId;
-    document.getElementById('up-fetch').innerText = "Fetching...";
+    window.showPremiumLoading("Fetching YouTube video metadata...");
     
     try {
       const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
@@ -2409,6 +2463,8 @@ window.openUploadModal = () => {
          currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
          document.getElementById('up-thumb-preview').src = currentThumbData;
          document.getElementById('up-preview-container').style.display = 'block';
+    } finally {
+      window.hidePremiumLoading();
     }
     
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
@@ -2428,6 +2484,8 @@ window.openUploadModal = () => {
     e.target.innerText = "Adding...";
     e.target.disabled = true;
 
+    window.showPremiumLoading("Adding your premium memory to our story...");
+
     const customThumbVal = document.getElementById('up-thumb-custom').value.trim();
     const finalThumb = (localThumbBase64 && customThumbVal.startsWith('Local File Selected:')) ?
       localThumbBase64 : (customThumbVal || currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'));
@@ -2445,15 +2503,21 @@ window.openUploadModal = () => {
       uploadedBy: appState.currentProfile
     };
 
-    await saveMemoryToDB(mem);
-    appState.memories.unshift(mem);
-    window.justUploadedId = mem.id;
-    const modalEl = document.getElementById('uploadModal');
-    modalEl.classList.remove('open');
-    setTimeout(() => {
-      modalEl.remove();
-      render();
-    }, 600);
+    try {
+      await saveMemoryToDB(mem);
+      appState.memories.unshift(mem);
+      window.justUploadedId = mem.id;
+      const modalEl = document.getElementById('uploadModal');
+      if (modalEl) modalEl.classList.remove('open');
+      setTimeout(() => {
+        if (modalEl) modalEl.remove();
+        render();
+      }, 600);
+    } catch(err) {
+      window.showNetflixAlert("Failed to save your memory: " + err, "Sync Error");
+    } finally {
+      window.hidePremiumLoading();
+    }
   };
 };
 

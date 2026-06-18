@@ -462,7 +462,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(to right, rgba(20,20,20,0.85) 0%, transparent 45%);
+  background: linear-gradient(to right, rgba(20,20,20,1) 0%, rgba(20,20,20,0.95) 15%, rgba(20,20,20,0.5) 30%, transparent 45vw);
 }
 .hero-overlay-bottom {
   position: absolute;
@@ -474,41 +474,42 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: clamp(100px, 15%, 210px);
-  width: 90%;
+  bottom: 12%;
+  width: 38vw;
   max-width: 650px;
   z-index: 10;
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 .hero-title {
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.5rem) !important;
   font-weight: 800;
-  margin-bottom: 16px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  line-height: 1.1;
+  line-height: 1.15 !important;
+  letter-spacing: -0.5px !important;
   color: #fff;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.95);
   overflow-wrap: break-word;
   word-wrap: break-word;
-  word-break: break-word;
 }
 .hero-desc {
-  font-size: clamp(0.9rem, 1.25vw, 1.1rem);
-  color: #fff;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  margin-bottom: 16px;
+  font-size: 15px !important;
+  color: #E5E5E5 !important;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+  max-width: 100% !important;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin-bottom: 0px !important;
 }
 .hero-buttons {
   z-index: 10;
   display: flex;
   gap: 12px;
-  padding: 8px 0;
-  margin-top: 4px;
+  margin-top: 1.5vw;
 }
 .btn {
   display: flex;
@@ -555,19 +556,23 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 10;
 }
 .circ-play-btn {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.4);
-  color: white;
-  border-radius: 50%;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  background: transparent !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 .circ-play-btn:hover {
-  border-color: #fff;
-  background-color: #fff;
-  color: #141414;
+  border-color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  transform: scale(1.1) !important;
 }
 .mute-btn {
   background: transparent;
