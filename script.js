@@ -11,6 +11,213 @@ const OperationType = {
   WRITE: 'write',
 };
 
+window.showNetflixAlert = (message, title = "Notification", callback = null) => {
+  const modalId = 'netflix-custom-alert';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+  
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = `
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  `;
+  
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: #181111;
+    border: 1px solid rgba(229, 9, 20, 0.4);
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    font-family: 'Inter', system-ui, sans-serif;
+  `;
+  
+  content.innerHTML = `
+    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
+    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 24px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
+    <div style="display: flex; justify-content: center;">
+      <button id="netflix-alert-ok" class="btn btn-primary" style="padding: 10px 30px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">OK</button>
+    </div>
+  `;
+  
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  // Force reflow
+  modal.offsetHeight;
+  modal.style.opacity = '1';
+  content.style.transform = 'scale(1)';
+  
+  const closeAlert = () => {
+    modal.style.opacity = '0';
+    content.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      modal.remove();
+      if (callback) callback();
+    }, 250);
+  };
+  
+  modal.querySelector('#netflix-alert-ok').onclick = closeAlert;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeAlert();
+  };
+};
+
+window.showNetflixConfirm = (message, onConfirm, title = "Confirmation", onCancel = null) => {
+  const modalId = 'netflix-custom-confirm';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+  
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = `
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  `;
+  
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: #181111;
+    border: 1px solid rgba(229, 9, 20, 0.4);
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    font-family: 'Inter', system-ui, sans-serif;
+  `;
+  
+  content.innerHTML = `
+    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
+    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 24px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
+    <div style="display: flex; justify-content: center; gap: 14px;">
+      <button id="netflix-confirm-cancel" class="btn btn-secondary" style="padding: 10px 24px; font-size: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none; background: rgba(255,255,255,0.15); color: #fff;">Cancel</button>
+      <button id="netflix-confirm-yes" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">Confirm</button>
+    </div>
+  `;
+  
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  // Force reflow
+  modal.offsetHeight;
+  modal.style.opacity = '1';
+  content.style.transform = 'scale(1)';
+  
+  const closeConfirm = (confirmed) => {
+    modal.style.opacity = '0';
+    content.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      modal.remove();
+      if (confirmed && onConfirm) onConfirm();
+      else if (!confirmed && onCancel) onCancel();
+    }, 250);
+  };
+  
+  modal.querySelector('#netflix-confirm-yes').onclick = () => closeConfirm(true);
+  modal.querySelector('#netflix-confirm-cancel').onclick = () => closeConfirm(false);
+  modal.onclick = (e) => {
+    if (e.target === modal) closeConfirm(false);
+  };
+};
+
+window.showNetflixPrompt = (message, defaultValue, onInputReceived, title = "Input") => {
+  const modalId = 'netflix-custom-prompt';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+  
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = `
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  `;
+  
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: #181111;
+    border: 1px solid rgba(229, 9, 20, 0.4);
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    font-family: 'Inter', system-ui, sans-serif;
+  `;
+  
+  content.innerHTML = `
+    <h2 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 16px 0; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif;">${title}</h2>
+    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 16px 0; word-break: break-word;">${message.replace(/\n/g, '<br>')}</p>
+    <div style="margin-bottom: 24px;">
+      <input type="text" id="netflix-prompt-input" value="${defaultValue || ''}" style="width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:12px 16px; border-radius:8px; color:white; font-size:14px; text-align:center; outline:none; transition: border-color 0.3s;" onfocus="this.style.borderColor='#e50914'">
+    </div>
+    <div style="display: flex; justify-content: center; gap: 14px;">
+      <button id="netflix-prompt-cancel" class="btn btn-secondary" style="padding: 10px 24px; font-size: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none; background: rgba(255,255,255,0.15); color: #fff;">Cancel</button>
+      <button id="netflix-prompt-submit" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px; background: #E50914; color: white; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; border: none;">Submit</button>
+    </div>
+  `;
+  
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  // Force reflow
+  modal.offsetHeight;
+  modal.style.opacity = '1';
+  content.style.transform = 'scale(1)';
+  
+  const closePrompt = (submitted) => {
+    const val = modal.querySelector('#netflix-prompt-input').value;
+    modal.style.opacity = '0';
+    content.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      modal.remove();
+      if (submitted && onInputReceived) onInputReceived(val);
+    }, 250);
+  };
+  
+  modal.querySelector('#netflix-prompt-submit').onclick = () => closePrompt(true);
+  modal.querySelector('#netflix-prompt-cancel').onclick = () => closePrompt(false);
+  modal.querySelector('#netflix-prompt-input').onkeydown = (e) => {
+    if (e.key === 'Enter') closePrompt(true);
+  };
+  modal.onclick = (e) => {
+    if (e.target === modal) closePrompt(false);
+  };
+};
+
 function handleFirestoreError(error, operationType, path) {
   const errMsg = error instanceof Error ? error.message : String(error);
   const errInfo = {
@@ -834,16 +1041,22 @@ window.toggleSetting = (settingKey) => {
   render();
 };
 
-window.confirmPurgeAll = async () => {
-  const check = confirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?");
-  if (check) {
-    const secondCheck = confirm("Double confirmation required:\n\nAre you absolutely sure?");
-    if (secondCheck) {
-      const modal = document.getElementById('settingsModal');
-      if (modal) modal.remove();
-      await window.purgeAllFirebaseMemories();
-    }
-  }
+window.confirmPurgeAll = () => {
+  window.showNetflixConfirm(
+    "⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?",
+    () => {
+      window.showNetflixConfirm(
+        "Double confirmation required:\n\nAre you absolutely sure?",
+        async () => {
+          const modal = document.getElementById('settingsModal');
+          if (modal) modal.remove();
+          await window.purgeAllFirebaseMemories();
+        },
+        "CRITICAL PURGE CONFIRMATION"
+      );
+    },
+    "DATABASE PURGE WARNING"
+  );
 };
 
 window.openSettingsModal = () => {
@@ -2073,7 +2286,10 @@ window.openUploadModal = () => {
 
   document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
-    if (!link) return alert("Please paste a YouTube link first.");
+    if (!link) {
+      window.showNetflixAlert("Please paste a YouTube link first.", "Missing Link");
+      return;
+    }
 
     let videoId = '';
     const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -2084,7 +2300,10 @@ window.openUploadModal = () => {
       videoId = link.length === 11 ? link : null;
     }
 
-    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
+    if (!videoId) {
+      window.showNetflixAlert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.", "Invalid Link");
+      return;
+    }
     
     extractedVideoId = videoId;
     document.getElementById('up-fetch').innerText = "Fetching...";
@@ -2114,8 +2333,14 @@ window.openUploadModal = () => {
   
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
-    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
+    if(!title) {
+      window.showNetflixAlert("Title required", "Form Incomplete");
+      return;
+    }
+    if(!extractedVideoId) {
+      window.showNetflixAlert("Please fetch a valid YouTube link first.", "Verification Needed");
+      return;
+    }
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
@@ -2417,33 +2642,37 @@ window.saveDetailEdit = async (id) => {
   toggleDetailEdit();
 };
 
-window.deleteMemory = async (id) => {
-  if (confirm("Are you sure you want to delete this memory?")) {
-    appState.memories = appState.memories.filter(m => m.id !== id);
-    appState.myList = appState.myList.filter(lId => lId !== id);
-    appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
-    if (appState.likedMemories) {
-      appState.likedMemories = appState.likedMemories.filter(lId => lId !== id);
-    }
-    
-    try { 
-      await deleteDoc(doc(db, 'memories', id)); 
-    } catch(e) {
-      console.error("Error deleting memory from DB:", e);
-    }
-    
-    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    await saveStateList('myList', appState.myList);
-    await saveStateList('continueWatching', appState.continueWatching);
-    if (appState.likedMemories) {
-      await saveStateList('likedMemories', appState.likedMemories);
-    }
-    
-    const dm = document.getElementById('detailModal');
-    if (dm) dm.remove();
-    
-    render();
-  }
+window.deleteMemory = (id) => {
+  window.showNetflixConfirm(
+    "Are you sure you want to permanently delete this memory?",
+    async () => {
+      appState.memories = appState.memories.filter(m => m.id !== id);
+      appState.myList = appState.myList.filter(lId => lId !== id);
+      appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
+      if (appState.likedMemories) {
+        appState.likedMemories = appState.likedMemories.filter(lId => lId !== id);
+      }
+      
+      try { 
+        await deleteDoc(doc(db, 'memories', id)); 
+      } catch(e) {
+        console.error("Error deleting memory from DB:", e);
+      }
+      
+      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+      await saveStateList('myList', appState.myList);
+      await saveStateList('continueWatching', appState.continueWatching);
+      if (appState.likedMemories) {
+        await saveStateList('likedMemories', appState.likedMemories);
+      }
+      
+      const dm = document.getElementById('detailModal');
+      if (dm) dm.remove();
+      
+      render();
+    },
+    "Delete Memory"
+  );
 };
 
 window.showToast = (msg, duration = 3000) => {
@@ -2578,19 +2807,25 @@ window.shareVideo = (id) => {
   const link = window.location.origin + window.location.pathname + "?v=" + id;
   if(navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(link).then(() => {
-      alert("Memory link copied to clipboard!\n" + link);
+      window.showNetflixAlert("Memory link copied to clipboard!\n\n" + link, "Share Memory");
     }).catch(() => {
-      prompt("Copy this link to share:", link);
+      window.showNetflixPrompt("Copy this link to share:", link, null, "Share Link");
     });
   } else {
-    prompt("Copy this link to share:", link);
+    window.showNetflixPrompt("Copy this link to share:", link, null, "Share Link");
   }
 }
 window.downloadVideo = () => {
-  const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
-  if (quality) {
-    alert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...");
-  }
+  window.showNetflixPrompt(
+    "Select Download Quality:\nEnter '1' for High (4K Ultra HD)\nEnter '2' for Standard (1080p HD)",
+    "1",
+    (quality) => {
+      if (quality) {
+        window.showNetflixAlert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...", "Offline Mode");
+      }
+    },
+    "Download Quality"
+  );
 }
 
 // === FULLSCREEN PLAYBACK ===
@@ -3008,24 +3243,32 @@ window.handleAddMemoryClick = () => {
 window.generateDescriptionWithAI = () => {
   const link = document.getElementById('up-yt-link').value.trim();
   
-  const prompt = `CRITICAL ASSIGNMENT: Please process this YouTube link, watch/analyze its exact content, and retrieve its actual transcripts/captions:
-${link || '(Not provided)'}
+  let videoId = '';
+  if (link) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = link.match(regExp);
+    if (match && match[2].length === 11) {
+      videoId = match[2];
+    } else if (link.length === 11) {
+      videoId = link;
+    }
+  }
+  
+  const formattedStableLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : link;
+  
+  const prompt = `CRITICAL ASSIGNMENT: Please process this YouTube link on-demand, analyze the actual video contents, and fetch the full transcript and captions:
+${formattedStableLink || '(Not provided)'}
 
-MANDATORY RULES:
-1. You must base your output ONLY on the real events, theme, and spoken characters of the provided YouTube link. DO NOT write a generic guess or general cinematic filler if you cannot see the video!
-2. If you are UNABLE to access this specific video due to YouTube blocks, server-side filters, or private/unlisted flags, DO NOT HALLUCINATE OR MAKE UP A STORY. Instead, output the following starting template so the user can describe it:
-Title: [Please replace with a 1-sentence summary of your video so I can style it!]
-Description: [Please replace with a 1-sentence description of your video so I can style it!]
+MANDATORY INSTRUCTIONS FOR FULL COMPREHENSION AND ANALYSIS:
+1. DO NOT shortcut, give partial lines, or ask the user for clarification (e.g. do not ask "Please give me one sentence so I can analyze it").
+2. Perform a complete, thorough, deep end-to-end reading of the transcript. Take your time to digest every scene, spoken word, and emotion conveyed in the video.
+3. Once fully summarized, forge the analysis into:
+   - A highly cohesive, cinematic, Netflix-styled custom Title for this memory.
+   - A captivating, nostalgic streaming description (max 35-40 words, perfect for a Netflix card catalog blurb).
 
-3. If you CAN successfully access/process the video, please generate and output:
-- A catchy, cinematic custom Video Title (Netflix style) that conveys the actual narrative/events of the video.
-- A nostalgic, romantic, cinematic professional blurb/description for our streaming catalogue (under 2 lines, around 30-40 words maximum).
-
-Your final output format must be EXACTLY:
-Title: [Your Generated Cinematic Title]
-Description: [Your Generated Description]
-
-(Do not include any greeting, markdown, brackets, introduction, conversational filler, or bold fonts! Keep the title and description as pure, clean text.)`;
+Your output MUST fit this exact, clean format with no other text, greetings, codeblocks, or conversational fluff:
+Title: [Cinematic Title]
+Description: [Full Exhaustive Cinematic Summary]`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Gemini prompt copied! Opening Google Gemini...");
@@ -3033,7 +3276,7 @@ Description: [Your Generated Description]
       window.open('https://gemini.google.com/app', '_blank');
     }, 1000);
   }).catch((err) => {
-    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.showNetflixAlert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt, "Gemini Prompt");
     window.open('https://gemini.google.com/app', '_blank');
   });
 };
@@ -3166,7 +3409,7 @@ window.openBulkUploadModal = () => {
     }
     
     if (toUpload.length === 0) {
-      alert(`All ${maxFiles.length} selected photo${maxFiles.length > 1 ? 's' : ''} already exist in your gallery.\n\nNo duplicates were uploaded.`);
+      window.showNetflixAlert(`All ${maxFiles.length} selected photo${maxFiles.length > 1 ? 's' : ''} already exist in your gallery.\n\nNo duplicates were uploaded.`, "Duplicate Gallery Items");
       const dm = document.getElementById('bulkUploadModal');
       if (dm) {
         dm.classList.remove('open');
@@ -3291,7 +3534,6 @@ window.openBulkUploadModal = () => {
     }
     
     window.showToast(endMsg, 6000);
-    alert(endMsg);
     
     const dm = document.getElementById('bulkUploadModal');
     if (dm) {
@@ -3316,7 +3558,10 @@ window.startMomentsSlideshow = (startId) => {
     }
   }
   
-  if (mems.length === 0) return alert('No moments available to play.');
+  if (mems.length === 0) {
+    window.showNetflixAlert('No moments available to play.', "Empty Slideshow");
+    return;
+  }
 
   let c = document.getElementById('playbackOverlay');
   if (!c) {
@@ -3692,74 +3937,76 @@ window.applyBulkEdit = async () => {
   }
 };
 
-window.applyBulkDelete = async () => {
+window.applyBulkDelete = () => {
   if (window.selectedBulkIds.length === 0) return;
   
   const count = window.selectedBulkIds.length;
-  if (!confirm(`Are you sure you want to permanently delete all ${count} selected memories?`)) {
-    return;
-  }
-  
-  let deletedCount = 0;
-  
-  // Activate bulk transaction to block live listener interference and avoid race conditions
-  appState.bulkTransactionActive = true;
-  
-  try {
-    const idsToDelete = [...window.selectedBulkIds];
-    
-    // Sync local arrays immediately so the UI is super fast
-    appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
-    appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
-    appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
-    if (appState.likedMemories) {
-      appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
-    }
-    
-    // Commit deletions in chunked batches of 400
-    const chunkSize = 400;
-    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
-      const chunk = idsToDelete.slice(i, i + chunkSize);
-      const batch = writeBatch(db);
-      chunk.forEach(id => {
-        const docRef = doc(db, 'memories', id);
-        batch.delete(docRef);
-        deletedCount++;
-      });
-      await batch.commit();
-    }
-    
-    // Also save state alterations
-    await saveStateList('myList', appState.myList);
-    await saveStateList('continueWatching', appState.continueWatching);
-    if (appState.likedMemories) {
-      await saveStateList('likedMemories', appState.likedMemories);
-    }
-  } catch (err) {
-    console.error('Error committing bulk delete batch:', err);
-    handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
-  } finally {
-    appState.bulkTransactionActive = false;
-    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    
-    if (window.pendingMemoriesSnapshot) {
-      const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
-      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
-      appState.memories = list;
-      window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-      window.pendingMemoriesSnapshot = null;
-    }
-    render();
-  }
-  
-  window.showToast(`Deleted ${deletedCount} memories in bulk.`);
-  
-  const dm = document.getElementById('bulkManagerModal');
-  if (dm) {
-    dm.classList.remove('open');
-    setTimeout(() => {
-      dm.remove();
-      window.refreshRowsView(null, null, true);
-    }, 300);
-  }
+  window.showNetflixConfirm(
+    `Are you sure you want to permanently delete all ${count} selected memories?`,
+    async () => {
+      let deletedCount = 0;
+      
+      // Activate bulk transaction to block live listener interference and avoid race conditions
+      appState.bulkTransactionActive = true;
+      
+      try {
+        const idsToDelete = [...window.selectedBulkIds];
+        
+        // Sync local arrays immediately so the UI is super fast
+        appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
+        appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
+        appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
+        if (appState.likedMemories) {
+          appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
+        }
+        
+        // Commit deletions in chunked batches of 400
+        const chunkSize = 400;
+        for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+          const chunk = idsToDelete.slice(i, i + chunkSize);
+          const batch = writeBatch(db);
+          chunk.forEach(id => {
+            const docRef = doc(db, 'memories', id);
+            batch.delete(docRef);
+            deletedCount++;
+          });
+          await batch.commit();
+        }
+        
+        // Also save state alterations
+        await saveStateList('myList', appState.myList);
+        await saveStateList('continueWatching', appState.continueWatching);
+        if (appState.likedMemories) {
+          await saveStateList('likedMemories', appState.likedMemories);
+        }
+      } catch (err) {
+        console.error('Error committing bulk delete batch:', err);
+        handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
+      } finally {
+        appState.bulkTransactionActive = false;
+        window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+        
+        if (window.pendingMemoriesSnapshot) {
+          const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
+          list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+          appState.memories = list;
+          window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+          window.pendingMemoriesSnapshot = null;
+        }
+        render();
+      }
+      
+      window.showToast(`Deleted ${deletedCount} memories in bulk.`);
+      
+      const dm = document.getElementById('bulkManagerModal');
+      if (dm) {
+        dm.classList.remove('open');
+        setTimeout(() => {
+          dm.remove();
+          window.refreshRowsView(null, null, true);
+        }, 300);
+      }
+    },
+    "Bulk Delete"
+  );
 };

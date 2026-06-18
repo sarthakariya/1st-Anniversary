@@ -474,7 +474,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: clamp(110px, 15%, 170px);
+  bottom: clamp(180px, 23%, 240px);
   width: 90%;
   max-width: 650px;
   z-index: 10;
@@ -502,6 +502,10 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow: hidden;
 }
 .hero-buttons {
+  position: absolute;
+  left: 4%;
+  bottom: clamp(110px, 15%, 170px);
+  z-index: 10;
   display: flex;
   gap: 12px;
   padding: 10px 0;
@@ -578,9 +582,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 .maturity-rating {
   background: rgba(51,51,51,0.6);
   border-left: 3px solid #d9d9d9;
-  padding: 6px 40px 6px 15px;
+  padding: 6px 0 6px 15px;
   font-size: clamp(0.9rem, 1vw, 1.1rem);
   color: #fff;
+  width: 100px;
+  box-sizing: border-box;
 }
 
 /* Rows */
@@ -1475,5 +1481,20 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   color: #888;
   font-size: 11px;
   margin-top: 3px;
+}
+
+/* Premium micro-animations for real-time card transitions */
+@keyframes cardScaleFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.media-card {
+  animation: cardScaleFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
