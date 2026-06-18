@@ -31,8 +31,6 @@ function handleFirestoreError(error, operationType, path) {
   };
   console.warn('Firestore Error Handled Gracefully: ', JSON.stringify(errInfo));
   
-  appState.offlineMode = true;
-
   // Let's populate fallback states if we were trying to load them
   if (operationType === OperationType.GET || operationType === OperationType.LIST) {
     if (path === 'user_state/household') {
@@ -52,23 +50,10 @@ function handleFirestoreError(error, operationType, path) {
     
     // Smooth rendering update
     render();
-    
-    // Show polite warning toast
-    setTimeout(() => {
-      if (typeof window.showToast === 'function') {
-        window.showToast("⚠️ Firebase Storage Full: Operating securely in live Sandbox Mode", 6200);
-      }
-    }, 1200);
-    
     return; // Bypass throwing to avoid crashing the UI
   }
   
   if (operationType === OperationType.WRITE || operationType === OperationType.UPDATE || operationType === OperationType.DELETE) {
-    setTimeout(() => {
-      if (typeof window.showToast === 'function') {
-        window.showToast("⚠️ Database is full - Local operations completed in Sandbox Mode", 4000);
-      }
-    }, 100);
     return; // Bypass throwing to avoid interrupting active uploads/saves
   }
 
@@ -265,11 +250,6 @@ window.purgeAllFirebaseMemories = async () => {
     
     // Visually clear out all memories from the UI state as explicitly requested by the user
     appState.memories = [];
-    appState.offlineMode = true; // Switch to Sandbox Mode
-    
-    if (typeof window.showToast === 'function') {
-      window.showToast("⚠️ Firebase Storage Full - Cleaned UI & entered Unlimited YouTube Sandbox Mode", 6000);
-    }
     render();
   }
 };
@@ -1372,19 +1352,6 @@ function createNavbar() {
         }).join('')}
       </ul>
       <div class="nav-right">
-        <style>
-          @keyframes pulse-red-anim {
-            0% { transform: scale(0.95); opacity: 0.5; }
-            50% { transform: scale(1.15); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.5; }
-          }
-        </style>
-        ${appState.offlineMode ? `
-          <div class="offline-badge" title="Cloud DB quota reached. Operating securely in Sandbox Mode using local browser storage." style="background: rgba(229,9,20,0.18); color: #ff5252; border: 1px solid rgba(229,9,20,0.5); font-size: 11px; padding: 5px 12px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: help; letter-spacing: 0.4px; margin-right: 8px;">
-            <span style="width: 7px; height: 7px; background: #e50914; border-radius: 50%; display: inline-block; animation: pulse-red-anim 1.5s infinite; box-shadow: 0 0 6px #e50914;"></span>
-            Sandbox Mode
-          </div>
-        ` : ''}
         <div class="search-container" id="searchContainer">
           <div class="search-icon" onclick="toggleSearch()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1992,43 +1959,6 @@ window.toggleHeroMute = () => {
   }
 };
 
-// === STORAGE FULL BLOCKER ===
-window.showStorageFullModal = (type) => {
-  const modal = document.createElement('div');
-  modal.className = 'upload-modal open';
-  modal.id = 'storageFullModal';
-  modal.style.zIndex = '99999';
-  
-  modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 450px; text-align: center; border: 1px solid rgba(229, 9, 20, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.8); background: #141414; padding: 40px 30px; border-radius: 12px; position: relative;">
-      <button class="upload-close" style="position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: white; font-size: 28px; cursor: pointer;" onclick="document.getElementById('storageFullModal').remove()">&times;</button>
-      <div style="font-size: 54px; margin-bottom: 20px; color: #e50914;">⚠️</div>
-      <div class="upload-title" style="margin-bottom: 15px; font-size: 22px; font-weight: 700; color: #ff5252; text-transform: uppercase; letter-spacing: 0.5px;">Firebase Storage Full</div>
-      
-      <p style="font-size: 14px; line-height: 1.6; color: #ddd; margin-bottom: 30px; padding: 0 10px;">
-        Database and Storage quotas are currently **100% full**. Direct photo or local files uploads are temporarily disabled.
-        <br><br>
-        <span style="color: #46d369; font-weight: 600;">Good News:</span> Videos are **unlimited**! Since we stream videos directly from YouTube by just pasting the link, no server storage is used.
-      </p>
-      
-      <div style="display: flex; gap: 12px; flex-direction: column;">
-        <button class="btn btn-primary" style="background: linear-gradient(90deg, #e50914, #ff5252); border: none; padding: 12px; font-weight: 700; width: 100%; border-radius: 8px; cursor: pointer; color: white; transition: transform 0.2s;" onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'" onclick="document.getElementById('storageFullModal').remove(); window.openUploadModal();">
-          ＋ Add a YouTube Video Instead
-        </button>
-        <button style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; transition: color 0.2s; font-weight: 500;" onmouseenter="this.style.color='white'" onmouseleave="this.style.color='#aaa'" onclick="document.getElementById('storageFullModal').remove();">
-          Dismiss
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-};
-
-// Override original bulk uploader to direct to our beautiful storage full notification
-window.openBulkUploadModal = () => {
-  window.showStorageFullModal('bulk');
-};
-
 // === UPLOAD FEATURE ===
 window.openUploadModal = () => {
   const modal = document.createElement('div');
@@ -2062,7 +1992,7 @@ window.openUploadModal = () => {
           <label style="display:block; text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#888; margin-bottom:8px;">Thumbnail Image URL (Optional)</label>
           <input type="text" id="up-thumb-custom" placeholder="Paste custom image URL here (or keep blank to use fetched youtube thumbnail)" style="width:100%; background:rgba(255,255,255,0.1); border:none; padding:12px 16px; border-radius:8px; color:white; outline:none; transition: background 0.3s;" oninput="document.getElementById('up-thumb-preview').src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block';">
           <div style="text-align:center; margin-top:12px; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-          <button style="background: rgba(229, 9, 20, 0.15); border:1px dashed #e50914; color:#ff5252; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.25)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.showStorageFullModal('photo')">📁 Select Image File (Blocked: Storage Full)</button>
+          <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 12px 16px; border-radius:8px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-thumb-file').click()">📁 Select Image File</button>
           <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
         </div>
         
