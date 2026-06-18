@@ -491,15 +491,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   word-break: break-word;
 }
 .hero-desc {
-  font-size: clamp(0.9rem, 1.25vw, 1.1rem);
-  color: #fff;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
-  margin-bottom: 24px;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: none !important;
 }
 .hero-buttons {
   display: flex;
@@ -578,9 +570,14 @@ input:checked + .slider:before { transform: translateX(20px); }
 .maturity-rating {
   background: rgba(51,51,51,0.6);
   border-left: 3px solid #d9d9d9;
-  padding: 6px 40px 6px 15px;
+  padding: 6px 15px;
   font-size: clamp(0.9rem, 1vw, 1.1rem);
   color: #fff;
+  width: 110px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 /* Rows */
@@ -659,7 +656,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: #222;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.4s;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s, border-color 0.8s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
   scroll-snap-align: start;
@@ -691,12 +688,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   box-shadow: 0 10px 30px rgba(0,0,0,0.75);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.4s;
 }
 .media-card:hover .hover-chassis {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0.4s;
+  transition-delay: 0.65s;
 }
 .hc-buttons { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
 .hc-btn {
@@ -939,9 +936,17 @@ input:checked + .slider:before { transform: translateX(20px); }
   width: 100%; height: 100%; object-fit: cover;
 }
 .playback-back {
-  position: absolute; top: 30px; left: 30px;
-  color: white; font-size: 40px; text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+  position: absolute; top: 40px; left: 40px;
+  color: white;
   cursor: pointer; z-index: 20001;
+}
+#playback-back-btn:hover {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  transform: scale(1.1) !important;
+}
+#playback-back-btn:hover svg {
+  transform: rotate(-90deg) scale(1.05);
 }
 
 /* Detailed Information Modal Overlay */
@@ -1476,4 +1481,144 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   font-size: 11px;
   margin-top: 3px;
 }
+
+/* === CLASS BRANDED PREMIUM MICRO-ANIMATIONS === */
+
+/* 1. Shine and card hover glow additions */
+.media-card {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.media-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Sheen effect disabled on hover */
+
+/* 2. Springy scale pop on active status button clicked */
+.pop-active {
+  animation: springyPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes springyPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+@keyframes scaleUp {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 3. Springy spin for control buttons like next title/mute on billboard hover */
+.mute-btn {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease, border-color 0.2s ease !important;
+}
+.mute-btn:hover {
+  transform: scale(1.12) rotate(5deg);
+}
+.mute-btn:active {
+  transform: scale(0.9) rotate(-3deg);
+}
+
+/* 4. Detail Modal Button Hover Cinematic Lift */
+.detail-modal .btn {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease !important;
+}
+.detail-modal .btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+}
+.detail-modal .btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+/* 5. Glowing search input */
+.search-input {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.search-input:focus {
+  box-shadow: 0 0 0 1.5px #fff !important;
+  background: rgba(0,0,0,0.95) !important;
+}
+
+/* 6. Red pulse heartbeat for loading indicators */
+.micro-heartbeat {
+  animation: pulseColor 1.5s infinite alternate ease-in-out;
+}
+@keyframes pulseColor {
+  0% { box-shadow: 0 0 4px rgba(255, 255, 255, 0.1); }
+  100% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+}
+
+/* === CINEMATIC BILLBOARD HORIZONTAL SCROLLING === */
+.hero-media-roll-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.hero-media-roll-item {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transition: transform 0.85s cubic-bezier(0.25, 1, 0.4, 1);
+  will-change: transform;
+}
+
+.hero-media-roll-item.roll-out {
+  transform: translateX(-100%);
+}
+
+.hero-media-roll-item.roll-in {
+  transform: translateX(100%);
+}
+
+.hero-media-roll-item.roll-active {
+  transform: translateX(0);
+}
+
+.hero-text-roll-container {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.hero-text-roll-item {
+  width: 100%;
+  transition: transform 0.85s cubic-bezier(0.25, 1, 0.4, 1), opacity 0.85s cubic-bezier(0.25, 1, 0.4, 1);
+  will-change: transform, opacity;
+}
+
+.hero-text-roll-item.roll-out {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(-120%);
+  opacity: 0;
+}
+
+.hero-text-roll-item.roll-in {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+.hero-text-roll-item.roll-active {
+  position: relative;
+  transform: translateX(0);
+  opacity: 1;
+}
+
 

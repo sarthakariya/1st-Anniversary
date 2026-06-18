@@ -203,6 +203,32 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
 const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event'];
 
+window.formatDuration = (seconds) => {
+  if (!seconds || isNaN(seconds)) return '';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+
+  if (h > 0) {
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  if (m > 0) {
+    return `${m}m`;
+  }
+  return `${s}s`;
+};
+
+// Global interceptor for back swipe, browser back, left-arrow click back browser actions
+window.closeActivePlayer = null;
+window.addEventListener('popstate', (e) => {
+  const overlay = document.getElementById('playbackOverlay');
+  if (overlay && overlay.style.display !== 'none') {
+    if (typeof window.closeActivePlayer === 'function') {
+      window.closeActivePlayer();
+    }
+  }
+});
+
 window.getNormalizedCategory = (cat) => {
   const c = String(cat || '').trim();
   if (c.toLowerCase().includes('romance') || c.toLowerCase().includes('romantic')) {
@@ -621,13 +647,44 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
       if(hero) hero.style.display = 'none';
       rc.style.setProperty('margin-top', '140px', 'important');
       rc.style.setProperty('padding-top', '10px', 'important');
-      const q = appState.searchQuery;
-      const mems = appState.memories.filter(m => 
-        m.title.toLowerCase().includes(q) || 
-        (m.desc && m.desc.toLowerCase().includes(q)) || 
-        (m.year && m.year.toString().includes(q)) ||
-        (m.category && m.category.toLowerCase().includes(q))
-      );
+      const q = appState.searchQuery.trim().toLowerCase();
+      const queryWords = q.split(/\s+/).filter(w => w.length > 0);
+      const mems = appState.memories.filter(m => {
+        const titleStr = (m.title || '').toLowerCase();
+        const descStr = (m.description || m.desc || '').toLowerCase();
+        const catStr = (m.category || '').toLowerCase();
+        const yearStr = (m.year || '').toString().toLowerCase();
+        const durStr = (m.duration || '').toLowerCase();
+        
+        // Handle cast, genres, tags if they exist as array or string
+        const castStr = Array.isArray(m.cast) ? m.cast.join(' ').toLowerCase() : (m.cast || '').toLowerCase();
+        const genresStr = Array.isArray(m.genres) ? m.genres.join(' ').toLowerCase() : (m.genres || m.genre || '').toLowerCase();
+        const tagsStr = Array.isArray(m.tags) ? m.tags.join(' ').toLowerCase() : (m.tags || '').toLowerCase();
+        
+        const combinedText = `${titleStr} ${descStr} ${catStr} ${yearStr} ${durStr} ${castStr} ${genresStr} ${tagsStr}`;
+        
+        // Match full exact substring search of any field
+        if (combinedText.includes(q)) {
+          return true;
+        }
+        
+        // Advanced: normalization mapping, e.g. "3 hours" -> "3h", "10 minutes" -> "10m"
+        const normalizedQuery = q.replace(/\bhours?\b/g, 'h').replace(/\bminutes?\b/g, 'm').replace(/\bmins?\b/g, 'm').replace(/\s+/g, '');
+        const normalizedDur = durStr.replace(/\s+/g, '');
+        if (normalizedDur.includes(normalizedQuery)) {
+          return true;
+        }
+        
+        // Multi-word level query matching (all words must exist somewhere in attributes)
+        if (queryWords.length > 1) {
+          return queryWords.every(word => {
+            const normalizedWord = word.replace(/\bhours?\b/g, 'h').replace(/\bminutes?\b/g, 'm').replace(/\bmins?\b/g, 'm');
+            return combinedText.includes(word) || normalizedDur.includes(normalizedWord);
+          });
+        }
+        
+        return false;
+      });
       if(mems.length) rc.appendChild(createRow('Search Results', mems));
       else rc.innerHTML = '<div style="color:#888; padding:50px; font-size: 1.2vw; text-align:center;">No matches found for "' + q + '"</div>';
       
@@ -797,7 +854,7 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
       
       // Scramble Cipher Animation
       const chars = '!<>-_\\\\/[]{}—=+*^?#________';
-      rc.querySelectorAll('.scramble-text').forEach(el => {
+      if (!silent) rc.querySelectorAll('.scramble-text').forEach(el => {
         const targetText = el.getAttribute('data-text');
         if (!targetText) return;
         let frame = 0;
@@ -899,6 +956,61 @@ window.openSettingsModal = () => {
   setTimeout(() => modal.classList.add('open'), 10);
 };
 
+window.syncMyListUI = (id) => {
+  const inList = appState.myList.includes(id);
+  
+  // 1. Sync matching circular button in the Detail Modal
+  let dmBtn = null;
+  const circButtons = document.querySelectorAll('.circ-play-btn');
+  for (const btn of circButtons) {
+    const oClick = btn.getAttribute('onclick') || '';
+    if (oClick.includes(id)) {
+      dmBtn = btn;
+      break;
+    }
+  }
+  
+  if (dmBtn) {
+    dmBtn.title = inList ? 'Remove from List' : 'Add to My List';
+    dmBtn.innerHTML = inList ? 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);"><polyline points="20 6 9 17 4 12"/></svg>` : 
+      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);"><path d="M12 5v14M5 12h14"/></svg>`;
+    
+    dmBtn.classList.add('pop-active');
+    setTimeout(() => dmBtn.classList.remove('pop-active'), 400);
+  }
+  
+  // 2. Sync all matching hover chassis media-card add buttons
+  const addButtons = document.querySelectorAll('.hc-add');
+  addButtons.forEach(btn => {
+    const oClick = btn.getAttribute('onclick') || '';
+    if (oClick.includes(id)) {
+      btn.title = inList ? 'Remove from List' : 'Add to My List';
+      btn.innerHTML = inList ? 
+        `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.15s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` : 
+        `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: scaleUp 0.15s ease-out;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+      
+      btn.classList.add('pop-active');
+      setTimeout(() => btn.classList.remove('pop-active'), 400);
+    }
+  });
+
+  // 3. Sync Hero Billboard banner button
+  const heroBtn = document.getElementById('hero-mylist-btn');
+  if (heroBtn) {
+    const clickAttr = heroBtn.getAttribute('onclick') || '';
+    if (clickAttr.includes(id)) {
+      heroBtn.title = inList ? 'Remove from My List' : 'Add to My List';
+      heroBtn.innerHTML = inList ? 
+        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.25s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` : 
+        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: scaleUp 0.25s ease-out;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      
+      heroBtn.classList.add('pop-active');
+      setTimeout(() => heroBtn.classList.remove('pop-active'), 400);
+    }
+  }
+};
+
 window.toggleMyList = (id, event) => {
   if (event) event.stopPropagation();
   const inListBefore = appState.myList.includes(id);
@@ -909,23 +1021,13 @@ window.toggleMyList = (id, event) => {
   }
   saveStateList('myList', appState.myList);
   
-  if (event && event.currentTarget) {
-    const btn = event.currentTarget;
-    btn.innerHTML = appState.myList.includes(id) ? '✓' : '＋';
-    btn.title = appState.myList.includes(id) ? 'Remove from List' : 'Add to My List';
+  if (appState.activeCategory === 'My List') {
+    // If we are physically on the My List view, we need a refresh to remove the item instantly
+    window.refreshRowsView(null, null, true);
+  } else {
+    // Otherwise, perform high-fidelity synchronised DOM update, completely preserving video/hover states
+    window.syncMyListUI(id);
   }
-  
-  // Also synchronize the hero mylist button state if the same ID is being toggled and visible on screen
-  const heroBtn = document.getElementById('hero-mylist-btn');
-  if (heroBtn) {
-    const inListAfter = appState.myList.includes(id);
-    heroBtn.title = inListAfter ? 'Remove from My List' : 'Add to My List';
-    heroBtn.innerHTML = inListAfter ? 
-      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : 
-      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
-  }
-  
-  window.refreshRowsView(null, null, true);
 };
 
 window.toggleHeroMyList = (id, event) => {
@@ -940,16 +1042,11 @@ window.toggleHeroMyList = (id, event) => {
   }
   saveStateList('myList', appState.myList);
   
-  const heroBtn = document.getElementById('hero-mylist-btn');
-  if (heroBtn) {
-    const inListAfter = appState.myList.includes(id);
-    heroBtn.title = inListAfter ? 'Remove from My List' : 'Add to My List';
-    heroBtn.innerHTML = inListAfter ? 
-      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : 
-      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  if (appState.activeCategory === 'My List') {
+    window.refreshRowsView(null, null, true);
+  } else {
+    window.syncMyListUI(id);
   }
-  
-  window.refreshRowsView(null, null, true);
 };
 
 function createStartupScreen() {
@@ -1360,6 +1457,28 @@ function createNavbar() {
           nav.classList.remove('scrolled');
           nav.style.boxShadow = 'none';
         }
+
+        // Pause/play hero background video on scroll past threshold
+        const isScrolledPast = window.scrollY > 350;
+        const heroVids = document.querySelectorAll('.hero-video');
+        heroVids.forEach(v => {
+          if (isScrolledPast) {
+            if (v.tagName === 'VIDEO') {
+              if (!v.paused) v.pause();
+            } else if (v.tagName === 'IFRAME') {
+              v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+            }
+          } else {
+            if (appState.settings && appState.settings.autoPlayPreviews) {
+              if (v.tagName === 'VIDEO') {
+                if (v.paused) v.play().catch(() => {});
+              } else if (v.tagName === 'IFRAME') {
+                v.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+              }
+            }
+          }
+        });
+
         ticking = false;
       });
       ticking = true;
@@ -1506,38 +1625,193 @@ window.shuffleHero = () => {
   const currentHero = container ? container.querySelector('.hero-billboard') : document.querySelector('.hero-billboard');
   
   if (container && currentHero) {
+    const mediaRollCont = currentHero.querySelector('.hero-media-roll-container');
+    const textRollCont = currentHero.querySelector('.hero-text-roll-container');
+    
+    if (mediaRollCont && textRollCont) {
+      const titleText = nextHeroMem.title || '';
+      const isLongTitle = titleText.length > 20;
+      const isVeryLongTitle = titleText.length > 35;
+      let titleClass = "hero-title";
+      if (isVeryLongTitle) {
+        titleClass += " title-very-long";
+      } else if (isLongTitle) {
+        titleClass += " title-long";
+      }
+      
+      // Determine YouTube background source
+      let nextBackgroundHtml = '';
+      const isYouTube = nextHeroMem.videoUrl && !nextHeroMem.videoUrl.includes('/') && !nextHeroMem.videoUrl.includes('blob:');
+      if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
+        const isMuted = appState.isHeroMuted !== false;
+        if (isYouTube) {
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+        } else {
+          nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
+        }
+      }
+      
+      // Prep new media roll layer (starting out of view at bottom-translated posture)
+      const newMediaItem = document.createElement('div');
+      newMediaItem.className = 'hero-media-roll-item roll-in';
+      newMediaItem.innerHTML = `
+        <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
+          <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          ${nextBackgroundHtml}
+        </div>
+      `;
+      
+      // Prep new text details roll layer (starting translated down at bottom-posture)
+      const newTextItem = document.createElement('div');
+      newTextItem.className = 'hero-text-roll-item roll-in';
+      newTextItem.innerHTML = `
+        <div class="hero-text-lockup" style="width: 100%;">
+          <div class="${titleClass}">
+            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 180px; max-width: min(450px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div>${nextHeroMem.title}</div>`}
+            <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
+                <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+                <span style="font-size: 13px; font-weight: 950;">10</span>
+              </div>
+              <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
+            </div>
+          </div>
+          <div class="hero-desc">${nextHeroMem.desc}</div>
+        </div>
+      `;
+      
+      mediaRollCont.appendChild(newMediaItem);
+      textRollCont.appendChild(newTextItem);
+      
+      // Force pipeline layout computation
+      newMediaItem.offsetHeight;
+      newTextItem.offsetHeight;
+      
+      // Select the old active items
+      const oldMediaItem = mediaRollCont.querySelector('.hero-media-roll-item.roll-active');
+      const oldTextItem = textRollCont.querySelector('.hero-text-roll-item.roll-active');
+      
+      // Animate transition using CSS translation states
+      if (oldMediaItem) {
+        oldMediaItem.classList.remove('roll-active');
+        oldMediaItem.classList.add('roll-out');
+      }
+      if (oldTextItem) {
+        oldTextItem.classList.remove('roll-active');
+        oldTextItem.classList.add('roll-out');
+      }
+      
+      newMediaItem.classList.remove('roll-in');
+      newMediaItem.classList.add('roll-active');
+      
+      newTextItem.classList.remove('roll-in');
+      newTextItem.classList.add('roll-active');
+      
+      // Instantly update the buttons attributes (Play, More Info) so they stay static but bind to next media ID
+      const playBtn = currentHero.querySelector('#hero-play-button');
+      if (playBtn) playBtn.setAttribute('onclick', `playVideo('${nextHeroMem.id}')`);
+      
+      const infoBtn = currentHero.querySelector('#hero-more-info');
+      if (infoBtn) infoBtn.setAttribute('onclick', `openDetailModal('${nextHeroMem.id}', event)`);
+      
+      const myListBtn = currentHero.querySelector('#hero-mylist-btn');
+      if (myListBtn) {
+        myListBtn.setAttribute('onclick', `window.toggleHeroMyList('${nextHeroMem.id}', event)`);
+        const inList = appState.myList.includes(nextHeroMem.id);
+        myListBtn.title = inList ? 'Remove from My List' : 'Add to My List';
+        myListBtn.innerHTML = inList ? 
+          `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.25s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` :
+          `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: scaleUp 0.25s ease-out;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      }
+      
+      const ratingBox = currentHero.querySelector('#hero-rating-box');
+      if (ratingBox) ratingBox.innerText = nextHeroMem.rating || 'TV-14';
+      
+      // Autoplay previews: once background element streams, fade the thumbnail cover safely
+      if (nextBackgroundHtml) {
+        setTimeout(() => {
+          const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
+          if (imgOverlay) imgOverlay.style.opacity = '0';
+        }, 750);
+      }
+      
+      // Native preview audio volume fade logic
+      const nv = newMediaItem.querySelector('#hero-native-video');
+      if (nv && !nv.muted) {
+        nv.volume = 0;
+        let vol = 0;
+        const rampInterval = setInterval(() => {
+          vol += 0.05;
+          if (vol >= 0.25) {
+            nv.volume = 0.25;
+            clearInterval(rampInterval);
+          } else {
+            nv.volume = vol;
+          }
+        }, 600);
+      }
+      
+      // Clean up previous elements after transition duration completes
+      setTimeout(() => {
+        if (oldMediaItem) {
+          const oldVids = Array.from(oldMediaItem.querySelectorAll('iframe, video'));
+          oldVids.forEach(v => {
+            if (v.tagName === 'VIDEO') {
+              v.src = '';
+              try { v.load(); } catch(e){}
+            }
+            v.remove();
+          });
+          oldMediaItem.remove();
+        }
+        if (oldTextItem) {
+          oldTextItem.remove();
+        }
+        window.isShufflingHero = false;
+      }, 900);
+      
+      return;
+    }
+  }
+
+  if (container && currentHero) {
     const newHero = createHero();
     newHero.id = 'hero-section';
     newHero.style.gridArea = '1 / 1 / 2 / 2';
     newHero.style.opacity = '0';
-    newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    newHero.style.transform = 'scale(0.94)';
+    newHero.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
     newHero.style.zIndex = '1';
     
     currentHero.id = 'hero-section-old';
     currentHero.style.gridArea = '1 / 1 / 2 / 2';
     currentHero.style.zIndex = '2';
-    currentHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    currentHero.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), filter 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    currentHero.style.transform = 'scale(1)';
     currentHero.style.pointerEvents = 'none';
     
     container.appendChild(newHero);
     
-    // Force reflow
     newHero.offsetHeight;
     
     newHero.style.opacity = '1';
+    newHero.style.transform = 'scale(1)';
     currentHero.style.opacity = '0';
+    currentHero.style.transform = 'scale(1.06)';
+    currentHero.style.filter = 'blur(8px) brightness(30%)';
     
     setTimeout(() => {
       currentHero.remove();
       newHero.style.transition = '';
       window.isShufflingHero = false;
-    }, 600);
+    }, 1200);
   } else if (currentHero) {
     // Fallback if container is not found
     const newHero = createHero();
     newHero.id = 'hero-section';
     newHero.style.opacity = '0';
-    newHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    newHero.style.transform = 'scale(0.94)';
+    newHero.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
     
     currentHero.id = 'hero-section-old';
     currentHero.style.position = 'absolute';
@@ -1546,7 +1820,8 @@ window.shuffleHero = () => {
     currentHero.style.width = '100%';
     currentHero.style.zIndex = '10';
     currentHero.style.pointerEvents = 'none';
-    currentHero.style.transition = 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+    currentHero.style.transition = 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), filter 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    currentHero.style.transform = 'scale(1)';
     
     const parent = currentHero.parentNode;
     if (parent) {
@@ -1557,14 +1832,17 @@ window.shuffleHero = () => {
       newHero.offsetHeight;
       
       newHero.style.opacity = '1';
+      newHero.style.transform = 'scale(1)';
       currentHero.style.opacity = '0';
+      currentHero.style.transform = 'scale(1.06)';
+      currentHero.style.filter = 'blur(8px) brightness(30%)';
       
       setTimeout(() => {
         currentHero.remove();
         newHero.style.opacity = '';
         newHero.style.transition = '';
         window.isShufflingHero = false;
-      }, 600);
+      }, 1200);
     } else {
       window.isShufflingHero = false;
     }
@@ -1618,37 +1896,47 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
   }
 
   c.innerHTML = `
-    <div class="hero-video-wrapper" style="background: black;">
-      <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
-      ${backgroundVideoHtml}
-      <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
+    <div class="hero-media-roll-container">
+      <div class="hero-media-roll-item roll-active">
+        <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
+          <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          ${backgroundVideoHtml}
+          <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
+        </div>
+      </div>
     </div>
     <div class="hero-overlay" style="z-index: 5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
-    <div class="hero-info" style="z-index: 5;">
-      <div class="${titleClass}">
-        <div>${heroMem.title}</div>
-        <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
-            <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
-            <span style="font-size: 13px; font-weight: 950;">10</span>
+    <div class="hero-info" style="z-index: 5; transition: transform 0.4s ease;">
+      <div class="hero-text-roll-container">
+        <div class="hero-text-roll-item roll-active">
+          <div class="hero-text-lockup" style="width: 100%;">
+            <div class="${titleClass}">
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 180px; max-width: min(450px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div>${heroMem.title}</div>`}
+              <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
+                  <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+                  <span style="font-size: 13px; font-weight: 950;">10</span>
+                </div>
+                <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
+              </div>
+            </div>
+            <div class="hero-desc">${heroMem.desc}</div>
           </div>
-          <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
         </div>
       </div>
-      <div class="hero-desc">${heroMem.desc}</div>
       <div class="hero-buttons">
-        <button class="btn btn-primary" onclick="playVideo('${heroMem.id}')">
+        <button class="btn btn-primary" id="hero-play-button" onclick="playVideo('${heroMem.id}')">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
         </button>
-        <button class="btn btn-secondary" onclick="openDetailModal('${heroMem.id}', event)">
+        <button class="btn btn-secondary" id="hero-more-info" onclick="openDetailModal('${heroMem.id}', event)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> More Info
         </button>
       </div>
@@ -1659,10 +1947,10 @@ function createHero() {
       </div>
       <div class="mute-btn" id="hero-mylist-btn" onclick="window.toggleHeroMyList('${heroMem.id}', event)" title="${appState.myList.includes(heroMem.id) ? 'Remove from My List' : 'Add to My List'}">
         ${appState.myList.includes(heroMem.id) ? 
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` :
-         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`}
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.25s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` :
+         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: scaleUp 0.25s ease-out;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`}
       </div>
-      <div class="maturity-rating" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
+      <div class="maturity-rating" id="hero-rating-box" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
   `;
 
@@ -1919,50 +2207,10 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
-
-      card.hoverTimeout = setTimeout(() => {
-        if(m.videoUrl && appState.settings.autoPlayPreviews) {
-          const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
-          if (isYouTube) {
-            const wrap = document.createElement('div');
-            wrap.className = 'media-card-hover-video';
-            wrap.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;border-radius:4px;';
-            const v = document.createElement('iframe');
-            v.src = `https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd2160&disablekb=1`;
-            v.style.cssText = 'position:absolute;top:50%;left:50%;width:150%;height:150%;border:none;pointer-events:none;transform:translate(-50%,-50%) scale(1.35);';
-            wrap.appendChild(v);
-            card.appendChild(wrap);
-          } else {
-            const v = document.createElement('video');
-            let srcUrl = m.videoUrl;
-            if (m.videoFile && !srcUrl.startsWith('blob:')) {
-              srcUrl = URL.createObjectURL(m.videoFile);
-              m.videoUrl = srcUrl;
-            }
-            v.src = srcUrl;
-            v.muted = true;
-            v.autoplay = true;
-            v.loop = true;
-            v.className = 'media-card-hover-video';
-            v.setAttribute('fetchpriority', 'high');
-            v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2;border-radius:4px;';
-            card.appendChild(v);
-            v.play().catch(e => console.log('Autoplay prevented'));
-          }
-        }
-      }, 500); // Shorter delay of 500ms for hover videos
     };
 
     card.onmouseleave = () => {
-      clearTimeout(card.hoverTimeout);
-      const v = card.querySelector('.media-card-hover-video');
-      if(v) {
-        if(v.tagName === 'VIDEO') {
-           v.src = ''; 
-           if(typeof v.load === 'function') v.load();
-        }
-        v.remove();
-      }
+      // Empty and optimized
     };
 
     fragment.appendChild(card);
@@ -2055,6 +2303,26 @@ window.openUploadModal = () => {
         <div class="floating-input-group">
           <input type="text" id="up-title" required>
           <label for="up-title">Title</label>
+        </div>
+
+        <div style="border: 1px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>Custom Title Logo Image (Optional)</span>
+            <span style="color:#e50914; font-size:10px;">Netflix Brand Style</span>
+          </div>
+          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Upload or generate a stylized transparent logo PNG that Netflix uses instead of plain text headings.</div>
+          
+          <input type="text" id="up-title-img-url" placeholder="Paste transparent PNG image URL..." style="width:100%; background:rgba(255,255,255,0.06); border:none; padding:10px 14px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+          
+          <div style="display:flex; gap:10px;">
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px; border-radius:6px; font-size:12px; cursor:pointer; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.18)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('up-title-img-file').click()">📁 Select Title File</button>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 10px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">✨ Generate Prompt</button>
+          </div>
+          <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+          
+          <div style="text-align:center;">
+             <img id="up-title-img-preview" src="" style="max-height:80px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
+          </div>
         </div>
 
         <div class="floating-input-group">
@@ -2176,9 +2444,15 @@ window.openUploadModal = () => {
     const finalThumb = (localThumbBase64 && customThumbVal.startsWith('Local File Selected:')) ?
       localThumbBase64 : (customThumbVal || currentThumbData || ('https://img.youtube.com/vi/' + extractedVideoId + '/maxresdefault.jpg'));
 
+    const customTitleImgVal = document.getElementById('up-title-img-url').value.trim();
+    const finalTitleImage = (window.upBase64TitleImg && customTitleImgVal.startsWith('Local File Selected:')) ?
+      window.upBase64TitleImg : (customTitleImgVal || null);
+    window.upBase64TitleImg = null;
+
     const mem = {
       id: 'm_' + Date.now(),
       title,
+      titleImage: finalTitleImage,
       desc: document.getElementById('up-desc').value,
       category: document.getElementById('up-cat').value,
       year: document.getElementById('up-date').value || new Date().getFullYear().toString(),
@@ -2245,6 +2519,10 @@ window.openDetailModal = (id, e, editMode = false) => {
       (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
+  const detailTitleRender = m.titleImage ? 
+    `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
+    m.title;
+
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
@@ -2254,7 +2532,7 @@ window.openDetailModal = (id, e, editMode = false) => {
         ${mediaHtml}
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
-          <div class="detail-title" id="dm-title">${m.title}</div>
+          <div class="detail-title" id="dm-title">${detailTitleRender}</div>
           <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
           <div style="display:flex; gap:10px; align-items:center;">
             ${!m.videoUrl ? `
@@ -2321,6 +2599,24 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
             <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select Image File</button>
             <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
+          </div>
+
+          <div id="dm-title-image-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
+            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Stylized Title Logo Image (Optional)</div>
+            <input type="text" id="dm-title-img-url-input" value="${m.titleImage || ''}" placeholder="Paste transparent PNG Title Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;" oninput="const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+            
+            <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
+            
+            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s; margin-bottom:12px;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-title-img-file-input').click()">📁 Select Title Logo Image File</button>
+            <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+            
+            <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s; margin-bottom:12px;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateTitleLogoPromptWithAI()">
+              ✨ Generate Title Logo Prompt with AI
+            </button>
+            
+            <div style="text-align:center; margin-top:10px;">
+              <img id="dm-title-img-preview-el" src="${m.titleImage || ''}" style="max-height:80px; max-width:80%; margin:0 auto; display:${m.titleImage ? 'block' : 'none'}; object-fit:contain; border-radius:4px; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+            </div>
           </div>
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
@@ -2402,6 +2698,7 @@ window.toggleDetailEdit = () => {
   const saveBtn = document.getElementById('dm-save-btn');
   const editBtn = document.getElementById('dm-edit-btn');
   const thumbEdit = document.getElementById('dm-thumb-edit');
+  const titleImgEdit = document.getElementById('dm-title-image-edit');
   const catEdit = document.getElementById('dm-cat-edit-container');
   
   if(title.classList.contains('hidden')) {
@@ -2413,6 +2710,7 @@ window.toggleDetailEdit = () => {
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
     thumbEdit.classList.add('hidden');
+    if(titleImgEdit) titleImgEdit.classList.add('hidden');
     if(catEdit) catEdit.classList.add('hidden');
   } else {
     title.classList.add('hidden');
@@ -2423,6 +2721,7 @@ window.toggleDetailEdit = () => {
     descEdit.classList.remove('hidden');
     saveBtn.classList.remove('hidden');
     thumbEdit.classList.remove('hidden');
+    if(titleImgEdit) titleImgEdit.classList.remove('hidden');
     if(catEdit) catEdit.classList.remove('hidden');
     titleEdit.focus();
   }
@@ -2431,8 +2730,8 @@ window.toggleDetailEdit = () => {
 window.saveDetailEdit = async (id) => {
   const m = appState.memories.find(i => i.id === id);
   if (m) {
-    m.title = document.getElementById('dm-title-edit').value;
-    m.desc = document.getElementById('dm-desc-edit').value;
+    m.title = document.getElementById('dm-title-edit').value.trim();
+    m.desc = document.getElementById('dm-desc-edit').value.trim();
 
     const catSelect = document.getElementById('dm-cat-edit');
     if (catSelect) {
@@ -2456,10 +2755,27 @@ window.saveDetailEdit = async (id) => {
       m.thumbnail = urlInput.value.trim();
     }
 
+    // Save Title Image edits
+    const titleImgUrlInput = document.getElementById('dm-title-img-url-input');
+    if (window.dmBase64TitleImg && titleImgUrlInput && titleImgUrlInput.value.startsWith('Local File Selected:')) {
+      m.titleImage = window.dmBase64TitleImg;
+    } else if (titleImgUrlInput) {
+      const val = titleImgUrlInput.value.trim();
+      m.titleImage = val || null;
+    }
+    window.dmBase64TitleImg = null; // reset local cache
+
     try { await saveMemoryToDB(m); } catch(err) {}
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    document.getElementById('dm-title').innerText = m.title;
+    
+    // update title visually in detail panel
+    const detailTitleRender = m.titleImage ? 
+      `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
+      m.title;
+      
+    document.getElementById('dm-title').innerHTML = detailTitleRender;
     document.getElementById('dm-desc').innerText = m.desc;
+    
     // update thumbnail visually
     const previewImg = document.getElementById('detailModal').querySelector('.detail-hero img');
     if (previewImg) previewImg.src = m.thumbnail;
@@ -2536,6 +2852,43 @@ window.showToast = (msg, duration = 3000) => {
   }, duration);
 };
 
+window.syncLikeUI = (id) => {
+  const isNowLiked = appState.likedMemories && appState.likedMemories.includes(id);
+
+  // 1. Sync all matching circular buttons in the Detail Modal
+  const dmLikeBtn = document.getElementById('dm-like-btn');
+  if (dmLikeBtn) {
+    const oClick = dmLikeBtn.getAttribute('onclick') || '';
+    if (oClick.includes(id)) {
+      dmLikeBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="${isNowLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+        </svg>
+      `;
+      dmLikeBtn.style.color = isNowLiked ? '#E50914' : '';
+      dmLikeBtn.style.borderColor = isNowLiked ? '#E50914' : '';
+      dmLikeBtn.title = isNowLiked ? 'Unlike' : 'Like';
+      
+      dmLikeBtn.classList.add('pop-active');
+      setTimeout(() => dmLikeBtn.classList.remove('pop-active'), 400);
+    }
+  }
+
+  // 2. Sync hover cards like buttons
+  const likeButtons = document.querySelectorAll('.hc-like');
+  likeButtons.forEach(btn => {
+    const oClick = btn.getAttribute('onclick') || '';
+    if (oClick.includes(id)) {
+      btn.style.color = isNowLiked ? '#E50914' : '';
+      btn.style.borderColor = isNowLiked ? '#E50914' : '';
+      btn.title = isNowLiked ? 'Unlike' : 'Like';
+      
+      btn.classList.add('pop-active');
+      setTimeout(() => btn.classList.remove('pop-active'), 400);
+    }
+  });
+};
+
 window.likeMemory = async (id, btn) => {
   const m = appState.memories.find(i => i.id === id);
   if (!m) return;
@@ -2560,30 +2913,8 @@ window.likeMemory = async (id, btn) => {
   await saveStateList('likedMemories', appState.likedMemories);
   try { await saveMemoryToDB(m); } catch(err){}
   
-  const targetBtn = btn || document.getElementById('dm-like-btn');
-  if (targetBtn) {
-    const isNowLiked = appState.likedMemories.includes(id);
-    targetBtn.innerHTML = `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="${isNowLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-      </svg>
-    `;
-    targetBtn.style.color = isNowLiked ? '#E50914' : '';
-    targetBtn.style.borderColor = isNowLiked ? '#E50914' : '';
-    targetBtn.title = isNowLiked ? 'Unlike' : 'Like';
-    
-    // Ripple ring effect
-    const ripple = document.createElement('div');
-    ripple.className = 'ripple-ring';
-    targetBtn.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 550);
-    
-    // springy pop animation
-    targetBtn.classList.add('pop-active');
-    setTimeout(() => {
-      targetBtn.classList.remove('pop-active');
-    }, 450);
-  }
+  // Sync all like buttons cleanly and dynamically
+  window.syncLikeUI(id);
 };
 
 window.downloadVideo = async (id) => {
@@ -2660,6 +2991,9 @@ window.playVideo = (id) => {
   
   document.body.style.overflow = 'hidden';
   
+  // Push a state so Chrome back or back swipe closes player rather than leaving the site!
+  history.pushState({ playerOpen: true }, '');
+  
   // Track Continue Watching
   if(!appState.continueWatching.includes(id)) {
     appState.continueWatching.unshift(id);
@@ -2680,8 +3014,15 @@ window.playVideo = (id) => {
   }
   
   c.style.display = 'block';
-  c.style.transform = 'translateY(0)';
+  c.style.opacity = '0';
+  c.style.transform = 'scale(1.12)';
+  
+  // Force pipeline paint computation
+  c.offsetHeight;
+  
+  c.style.transition = 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)';
   c.style.opacity = '1';
+  c.style.transform = 'scale(1)';
   
   // Play Netflix initial animation before playing video
   const isYouTube = url && !url.includes('/') && !url.includes('blob:');
@@ -2693,7 +3034,7 @@ window.playVideo = (id) => {
   } else {
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
-        <video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.2); z-index:0; pointer-events:none;"></video>
+        <video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>
         <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100vw; max-height:100vh; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
@@ -2712,7 +3053,7 @@ window.playVideo = (id) => {
             </button>
             <div style="flex:1;"></div>
             <button id="fullscreen-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Fullscreen (F)">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
             </button>
           </div>
         </div>
@@ -2721,8 +3062,8 @@ window.playVideo = (id) => {
   }
 
   c.innerHTML = `
-    <div class="playback-back close-btn" id="playback-back-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div id="playback-back-btn" class="playback-back" style="z-index: 10002; position:absolute; top: 40px; left: 40px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.25); transition: background 0.35s, border-color 0.35s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
     <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
@@ -2754,7 +3095,15 @@ window.playVideo = (id) => {
   }
   
   const startMainVideo = () => {
-    introPlayer.style.display = 'none';
+    if (introPlayer) {
+      introPlayer.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+      introPlayer.style.opacity = '0';
+      introPlayer.style.transform = 'scale(1.05)';
+      setTimeout(() => {
+        introPlayer.style.display = 'none';
+      }, 500);
+    }
+    
     if (isYouTube) {
       mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd2160&enablejsapi=1`;
     }
@@ -2772,9 +3121,9 @@ window.playVideo = (id) => {
     introPlayer.muted = false;
     introPlayer.volume = 1.0;
     
-    c.style.transition = 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    c.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
     c.style.opacity = '0';
-    c.style.transform = 'scale(0.95)';
+    c.style.transform = 'scale(0.92)';
     
     requestAnimationFrame(() => {
       c.style.opacity = '1';
@@ -2783,27 +3132,23 @@ window.playVideo = (id) => {
 
     if(introPlayer.play() !== undefined) {
       introPlayer.play().then(() => {
-        try { introPlayer.playbackRate = 1.8; } catch(err) {}
+         // Play at standard speed as requested (do not accelerate!)
+         try { introPlayer.playbackRate = 1.0; } catch(err) {}
       }).catch(() => {
         introPlayer.muted = true;
         introPlayer.play().then(() => {
-          try { introPlayer.playbackRate = 1.8; } catch(err) {}
+           try { introPlayer.playbackRate = 1.0; } catch(err) {}
         }).catch(() => startMainVideo());
       });
     }
     introPlayer.onerror = startMainVideo;
     
+    // Set fallback timeout to 4200ms to allow full play of logo intro before moving to main video
     const fallbackTimeout = setTimeout(() => {
-      if (introPlayer.style.display !== 'none') {
-        try {
-          animate(introPlayer, { opacity: 0, scale: 1.1 }, { duration: 0.3 }).then(() => {
-            startMainVideo();
-          });
-        } catch(e) {
-          startMainVideo();
-        }
+      if (introPlayer && introPlayer.style.display !== 'none') {
+        startMainVideo();
       }
-    }, 850);
+    }, 4200);
     
     introPlayer.onended = () => {
       clearTimeout(fallbackTimeout);
@@ -2921,9 +3266,11 @@ window.playVideo = (id) => {
           toggleMute();
           showControls();
         } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
           mainPlayer.currentTime += 5;
           showControls();
         } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
           mainPlayer.currentTime -= 5;
           showControls();
         } else if (e.key === 'f' || e.key === 'F') {
@@ -2975,15 +3322,16 @@ window.playVideo = (id) => {
   }
 
   // Handle closing player efficiently
-  const closePlayer = () => {
+  const closePlayer = (isPopState = false) => {
+     window.closeActivePlayer = null;
      document.body.style.overflow = '';
      if (mainPlayer) {
        mainPlayer.src = "";
        if (typeof mainPlayer.load === 'function') mainPlayer.load();
      }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
-     c.style.transition = 'transform 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.4s ease';
-     c.style.transform = 'translateY(100%)';
+     c.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+     c.style.transform = 'scale(1.15)';
      c.style.opacity = '0';
      setTimeout(() => {
        if (mainPlayer) {
@@ -2992,15 +3340,22 @@ window.playVideo = (id) => {
        }
        c.innerHTML = ''; // fully unmount internal elements
        c.style.display = 'none';
-     }, 400);
+     }, 600);
+
+     if (!isPopState) {
+       if (history.state && history.state.playerOpen) {
+         history.back();
+       }
+     }
   };
+  window.closeActivePlayer = () => closePlayer(true);
   
-  document.getElementById('playback-back-btn').onclick = closePlayer;
+  document.getElementById('playback-back-btn').onclick = () => closePlayer(false);
   
   // Click background to close
   c.onclick = (e) => {
     if (e.target.id === 'playbackOverlay' || e.target.id === 'video-container') {
-      closePlayer();
+      closePlayer(false);
     }
   };
 };
@@ -3031,6 +3386,7 @@ window.addEventListener('resize', () => {
 document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
 
 // Helper to compress images on the client side before uploading to Firestore to stay safely within 1MB quota and upload super fast
+window.compressPhotoFile = compressPhotoFile;
 function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -3115,6 +3471,39 @@ Description: [Your Generated Description]
       window.open('https://gemini.google.com/app', '_blank');
     }, 1000);
   }).catch((err) => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
+};
+
+// Copy exact title image design requests and load Gemini
+window.generateTitleLogoPromptWithAI = () => {
+  const upTitleInput = document.getElementById('up-title');
+  const dmTitleInput = document.getElementById('dm-title-edit');
+  const title = (upTitleInput ? upTitleInput.value.trim() : '') || (dmTitleInput ? dmTitleInput.value.trim() : '') || 'Our Love Story';
+  
+  const upCat = document.getElementById('up-cat');
+  const dmCat = document.getElementById('dm-cat-edit');
+  const category = (upCat ? upCat.value : '') || (dmCat ? dmCat.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
+  }
+  
+  const prompt = `Create a striking, horizontal movie wordmark logo / typography PNG.
+Text must read EXACTLY block letters: "${title}"
+The typeface style must look like a high-budget Netflix original series, specifically designed for: ${vibe}.
+The background must be completely TRANSPARENT (alpha channel). The logo must be clean, isolated, with crisp edges, high contrast, and zero mockup backgrounds, boxes, billboards, or borders around it. Just the elegant text art.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Branded Title logo prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch(() => {
     alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
     window.open('https://gemini.google.com/app', '_blank');
   });
