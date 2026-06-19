@@ -1765,8 +1765,17 @@ function createNavbar() {
   
   let lastScrollY = window.scrollY;
   let ticking = false;
+  let scrollTimeout;
   
   window.addEventListener('scroll', () => {
+    if (!document.body.classList.contains('disable-hover')) {
+      document.body.classList.add('disable-hover');
+    }
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      document.body.classList.remove('disable-hover');
+    }, 150);
+
     if (!ticking) {
       window.requestAnimationFrame(() => {
         const velY = Math.abs(window.scrollY - lastScrollY);
@@ -1992,7 +2001,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.05);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:88vh;min-width:156.5vh;transform:translate(-50%, -50%) scale(1.04);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2269,7 +2278,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:88vh;min-width:156.5vh;transform:translate(-50%, -50%) scale(1.04);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2403,9 +2412,25 @@ function createRow(title, memories, index = 0) {
   arrowLeft.onclick = () => handleScrollClick(-1);
   arrowRight.onclick = () => handleScrollClick(1);
   
+  let scrollTicking = false;
+  let rowScrollTimeout;
   rc.addEventListener('scroll', () => {
-    arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
-    arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
+    if (!document.body.classList.contains('disable-hover')) {
+      document.body.classList.add('disable-hover');
+    }
+    clearTimeout(rowScrollTimeout);
+    rowScrollTimeout = setTimeout(() => {
+      document.body.classList.remove('disable-hover');
+    }, 150);
+
+    if (!scrollTicking) {
+      window.requestAnimationFrame(() => {
+        arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
+        arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
   }, { passive: true });
   arrowLeft.style.visibility = 'hidden';
 
@@ -2519,6 +2544,8 @@ function createRow(title, memories, index = 0) {
   }
 
   const fragment = document.createDocumentFragment();
+  const isContinueWatching = title.toLowerCase().includes('continue watching');
+  
   for (let i = 0; i < memories.length; i++) {
     const m = memories[i];
     const card = document.createElement('div');
@@ -2566,8 +2593,24 @@ function createRow(title, memories, index = 0) {
           </div>
     `;
 
+    let progressHtml = '';
+    if (isContinueWatching) {
+      let progressPercent = 30;
+      if (m.id) {
+        const seedStr = m.id + (m.title || '');
+        const code = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        progressPercent = 15 + (code % 65);
+      }
+      progressHtml = `
+        <div class="cw-progress-container" style="position: absolute; bottom: 8px; left: 15px; right: 15px; height: 3.5px; background: rgba(255, 255, 255, 0.25); border-radius: 2px; overflow: hidden; z-index: 5;">
+          <div class="cw-progress-fill" style="width: ${progressPercent}%; height: 100%; background: #e50914; border-radius: 2px;"></div>
+        </div>
+      `;
+    }
+
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
+      ${progressHtml}
       <div class="hover-chassis">
         <div class="hc-buttons">
           ${buttonsHtml}
