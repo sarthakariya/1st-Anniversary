@@ -1992,7 +1992,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.05);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2003,8 +2003,7 @@ window.shuffleHero = () => {
       newMediaItem.className = 'hero-media-roll-item roll-in';
       newMediaItem.innerHTML = `
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
-          <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
-          ${nextBackgroundHtml}
+          <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);">
         </div>
       `;
       
@@ -2077,28 +2076,39 @@ window.shuffleHero = () => {
       const ratingBox = currentHero.querySelector('#hero-rating-box');
       if (ratingBox) ratingBox.innerText = nextHeroMem.rating || 'TV-14';
       
-      // Autoplay previews: once background element streams, fade the thumbnail cover safely
+      // Autoplay previews: delay loading video preview until after the transition finishes (900ms) to ensure smooth 60/120fps operations
       if (nextBackgroundHtml) {
         setTimeout(() => {
-          const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
-          if (imgOverlay) imgOverlay.style.opacity = '0';
-        }, 750);
-      }
-      
-      // Native preview audio volume fade logic
-      const nv = newMediaItem.querySelector('#hero-native-video');
-      if (nv && !nv.muted) {
-        nv.volume = 0;
-        let vol = 0;
-        const rampInterval = setInterval(() => {
-          vol += 0.05;
-          if (vol >= 0.25) {
-            nv.volume = 0.25;
-            clearInterval(rampInterval);
-          } else {
-            nv.volume = vol;
+          const videoWrapper = newMediaItem.querySelector('.hero-video-wrapper');
+          if (videoWrapper) {
+            const containerNode = document.createElement('div');
+            containerNode.innerHTML = nextBackgroundHtml;
+            while (containerNode.firstChild) {
+              videoWrapper.appendChild(containerNode.firstChild);
+            }
+            
+            // Once loaded, fade the cover image off smoothly
+            setTimeout(() => {
+              const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
+              if (imgOverlay) imgOverlay.style.opacity = '0';
+            }, 800);
+            
+            const nv = videoWrapper.querySelector('#hero-native-video');
+            if (nv && !nv.muted) {
+              nv.volume = 0;
+              let vol = 0;
+              const rampInterval = setInterval(() => {
+                vol += 0.05;
+                if (vol >= 0.25) {
+                  nv.volume = 0.25;
+                  clearInterval(rampInterval);
+                } else {
+                  nv.volume = vol;
+                }
+              }, 600);
+            }
           }
-        }, 600);
+        }, 900);
       }
       
       // Clean up previous elements after transition duration completes
@@ -2269,8 +2279,7 @@ function createHero() {
     <div class="hero-media-roll-container">
       <div class="hero-media-roll-item roll-active">
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
-          <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
-          ${backgroundVideoHtml}
+          <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);">
           <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
         </div>
       </div>
@@ -2325,30 +2334,40 @@ function createHero() {
     }
   }, 50);
 
+  // Lazy-load initial page background to guarantee lightning-first initial page load paint & zero stutter
   if (backgroundVideoHtml) {
-    // Gracefully fade out static picture once video/iframe starts streaming
     setTimeout(() => {
-      const imgOverlay = c.querySelector('#hero-img-overlay');
-      if (imgOverlay) imgOverlay.style.opacity = '0';
-    }, 1000);
-    
-    // Volume Fade Loop Timer for native video
-    setTimeout(() => {
-      const nv = document.getElementById('hero-native-video');
-      if (nv && !nv.muted) {
-        nv.volume = 0;
-        let vol = 0;
-        const rampInterval = setInterval(() => {
-          vol += 0.05; // 5 steps to 0.25
-          if (vol >= 0.25) {
-            nv.volume = 0.25;
-            clearInterval(rampInterval);
-          } else {
-            nv.volume = vol;
-          }
-        }, 600); // 5 steps * 600ms = 3000ms
+      const videoWrapper = c.querySelector('.hero-video-wrapper');
+      if (videoWrapper) {
+        const containerNode = document.createElement('div');
+        containerNode.innerHTML = backgroundVideoHtml;
+        while (containerNode.firstChild) {
+          videoWrapper.appendChild(containerNode.firstChild);
+        }
+        
+        // Gracefully fade out static picture once video starts streaming
+        setTimeout(() => {
+          const imgOverlay = c.querySelector('#hero-img-overlay');
+          if (imgOverlay) imgOverlay.style.opacity = '0';
+        }, 1200);
+        
+        // Volume Fade Loop Timer for native video
+        const nv = videoWrapper.querySelector('#hero-native-video');
+        if (nv && !nv.muted) {
+          nv.volume = 0;
+          let vol = 0;
+          const rampInterval = setInterval(() => {
+            vol += 0.05; // 5 steps to 0.25
+            if (vol >= 0.25) {
+              nv.volume = 0.25;
+              clearInterval(rampInterval);
+            } else {
+              nv.volume = vol;
+            }
+          }, 600); // 5 steps * 600ms = 3000ms
+        }
       }
-    }, 100);
+    }, 1400); // 1.4 seconds delay protects critical rendering paths on page bootstrap
   }
   return c;
 }

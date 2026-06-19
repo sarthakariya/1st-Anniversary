@@ -548,9 +548,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-billboard {
   position: relative;
   width: 100vw;
-  height: 80vh;
-  max-height: 900px;
-  min-height: 600px;
+  height: 88vh; /* Extended lower down to the bottom */
+  max-height: 1000px; /* Enhanced maximum limits */
+  min-height: 650px;
   background-color: #000;
   overflow: hidden;
 }
