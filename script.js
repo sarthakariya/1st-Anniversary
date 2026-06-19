@@ -905,6 +905,82 @@ window.confirmPurgeAll = () => {
   });
 };
 
+window.switchProfileDirectly = (profileId) => {
+  const targetPf = appState.profiles.find(p => p.id === profileId);
+  if (!targetPf) return;
+  
+  window.currentHeroIndex = undefined;
+  appState.currentProfile = targetPf.name;
+  window.safeSetLocalItem('sarthak_netflix_profile', targetPf.name);
+  
+  app.innerHTML = '';
+  const dashboard = createDashboard();
+  app.appendChild(dashboard);
+};
+
+window.openHelpCentreModal = () => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'helpCentreModal';
+  
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 600px; padding: 40px; background: #141414; border: 1px solid #333; border-radius: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.9);">
+      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()" style="font-size:28px; color: #aaa; hover:color: #fff; background:none; border:none; cursor:pointer;">&times;</button>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <div class="upload-title" style="margin:0; font-size: 24px; font-weight:800; letter-spacing: -0.5px; color: #fff;">Help Centre</div>
+      </div>
+      
+      <p style="color:#aaa; font-size:14px; margin-bottom:30px; line-height:1.6;">Welcome to the Help Centre of <strong>Netflix - Our Story</strong>. Here you can find quick answers to common questions about Sarthak and Reechita's memory gallery.</p>
+      
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
+          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
+            <span>How do I add a new memory?</span>
+            <span style="color:#E50914;">+</span>
+          </div>
+          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
+            Simply click the "+" button in the top navigation bar. You can add a title, description, category, moment photos, or a video link. Your added memory will load right in the correct cinematic category row!
+          </div>
+        </div>
+        
+        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
+          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
+            <span>How does Bulk Management work?</span>
+            <span style="color:#E50914;">+</span>
+          </div>
+          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
+            By opening the Bulk Manage Memories modal from your dashboard, you can select multiple memories in cards, edit their categories collectively, delete obsolete duplicates, or backup lists in a consolidated view.
+          </div>
+        </div>
+        
+        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
+          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
+            <span>Is our data synchronized?</span>
+            <span style="color:#E50914;">+</span>
+          </div>
+          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
+            Yes! All lists, memories, likes, and profile settings are persistently synchronized in realtime with Firebase Firestore. Any changes made on one device are instantly propagated everywhere else.
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top:40px; display:flex; justify-content:flex-end;">
+        <button class="btn btn-primary" style="padding:10px 24px;" onclick="document.getElementById('helpCentreModal').remove()">Done</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
+};
+
+window.toggleHelpCollapse = (el) => {
+  const content = el.nextElementSibling;
+  const isCollapsed = content.style.display === 'none' || !content.style.display;
+  content.style.display = isCollapsed ? 'block' : 'none';
+  el.querySelector('span:last-child').innerText = isCollapsed ? '−' : '+';
+};
+
 window.openSettingsModal = () => {
   const modal = document.createElement('div');
   modal.className = 'upload-modal';
@@ -1791,14 +1867,38 @@ function createNavbar() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
         <div class="profile-dropdown">
-          <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
+          <div style="display: flex; align-items: center; cursor: pointer; gap: 4px;">
+            <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
+            <span style="font-size: 0; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid white; margin-left: 4px;"></span>
+          </div>
           <div class="dropdown-menu">
-            <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
-            <div class="dropdown-item" onclick="openBulkManagerModal()">🛠 Bulk Manage Memories</div>
-            <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
-            <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
-            <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
-            <div class="dropdown-item" onclick="window.logoutProfile()">🚪 Logout Profile</div>
+            <div class="dropdown-profiles-list">
+              ${appState.profiles.filter(p => p.name !== appState.currentProfile).map(p => `
+                <div class="dropdown-profile-item" onclick="window.switchProfileDirectly('${p.id}')">
+                  <img src="${p.avatar}" width="28" height="28" style="border-radius:4px; object-fit: cover;">
+                  <span>${p.name}</span>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="dropdown-options-list">
+              <div class="dropdown-option-item" onclick="window.openManageProfiles()">
+                <svg class="dropdown-item-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+                <span>Manage Profiles</span>
+              </div>
+              <div class="dropdown-option-item" onclick="window.openSettingsModal()">
+                <svg class="dropdown-item-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Account</span>
+              </div>
+              <div class="dropdown-option-item" onclick="window.openHelpCentreModal()">
+                <svg class="dropdown-item-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <span>Help Centre</span>
+              </div>
+            </div>
+            
+            <div class="dropdown-signout" onclick="window.logoutProfile()">
+              Sign out of Netflix
+            </div>
           </div>
         </div>
       </div>
@@ -1914,8 +2014,8 @@ window.shuffleHero = () => {
       newTextItem.innerHTML = `
         <div class="hero-text-lockup" style="width: 100%;">
           <div class="${titleClass}">
-            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 180px; max-width: min(450px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div>${nextHeroMem.title}</div>`}
-            <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
+            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.25em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
+            <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                 <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
                 <span style="font-size: 13px; font-weight: 950;">10</span>
@@ -1953,6 +2053,9 @@ window.shuffleHero = () => {
       
       newTextItem.classList.remove('roll-in');
       newTextItem.classList.add('roll-active');
+      
+      // Reset and trigger minimize slide-up timer for the newly spun item
+      window.startHeroMinimizeTimer(newTextItem);
       
       // Instantly update the buttons attributes (Play, More Info) so they stay static but bind to next media ID
       const playBtn = currentHero.querySelector('#hero-play-button');
@@ -2098,6 +2201,19 @@ window.shuffleHero = () => {
   }
 };
 
+window.heroMinimizeTimeout = null;
+window.startHeroMinimizeTimer = (textRollItem) => {
+  if (!textRollItem) return;
+  if (window.heroMinimizeTimeout) {
+    clearTimeout(window.heroMinimizeTimeout);
+    window.heroMinimizeTimeout = null;
+  }
+  textRollItem.classList.remove('minimized');
+  window.heroMinimizeTimeout = setTimeout(() => {
+    textRollItem.classList.add('minimized');
+  }, 3000); // 3 seconds matches pristine Netflix cinematic transitions as requested
+};
+
 function createHero() {
   const c = document.createElement('div');
   c.className = 'hero-billboard';
@@ -2166,8 +2282,8 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 180px; max-width: min(450px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div>${heroMem.title}</div>`}
-              <div style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.25em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
                   <span style="font-size: 13px; font-weight: 950;">10</span>
@@ -2200,6 +2316,14 @@ function createHero() {
       <div class="maturity-rating" id="hero-rating-box" style="animation: slideInRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">${heroMem.rating}</div>
     </div>
   `;
+
+  // Smoothly fade out description and scale down/shrink title text/logo after 3.0 seconds ALWAYS
+  setTimeout(() => {
+    const activeTextItem = c.querySelector('.hero-text-roll-item.roll-active');
+    if (activeTextItem) {
+      window.startHeroMinimizeTimer(activeTextItem);
+    }
+  }, 50);
 
   if (backgroundVideoHtml) {
     // Gracefully fade out static picture once video/iframe starts streaming

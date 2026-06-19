@@ -8,9 +8,10 @@ const PLACEHOLDER_IMG_4 = "https://images.unsplash.com/photo-1600880292203-757bb
 const HERO_BG = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=4096&auto=format&fit=crop";
 
 export const PROFILES: Profile[] = [
-  { id: '1', name: 'Moumita', avatar: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?q=80&w=256&auto=format&fit=crop' },
-  { id: '2', name: 'Samar :)', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop' },
-  { id: '3', name: 'Children', avatar: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/Sonic_the_Hedgehog_2_alternate_theatrical_poster._Sonic_only.png/220px-Sonic_the_Hedgehog_2_alternate_theatrical_poster._Sonic_only.png' },
+  { id: '1', name: 'Sia & Aman', avatar: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=256&h=256&auto=format&fit=crop" },
+  { id: '2', name: 'Moumita', avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&h=256&auto=format&fit=crop" },
+  { id: '3', name: 'Samar :)', avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=256&h=256&auto=format&fit=crop" },
+  { id: '4', name: 'Children', avatar: "https://images.unsplash.com/photo-1620331311520-246422fd82f9?q=80&w=256&h=256&auto=format&fit=crop" },
 ];
 
 export const MAIN_FEATURE = {

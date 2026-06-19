@@ -1,4 +1,4 @@
-import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle as HelpIcon } from 'lucide-react';
+import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES, PROFILES } from '../data';
 import { Memory, Profile } from '../types';
@@ -111,30 +111,53 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
             </div>
           </div>
           
-          <div className={`flex items-center gap-[15px] sm:gap-[20px] ${isScrolled ? textColor : 'text-white'}`}>
-            <div className="flex items-center relative">
-               <motion.div 
-                 initial={false}
-                 animate={{ width: isSearchOpen ? '200px' : '0px', opacity: isSearchOpen ? 1 : 0 }}
-                 className="overflow-hidden absolute right-8"
-               >
-                 <input 
-                  type="text" 
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Titles, people, genres..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-black/40 text-white px-2 py-1.5 text-xs outline-none focus:outline-none focus:ring-0 border-b border-white/50 focus:border-white transition-all rounded-none placeholder:text-neutral-500 font-sans border-t-0 border-x-0"
-                 />
-               </motion.div>
-               <Search className="w-5 h-5 cursor-pointer hover:scale-110 transition-transform" onClick={() => setIsSearchOpen(!isSearchOpen)} />
+          <div className={`flex items-center gap-[15px] sm:gap-[24px] ${isScrolled ? textColor : 'text-white'}`}>
+            {/* Custom search box - exactly outline-free, unified bar with search icon inside when open */}
+            <div className={`flex items-center relative transition-all duration-300 rounded ${
+              isSearchOpen 
+                ? 'bg-black/85 border border-neutral-700 px-2.5 py-1.5' 
+                : 'bg-transparent border-none'
+            }`}>
+              <Search 
+                className="w-5 h-5 cursor-pointer text-white hover:opacity-80 transition-opacity" 
+                onClick={() => setIsSearchOpen(!isSearchOpen)} 
+              />
+              <AnimatePresence>
+                {isSearchOpen && (
+                  <motion.input 
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 140, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    type="text" 
+                    placeholder="Search memories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent border-none text-white text-xs ml-2 outline-none focus:outline-none focus:ring-0 focus:border-none p-0 w-[140px] selection:bg-red-600"
+                    autoFocus
+                  />
+                )}
+              </AnimatePresence>
+              {isSearchOpen && searchQuery && (
+                <X 
+                  className="w-3.5 h-3.5 cursor-pointer text-gray-400 hover:text-white ml-2 flex-shrink-0" 
+                  onClick={() => setSearchQuery("")} 
+                />
+              )}
             </div>
             
-            <Plus className="w-5 h-5 cursor-pointer hover:scale-110 transition-transform" />
+            {/* "Children" link text right next to Search with custom Netflix quick toggle switches, as in screenshot */}
+            <span 
+              onClick={() => {
+                const childP = PROFILES.find(p => p.name === 'Children');
+                if (childP) onSwitchProfile(childP);
+              }}
+              className="text-sm font-semibold select-none cursor-pointer tracking-wide hover:opacity-85 transition-opacity text-white"
+            >
+              Children
+            </span>
             
             {/* Bell Icon with Red Notification Badge "10" */}
-            <div className="relative cursor-pointer hover:scale-110 transition-transform">
+            <div className="relative cursor-pointer hover:opacity-85 transition-opacity">
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[9px] rounded-full px-1 py-0.5 min-w-[15px] h-[15px] flex items-center justify-center border border-black scale-90">
                 10
@@ -145,12 +168,13 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
             <div className="relative">
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-1.5 focus:outline-none"
+                className="flex items-center gap-1.5 focus:outline-none focus:ring-0 cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-md overflow-hidden cursor-pointer border border-neutral-700 hover:border-white transition-colors">
-                  <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                <div className="w-[32px] h-[32px] rounded-[4px] overflow-hidden border border-neutral-700 hover:border-white transition-colors flex-shrink-0">
+                  <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </div>
-                <ChevronDown className={`w-4 h-4 cursor-pointer text-gray-400 hover:text-white transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                {/* Pointer small indicator arrow */}
+                <span className={`w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-white transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Popover */}
@@ -158,91 +182,105 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                 {isProfileDropdownOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
+                    
+                    {/* Triangle up pointing peak matching screenshot */}
+                    <div className="absolute right-4 mt-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-black z-50 pointer-events-none" />
+                    
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: 5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 mt-4.5 w-[220px] bg-[#000000] border border-[#2b2b2b] text-white z-50 rounded-none shadow-[0_15px_35px_rgba(0,0,0,0.8)] py-3 flex flex-col font-sans"
+                      className="absolute right-0 mt-3.5 w-[205px] bg-[#000000]/95 backdrop-blur-md rounded-none border border-neutral-800/80 text-white z-50 flex flex-col py-1.5"
                     >
-                      {/* Double-layered upwards triangle caret aligning with avatar and screenshot style */}
-                      <div className="absolute top-[-8px] right-[20px] w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-[#000000] z-50 pointer-events-none" />
-                      <div className="absolute top-[-9px] right-[19px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[9px] border-b-[#2b2b2b] z-40 pointer-events-none" />
-
-                      {/* Profile List Rows */}
-                      <div className="space-y-1 pb-2">
-                        {PROFILES.map(p => (
-                          <button
+                      {/* Profiles lists (excluding active profile) */}
+                      <div className="flex flex-col gap-2.5 px-3.5 py-2.5">
+                        {PROFILES.filter(p => p.id !== profile.id).map(p => (
+                          <div
                             key={p.id}
                             onClick={() => {
-                              if (p.id !== profile.id) {
-                                onSwitchProfile(p);
-                              }
+                              onSwitchProfile(p);
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-1.5 text-sm text-left hover:underline select-none group"
+                            className="flex items-center gap-3 cursor-pointer group w-full"
                           >
-                            <div className="w-8 h-8 rounded-sm overflow-hidden border border-transparent group-hover:border-white transition-all flex-shrink-0">
-                              <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                            </div>
-                            <span className={`text-[13px] tracking-wide truncate ${p.id === profile.id ? 'font-bold text-white' : 'text-neutral-200 group-hover:text-white font-medium'}`}>
+                            <img 
+                              src={p.avatar} 
+                              alt={p.name} 
+                              className="w-7 h-7 rounded-[4px] object-cover pointer-events-none"
+                              referrerPolicy="no-referrer"
+                            />
+                            <span className="text-[13px] text-[#e5e5e5] font-medium group-hover:underline select-none">
                               {p.name}
                             </span>
-                          </button>
+                          </div>
                         ))}
                       </div>
 
-                      {/* Links block */}
-                      <div className="flex flex-col space-y-0.5 pt-1.5 pb-2.5 border-t border-[#1c1c1c]">
-                        {/* Manage Profiles (Pencil Icon) */}
+                      {/* Divider 1 */}
+                      <div className="border-t border-neutral-800/70 my-1 w-full" />
+
+                      {/* Settings items */}
+                      <div className="flex flex-col py-1.5">
+                        
+                        {/* Manage Profiles */}
                         <button
                           onClick={() => {
                             onSignOut();
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                          className="w-full flex items-center px-4 py-2 hover:bg-neutral-800/10 text-left cursor-pointer group"
                         >
-                          <Pencil className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
-                          <span className="font-medium">Manage Profiles</span>
+                          <Pencil className="w-[18px] h-[18px] text-gray-400 stroke-[1.5] pointer-events-none" />
+                          <span className="text-[13px] text-[#e5e5e5] font-medium ml-3.5 select-none group-hover:underline">
+                            Manage Profiles
+                          </span>
                         </button>
 
-                        {/* Account (User/Person Icon) */}
+                        {/* Account settings */}
                         <button
                           onClick={() => {
                             setIsProfileDropdownOpen(false);
+                            alert("Account Plan: Ultra Premium. Active features fully configured!");
                           }}
-                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                          className="w-full flex items-center px-4 py-2 hover:bg-neutral-800/10 text-left cursor-pointer group"
                         >
-                          <User className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
-                          <span className="font-medium">Account</span>
+                          <User className="w-[18px] h-[18px] text-gray-400 stroke-[1.5] pointer-events-none" />
+                          <span className="text-[13px] text-[#e5e5e5] font-medium ml-3.5 select-none group-hover:underline">
+                            Account
+                          </span>
                         </button>
 
-                        {/* Help Centre (Circle Question Icon) */}
+                        {/* Help Centre */}
                         <button
                           onClick={() => {
                             setIsHelpCentreOpen(true);
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                          className="w-full flex items-center px-4 py-2 hover:bg-neutral-800/10 text-left cursor-pointer group"
                         >
-                          <HelpIcon className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
-                          <span className="font-medium font-sans">Help Centre</span>
+                          <HelpCircle className="w-[18px] h-[18px] text-gray-400 stroke-[1.5] pointer-events-none" />
+                          <span className="text-[13px] text-[#e5e5e5] font-medium ml-3.5 select-none group-hover:underline">
+                            Help Centre
+                          </span>
                         </button>
                       </div>
 
-                      {/* Horizontal thin divider line */}
-                      <div className="w-full h-[1px] bg-[#1c1c1c] mb-1.5" />
+                      {/* Divider 2 */}
+                      <div className="border-t border-neutral-800/70 my-1 w-full" />
 
-                      {/* Sign Out (Centered, bold text) */}
-                      <button
-                        onClick={() => {
-                          onSignOut();
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        className="w-full text-center text-[13px] font-bold text-white hover:underline py-1.5 select-none"
-                      >
-                        Sign out of Netflix
-                      </button>
+                      {/* Sign Out Trigger centered */}
+                      <div className="py-2.5 flex justify-center text-center items-center">
+                        <button
+                          onClick={() => {
+                            onSignOut();
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="text-[13px] text-white font-medium hover:underline text-center cursor-pointer"
+                        >
+                          Sign out of Netflix
+                        </button>
+                      </div>
                     </motion.div>
                   </>
                 )}
@@ -542,13 +580,14 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* Immersive Help Centre Overlay */}
-      <HelpCentre 
-        isOpen={isHelpCentreOpen} 
-        onClose={() => setIsHelpCentreOpen(false)} 
-        isMorning={isMorning} 
-      />
+
+      {/* Help Centre Full-Screen Interface Overlay */}
+      {isHelpCentreOpen && (
+        <HelpCentre 
+          isMorning={isMorning}
+          onClose={() => setIsHelpCentreOpen(false)}
+        />
+      )}
 
     </div>
   );
