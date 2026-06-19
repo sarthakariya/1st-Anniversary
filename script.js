@@ -927,10 +927,14 @@ window.savePlaybackSettings = async () => {
   appState.settings.autoPlayPreviews = prevValue;
   appState.settings.videoQuality = qualityValue;
   
-  window.showToast("Playback settings saved.");
+  window.showToast("Saving playback settings...");
   await saveStateList('settings', appState.settings);
   window.closePlaybackSettings();
-  render();
+  
+  window.showToast("Reloading platform with new configurations...");
+  setTimeout(() => {
+    window.location.reload();
+  }, 1000);
 };
 
 window.closePlaybackSettings = () => {
@@ -2577,7 +2581,7 @@ function createRow(title, memories, index = 0) {
     `;
 
     card.innerHTML = `
-      <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
+      <img data-src="${displayThumb}" src="${displayThumb}" alt="${m.title}" decoding="async" loading="lazy">
       <div class="hover-chassis">
         <div class="hc-buttons">
           ${buttonsHtml}
@@ -2594,6 +2598,8 @@ function createRow(title, memories, index = 0) {
       </div>
     `;
     
+    let hoverTimeout = null;
+    
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
@@ -2607,10 +2613,77 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
+      
+      if (hoverTimeout) clearTimeout(hoverTimeout);
+      
+      // Auto-play preview after 1s delay
+      hoverTimeout = setTimeout(() => {
+        if (!card.matches(':hover')) return;
+        if (card.querySelector('.media-card-hover-video-wrapper')) return;
+        
+        if (m.videoUrl) {
+          const isYouTube = m.videoUrl.includes('youtube.com') || m.videoUrl.includes('youtu.be') || !m.videoUrl.includes('.');
+          
+          const wrapper = document.createElement('div');
+          wrapper.className = 'media-card-hover-video-wrapper';
+          wrapper.style.cssText = `
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; border-radius: 4px; z-index: 5; pointer-events: none;
+            background: #000;
+          `;
+
+          let videoElement;
+          
+          if (isYouTube) {
+            let ytId = m.videoUrl;
+            if (m.videoUrl.includes('v=')) {
+              ytId = m.videoUrl.split('v=')[1].split('&')[0];
+            } else if (m.videoUrl.includes('youtu.be/')) {
+              ytId = m.videoUrl.split('youtu.be/')[1].split('?')[0];
+            } else if (m.videoUrl.includes('embed/')) {
+              ytId = m.videoUrl.split('embed/')[1].split('?')[0];
+            }
+            
+            videoElement = document.createElement('iframe');
+            videoElement.className = 'media-card-hover-video';
+            videoElement.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1&autohide=1&fs=0&color=white`;
+            videoElement.style.cssText = `
+              position: absolute; top: 0; left: 0;
+              width: 320%; height: 320%;
+              transform: scale(0.3125); transform-origin: top left;
+              pointer-events: none; border: none; border-radius: 4px;
+            `;
+            videoElement.setAttribute('allow', 'autoplay');
+          } else {
+            videoElement = document.createElement('video');
+            videoElement.className = 'media-card-hover-video';
+            videoElement.src = m.videoUrl;
+            videoElement.autoplay = true;
+            videoElement.muted = true;
+            videoElement.loop = true;
+            videoElement.playsInline = true;
+            videoElement.setAttribute('playsinline', '');
+            videoElement.style.cssText = `
+              position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+              object-fit: cover; border-radius: 4px; z-index: 5; pointer-events: none;
+            `;
+          }
+          
+          wrapper.appendChild(videoElement);
+          card.insertBefore(wrapper, card.firstChild);
+        }
+      }, 1000);
     };
 
     card.onmouseleave = () => {
-      // Empty and optimized
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+        hoverTimeout = null;
+      }
+      const existingVideoWrapper = card.querySelector('.media-card-hover-video-wrapper');
+      if (existingVideoWrapper) {
+        existingVideoWrapper.remove();
+      }
     };
 
     fragment.appendChild(card);
