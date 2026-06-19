@@ -753,10 +753,6 @@ input:checked + .slider:before { transform: translateX(20px); }
   animation-delay: calc(var(--row-index, 0) * 0.15s);
   position: relative;
   z-index: 1;
-  content-visibility: auto;
-  contain-intrinsic-size: 100px 320px;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 .row:hover {
   z-index: 5000 !important;
