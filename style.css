@@ -83,11 +83,7 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  opacity: 0;
-  animation: fadeIn 0.4s ease forwards;
-}
-@keyframes fadeIn {
-  to { opacity: 1; }
+  opacity: 1;
 }
 .profile-avatar-wrapper {
   position: relative;

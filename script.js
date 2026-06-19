@@ -484,21 +484,12 @@ function internalRender() {
   else if (appState.view === 'profiles') {
     const profs = createProfileSelection();
     app.appendChild(profs);
-    
-    // Entrance Animation
-    profs.style.opacity = '0';
-    setTimeout(() => {
-      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
-      const cards = profs.querySelectorAll('.profile-card');
-      if (cards.length > 0) {
-        cards.forEach(c => c.style.animation = 'none'); // override css
-        animate(
-          cards, 
-          { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
-          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
-        );
-      }
-    }, 50);
+    profs.style.opacity = '1';
+    const cards = profs.querySelectorAll('.profile-card');
+    cards.forEach(c => {
+      c.style.opacity = '1';
+      c.style.animation = 'none';
+    });
   }
   else if (appState.view === 'intro') app.appendChild(createIntroScreen());
   else if (appState.view === 'dashboard') {
@@ -2640,10 +2631,51 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
+
+      if (card.hoverTimeout) {
+        clearTimeout(card.hoverTimeout);
+        card.hoverTimeout = null;
+      }
+
+      if (appState.settings && appState.settings.autoPlayPreviews && m.videoUrl) {
+        card.hoverTimeout = setTimeout(() => {
+          if (document.body.classList.contains('disable-hover')) return;
+          if (card.querySelector('.media-card-hover-video-container')) return;
+
+          const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+          const videoContainer = document.createElement('div');
+          videoContainer.className = 'media-card-hover-video-container';
+          videoContainer.style.cssText = 'position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2; pointer-events: none; border-radius: 4px; overflow: hidden; opacity: 0; transition: opacity 0.4s ease-in-out; background: #000;';
+
+          if (isYouTube) {
+            videoContainer.innerHTML = `<iframe class="media-card-hover-video" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd720&loop=1&playlist=${m.videoUrl}" style="width: 100%; height: 100%; border: none; pointer-events: none; transform: scale(1.5); transform-origin: center center;"></iframe>`;
+          } else {
+            videoContainer.innerHTML = `<video class="media-card-hover-video" src="${m.videoUrl}" autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;"></video>`;
+          }
+
+          card.appendChild(videoContainer);
+          setTimeout(() => {
+            videoContainer.style.opacity = '1';
+            const img = card.querySelector('img');
+            if (img) img.style.opacity = '0.1';
+          }, 30);
+        }, 500);
+      }
     };
 
     card.onmouseleave = () => {
-      // Empty and optimized
+      if (card.hoverTimeout) {
+        clearTimeout(card.hoverTimeout);
+        card.hoverTimeout = null;
+      }
+      const videoContainer = card.querySelector('.media-card-hover-video-container');
+      if (videoContainer) {
+        videoContainer.remove();
+      }
+      const img = card.querySelector('img');
+      if (img) {
+        img.style.opacity = '1';
+      }
     };
 
     fragment.appendChild(card);
@@ -3267,7 +3299,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.45);transform-origin:center center;"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
