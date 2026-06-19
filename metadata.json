@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Netflix Memories Manager",
+  "description": "A high-fidelity modern dashboard for uploading, grading, organizing, and bulk styling memories, custom moments, and cinematic slides with AI-powered prompt workflows.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

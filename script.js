@@ -103,7 +103,8 @@ let appState = {
   searchQuery: '',
   settings: {
     autoPlayPreviews: true,
-    autoPlayNextEpisode: true
+    autoPlayNextEpisode: true,
+    videoQuality: 'high'
   },
   myList: [],
   continueWatching: [],
@@ -895,65 +896,170 @@ window.toggleSetting = (settingKey) => {
   render();
 };
 
-window.confirmPurgeAll = async () => {
-  const check = confirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?");
-  if (check) {
-    const secondCheck = confirm("Double confirmation required:\n\nAre you absolutely sure?");
-    if (secondCheck) {
+window.confirmPurgeAll = () => {
+  window.netflixConfirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?", () => {
+    window.netflixConfirm("Double confirmation required:\n\nAre you absolutely sure you want to completely erase the memory lane?", async () => {
       const modal = document.getElementById('settingsModal');
       if (modal) modal.remove();
       await window.purgeAllFirebaseMemories();
-    }
+    });
+  });
+};
+
+window.getVideoQualityParam = () => {
+  const settings = appState.settings || {};
+  const quality = settings.videoQuality || 'high'; // Default is highest ('high' = 1440p)
+  if (quality === 'high') return 'hd1440';
+  if (quality === 'medium') return 'hd1080';
+  if (quality === 'low') return 'hd720';
+  return 'auto';
+};
+
+window.savePlaybackSettings = async () => {
+  const nextEpValue = document.getElementById('set-next-episode').checked;
+  const prevValue = document.getElementById('set-previews').checked;
+  const qualityValue = document.querySelector('input[name="videoQuality"]:checked').value;
+  
+  if (!appState.settings) {
+    appState.settings = {};
+  }
+  appState.settings.autoPlayNextEpisode = nextEpValue;
+  appState.settings.autoPlayPreviews = prevValue;
+  appState.settings.videoQuality = qualityValue;
+  
+  window.showToast("Playback settings saved.");
+  await saveStateList('settings', appState.settings);
+  window.closePlaybackSettings();
+  render();
+};
+
+window.closePlaybackSettings = () => {
+  const overlay = document.getElementById('playbackSettingsModal');
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(() => {
+      overlay.remove();
+    }, 300);
   }
 };
 
 window.openSettingsModal = () => {
-  const modal = document.createElement('div');
-  modal.className = 'upload-modal';
-  modal.id = 'settingsModal';
+  const overlay = document.createElement('div');
+  overlay.className = 'playback-settings-overlay';
+  overlay.id = 'playbackSettingsModal';
   
-  modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 400px;">
-      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
-      <div class="upload-title" style="margin-bottom:30px;">Account Settings</div>
-      
-      <div class="settings-row">
-        <div>
-          <div style="font-weight:bold; font-size:16px;">Autoplay Previews</div>
-          <div style="font-size:12px; color:#888; margin-top:5px;">Play video previews on the home screen and hover.</div>
+  if (!appState.settings) {
+    appState.settings = {
+      autoPlayPreviews: true,
+      autoPlayNextEpisode: true,
+      videoQuality: 'high'
+    };
+  }
+  if (!appState.settings.videoQuality) {
+    appState.settings.videoQuality = 'high';
+  }
+  
+  const currentProfileName = appState.currentProfile || 'You';
+  
+  overlay.innerHTML = `
+    <!-- Header bar -->
+    <div style="background:#000000; display:flex; justify-content:space-between; align-items:center; padding:10px 40px; height:68px; box-sizing:border-box; width: 100%;">
+      <div style="color:#e50914; font-size:26px; font-weight:900; letter-spacing:1px; font-family:'Arial Black', sans-serif; cursor:pointer;" onclick="window.closePlaybackSettings()">
+        NETFLIX
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.closePlaybackSettings()">
+        <span style="color:#ffffff; font-size:13px; font-weight:500;">Back to Browse</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </div>
+    </div>
+    
+    <!-- White-theme Container -->
+    <div style="background:#f3f3f3; min-height: calc(100vh - 68px); width:100%; display:flex; flex-direction:column; align-items:center; padding: 40px 20px; box-sizing:border-box;">
+      <div style="background:#ffffff; width:100%; max-width:880px; padding:45px 50px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border:1px solid #e6e6e6; box-sizing:border-box; text-align:left; font-family: Helvetica, Arial, sans-serif;">
+        
+        <h1 style="margin:0 0 35px 0; font-size: 38px; font-weight: 300; color: #111; font-family: inherit;">Playback Settings</h1>
+        
+        <!-- Autoplay Section -->
+        <div style="margin-bottom: 25px;">
+          <h2 style="margin:0 0 20px 0; font-size: 19px; font-weight: 600; color: #111;">Autoplay controls for ${currentProfileName}</h2>
+          
+          <!-- Next Episode Checkbox -->
+          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+            <input type="checkbox" id="set-next-episode" style="width: 22px; height: 22px; margin: 0; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''}>
+            <label for="set-next-episode" style="font-size: 14.5px; color: #333; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay next episode in a series on all devices.</label>
+          </div>
+          
+          <!-- Previews Checkbox (Highlighted with border like in screenshot) -->
+          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px; border: 2px solid ${appState.settings.autoPlayPreviews ? '#e50914' : 'transparent'}; padding: ${appState.settings.autoPlayPreviews ? '10px' : '0'}; border-radius: 4px; background: ${appState.settings.autoPlayPreviews ? 'rgba(229,9,20,0.02)' : 'transparent'}; transition: all 0.2s;">
+            <input type="checkbox" id="set-previews" style="width: 22px; height: 22px; margin: 0; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="this.parentElement.style.borderColor = this.checked ? '#e50914' : 'transparent'; this.parentElement.style.background = this.checked ? 'rgba(229,9,20,0.02)' : 'transparent'; this.parentElement.style.padding = this.checked ? '10px' : '0';">
+            <label for="set-previews" style="font-size: 14.5px; color: #333; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay previews whilst browsing on all devices.</label>
+          </div>
         </div>
-        <label class="switch">
-          <input type="checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="toggleSetting('autoPlayPreviews')">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="settings-row">
+        
+        <hr style="border:none; border-bottom: 1px solid #dbdbdb; margin: 35px 0 30px 0;">
+        
+        <!-- Data Usage Section -->
         <div>
-          <div style="font-weight:bold; font-size:16px;">Autoplay Next Episode</div>
-          <div style="font-size:12px; color:#888; margin-top:5px;">Automatically play the next memory/video.</div>
+          <h2 style="margin:0 0 10px 0; font-size: 19px; font-weight: 600; color: #111;">Data usage per screen</h2>
+          <p style="margin: 0 0 25px 0; font-size: 14px; color: #555; line-height:1.4;">Adjust the streaming bitrate below. Higher bitrates yield spectacular pixel-perfect details, but use more bandwidth or CPU capabilities.</p>
+          
+          <!-- Radio List -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Auto -->
+            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
+              <input type="radio" name="videoQuality" value="auto" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'auto' ? 'checked' : ''}>
+              <div>
+                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Auto</div>
+                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Default video and audio quality and data usage. Adjusts dynamically based on network speeds.</div>
+              </div>
+            </label>
+            
+            <!-- Low -->
+            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
+              <input type="radio" name="videoQuality" value="low" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'low' ? 'checked' : ''}>
+              <div>
+                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Low</div>
+                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;"></svg>Basic video and audio quality, up to 0.3 GB per hour (Locked to standard 720P depth).</div>
+              </div>
+            </label>
+            
+            <!-- Medium -->
+            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
+              <input type="radio" name="videoQuality" value="medium" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'medium' ? 'checked' : ''}>
+              <div>
+                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Medium</div>
+                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Standard video and audio quality, up to 0.7 GB per hour (Locked to crisp 1080P format).</div>
+              </div>
+            </label>
+            
+            <!-- High (Auto selected as highest quality) -->
+            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
+              <input type="radio" name="videoQuality" value="high" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'high' ? 'checked' : ''}>
+              <div>
+                <div style="font-size: 15.5px; font-weight: bold; color: #111;">High</div>
+                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Best video and audio quality, up to 3 GB per hour for HD, 7 GB per hour for Ultra HD (Locked to breathtaking 1440P quality).</div>
+              </div>
+            </label>
+          </div>
         </div>
-        <label class="switch">
-          <input type="checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''} onchange="toggleSetting('autoPlayNextEpisode')">
-          <span class="slider"></span>
-        </label>
-      </div>
-      
-      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 25px; padding-top: 20px;">
-        <div style="font-weight: bold; font-size: 15px; color: #ff5252; margin-bottom: 5px;">Danger Zone</div>
-        <p style="font-size: 11px; color: #888; margin: 0 0 15px 0; line-height: 1.4;">Permanently delete and wipe all active videos and photos from Firebase Firestore.</p>
-        <button class="btn" style="background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.5); color: #ff5252; width: 100%; justify-content: center; font-weight: 600; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.confirmPurgeAll()">
-          🗑️ Purge Firebase Database
-        </button>
-      </div>
-      
-      <div class="actions" style="margin-top:30px; justify-content:center;">
-        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('settingsModal').remove()">Done</button>
+        
+        <!-- Save and Cancel Button Section -->
+        <div style="display: flex; gap: 15px; margin-top: 45px; border-top: 1px solid #dbdbdb; padding-top: 30px; box-sizing: border-box;">
+          <button class="btn" style="background:#0071eb; color:white; border:none; font-weight:bold; padding:12px 36px; font-size:14px; border-radius:4px; cursor:pointer;" onclick="window.savePlaybackSettings()">Save</button>
+          <button class="btn" style="background:#e0e0e0; color:#333; border: 1px solid #ccc; font-weight:bold; padding:12px 36px; font-size:14px; border-radius:4px; cursor:pointer;" onclick="window.closePlaybackSettings()">Cancel</button>
+        </div>
+        
+        <!-- Admin Section -->
+        <div style="border-top:1px dashed #dbdbdb; margin-top:40px; padding-top:20px; text-align: left; opacity:0.6; transition: opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.6'">
+          <span style="font-size:12px; color:#666; font-weight:bold;">ADMIN ACTIONS: </span>
+          <span style="font-size:12px; color:#ff3b30; cursor:pointer; font-weight:700; text-decoration:underline;" onclick="window.confirmPurgeAll()">🗑️ Purge and Empty Firestore Database</span>
+        </div>
+        
       </div>
     </div>
   `;
-  document.body.appendChild(modal);
-  setTimeout(() => modal.classList.add('open'), 10);
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add('open'), 10);
 };
 
 window.syncMyListUI = (id) => {
@@ -1300,6 +1406,255 @@ function showPinModal(pf, pElement) {
   });
 }
 
+// === PREMIUM NETFLIX CUSTOM DIALOGS (REPLACE NATIVE ALERTS/CONFIRMS) ===
+window.netflixConfirm = (message, onConfirm, onCancel) => {
+  const dialog = document.createElement('div');
+  dialog.className = 'upload-modal open';
+  dialog.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    z-index: 30000; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+  dialog.innerHTML = `
+    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); box-sizing: border-box;">
+      <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span style="color: white; font-size: 18px; font-weight: 700; font-family: inherit;">Confirm Action</span>
+      </div>
+      <p style="color: #ccc; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: left; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" id="netflix-confirm-cancel" style="border-radius: 4px; padding: 8px 18px; font-weight: 600; font-size: 13px; background: transparent; border: 1px solid rgba(255,255,255,0.20); color: #888; transition: all 0.2s; cursor: pointer;">Cancel</button>
+        <button class="btn btn-primary" id="netflix-confirm-yes" style="border-radius: 4px; padding: 8px 18px; font-weight: 700; font-size: 13px; background-color: #e50914; color: white; border: none; box-shadow: 0 0 10px rgba(229,9,20,0.3); transition: all 0.2s; cursor: pointer;">Proceed</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(dialog);
+  setTimeout(() => {
+    dialog.style.opacity = '1';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
+  }, 10);
+  
+  const handleAction = (agreed) => {
+    dialog.style.opacity = '0';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      dialog.remove();
+      if (agreed && onConfirm) onConfirm();
+      if (!agreed && onCancel) onCancel();
+    }, 250);
+  };
+  
+  dialog.querySelector('#netflix-confirm-cancel').onclick = () => handleAction(false);
+  dialog.querySelector('#netflix-confirm-yes').onclick = () => handleAction(true);
+};
+
+window.netflixAlert = (message, onOk) => {
+  const dialog = document.createElement('div');
+  dialog.className = 'upload-modal open';
+  dialog.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    z-index: 30000; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+  dialog.innerHTML = `
+    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); text-align: center; box-sizing: border-box;">
+      <div style="margin-bottom: 20px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); margin: 0 auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <p style="color: white; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: center; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <button class="btn btn-primary" id="netflix-alert-ok-btn" style="width: 100%; border-radius: 4px; padding: 10px; font-weight: 700; text-transform: uppercase; font-size: 13px; background-color: #e50914; color: white; border: none; cursor: pointer; transition: all 0.2s;">OK</button>
+    </div>
+  `;
+  document.body.appendChild(dialog);
+  setTimeout(() => {
+    dialog.style.opacity = '1';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
+  }, 10);
+  
+  const closeAlert = () => {
+    dialog.style.opacity = '0';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
+    setTimeout(() => { dialog.remove(); if (onOk) onOk(); }, 250);
+  };
+  dialog.querySelector('#netflix-alert-ok-btn').onclick = closeAlert;
+};
+
+// === PREMIUM PROFILE INTERACTIVE CROPPER SUITE ===
+window.openProfileCropper = (imageDataUrl, onCropped) => {
+  const m = document.createElement('div');
+  m.className = 'upload-modal';
+  m.id = 'profileCropperModal';
+  
+  m.innerHTML = `
+    <div class="upload-modal-content crop-modal-wrapper">
+      <div class="ep-header-title" style="font-size: 20px !important; margin-bottom: 15px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; padding-bottom: 10px !important;">
+        <span>Adjust Alignment</span>
+        <button class="upload-close" style="position:static; margin-left:auto; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:transparent; border:none; color:#999; cursor:pointer;" onclick="document.getElementById('profileCropperModal').remove()">&times;</button>
+      </div>
+      
+      <p style="color: #aaa; font-size: 12px; line-height: 1.5; margin: 0; text-align: center;">Format your brand-perfect profile picture. Drag to center, use the slider to scale.</p>
+      
+      <div class="crop-viewport-container" id="crop-viewport">
+        <img id="crop-target-img" src="${imageDataUrl}" style="position: absolute; transform-origin: 0 0; cursor: move; user-select: none; max-width: none; max-height: none;">
+      </div>
+      
+      <!-- Zoom Slider -->
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size: 11px; color:#888; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+          <span>Zoom Scale</span>
+          <span id="zoom-value-tag">100%</span>
+        </div>
+        <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" style="width: 100%; height: 4px; accent-color:#e50914; cursor:pointer;">
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" style="border-radius: 4px; padding: 8px 18px; font-weight: 600; font-size: 13px; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #aaa;" onclick="document.getElementById('profileCropperModal').remove()">Discard</button>
+        <button class="btn btn-primary" id="crop-confirm-save" style="border-radius: 4px; padding: 8px 18px; font-weight: 700; font-size: 13px; background: #e50914; color: white; border:none;">Lock Crop</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(m);
+  setTimeout(() => m.classList.add('open'), 10);
+  
+  const img = document.getElementById('crop-target-img');
+  const viewport = document.getElementById('crop-viewport');
+  const zoomInput = document.getElementById('crop-zoom');
+  const zoomTag = document.getElementById('zoom-value-tag');
+  
+  let scale = 1;
+  let posX = 0;
+  let posY = 0;
+  let baseW = 0;
+  let baseH = 0;
+  const containerSize = 220;
+  
+  const updateImageStyle = () => {
+    const maxPosX = 0;
+    const minPosX = containerSize - baseW * scale;
+    const maxPosY = 0;
+    const minPosY = containerSize - baseH * scale;
+    
+    if (baseW && baseH) {
+      if (posX > maxPosX) posX = maxPosX;
+      if (posX < minPosX) posX = minPosX;
+      if (posY > maxPosY) posY = maxPosY;
+      if (posY < minPosY) posY = minPosY;
+    }
+    
+    img.style.width = baseW + "px";
+    img.style.height = baseH + "px";
+    img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    zoomTag.innerText = Math.round(scale * 100) + "%";
+  };
+
+  img.onload = () => {
+    if (img.naturalWidth > img.naturalHeight) {
+      baseH = containerSize;
+      baseW = (img.naturalWidth / img.naturalHeight) * containerSize;
+    } else {
+      baseW = containerSize;
+      baseH = (img.naturalHeight / img.naturalWidth) * containerSize;
+    }
+    
+    posX = (containerSize - baseW) / 2;
+    posY = (containerSize - baseH) / 2;
+    
+    updateImageStyle();
+  };
+  
+  if (img.complete) {
+    img.onload();
+  }
+  
+  zoomInput.oninput = (e) => {
+    const oldScale = scale;
+    scale = parseFloat(e.target.value);
+    
+    const center = containerSize / 2;
+    posX = center + (posX - center) * (scale / oldScale);
+    posY = center + (posY - center) * (scale / oldScale);
+    
+    updateImageStyle();
+  };
+  
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  
+  const dragStart = (clientX, clientY) => {
+    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+  };
+  
+  const dragMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    posX += dx;
+    posY += dy;
+    startX = clientX;
+    startY = clientY;
+    updateImageStyle();
+  };
+  
+  const dragEnd = () => {
+    isDragging = false;
+  };
+  
+  viewport.onmousedown = (e) => {
+    e.preventDefault();
+    dragStart(e.clientX, e.clientY);
+  };
+  
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) dragMove(e.clientX, e.clientY);
+  });
+  
+  window.addEventListener('mouseup', dragEnd);
+  
+  viewport.ontouchstart = (e) => {
+    if (e.touches.length === 1) {
+      dragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+  
+  viewport.ontouchmove = (e) => {
+    if (isDragging && e.touches.length === 1) {
+      dragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+  
+  viewport.ontouchend = dragEnd;
+  
+  document.getElementById('crop-confirm-save').onclick = () => {
+    const canvasSize = 400;
+    const ratio = canvasSize / containerSize;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = "#141414";
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    
+    ctx.drawImage(
+      img, 
+      posX * ratio, 
+      posY * ratio, 
+      baseW * scale * ratio, 
+      baseH * scale * ratio
+    );
+    
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    onCropped(croppedDataUrl);
+    m.remove();
+  };
+};
+
 window.toggleManageProfiles = () => {
   appState.manageProfiles = !appState.manageProfiles;
   render();
@@ -1314,26 +1669,35 @@ window.editProfile = (pfId) => {
   m.id = 'editProfileModal';
   
   m.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 400px;">
-      <button class="upload-close" onclick="document.getElementById('editProfileModal').remove()">&times;</button>
-      <div class="upload-title" style="text-align: center;">Edit Profile</div>
+    <div class="upload-modal-content ep-modal-wrapper">
+      <div class="ep-header-title">
+        <span>Edit Profile</span>
+        <button class="upload-close" style="position:static; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:transparent; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="document.getElementById('editProfileModal').remove()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
       
-      <div style="margin-bottom: 20px; text-align: center;">
-        <img id="ep-avatar-preview" src="${pf.avatar}" style="width: 100px; height: 100px; border-radius: 4px; object-fit: cover; margin-bottom: 10px;">
-        <div>
-          <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 14px;" onclick="document.getElementById('ep-file').click()">Upload Custom</button>
+      <div class="ep-content-grid">
+        <!-- Left Side: Profile Photo & Custom Upload/Crop Trigger -->
+        <div class="ep-avatar-section">
+          <img id="ep-avatar-preview" src="${pf.avatar}" class="ep-avatar-img" onerror="this.src='./Netflix-Logo-Streaming-Platform-765.png';">
+          <div class="ep-avatar-overlay-btn" onclick="document.getElementById('ep-file').click()" title="Edit branding crop">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </div>
           <input type="file" id="ep-file" accept="image/*" style="display:none;">
+        </div>
+        
+        <!-- Right Side: Profile Details -->
+        <div class="ep-details-section">
+          <div class="ep-name-input-group">
+            <label class="ep-name-label">Profile Name</label>
+            <input type="text" id="ep-name" class="ep-name-input" value="${pf.name}" placeholder="Type profile nickname">
+          </div>
+          <p style="color: #666; font-size: 11px; margin-top: 10px; line-height: 1.4;">Customise your profile avatar with interactive square cropping. Your name and styled details are synced immediately.</p>
         </div>
       </div>
       
-      <div class="form-group" style="text-align: left;">
-        <label>Profile Name</label>
-        <input type="text" id="ep-name" class="form-control" value="${pf.name}" style="border-radius: 4px;">
-      </div>
-      
-      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
-        <button class="btn btn-secondary" style="border-radius: 4px;" onclick="document.getElementById('editProfileModal').remove()">Cancel</button>
-        <button class="btn btn-primary" id="ep-save" style="border-radius: 4px;">Save</button>
+      <div class="ep-actions-row">
+        <button class="btn btn-secondary" style="border-radius: 4px; padding: 10px 24px; font-weight: bold; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #888;" onclick="document.getElementById('editProfileModal').remove()">Cancel</button>
+        <button class="btn btn-primary" id="ep-save" style="border-radius: 4px; padding: 10px 24px; font-weight: bold; background: #e50914; color: white; border: none; box-shadow: 0 4px 15px rgba(229,9,20,0.3);">Save</button>
       </div>
     </div>
   `;
@@ -1343,20 +1707,11 @@ window.editProfile = (pfId) => {
   document.getElementById('ep-file').onchange = (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    const img = new Image();
     const reader = new FileReader();
     reader.onload = (re) => {
-      img.onload = () => {
-        const size = Math.min(img.width, img.height);
-        const sx = (img.width - size) / 2;
-        const sy = (img.height - size) / 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = 400; canvas.height = 400;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
-        document.getElementById('ep-avatar-preview').src = canvas.toDataURL('image/jpeg');
-      };
-      img.src = re.target.result;
+      window.openProfileCropper(re.target.result, (croppedBase64) => {
+        document.getElementById('ep-avatar-preview').src = croppedBase64;
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -1545,13 +1900,56 @@ function createNavbar() {
         </button>
         <div class="profile-dropdown">
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
-          <div class="dropdown-menu">
-            <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
-            <div class="dropdown-item" onclick="openBulkManagerModal()">🛠 Bulk Manage Memories</div>
-            <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
-            <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
-            <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
-            <div class="dropdown-item" onclick="window.logoutProfile()">🚪 Logout Profile</div>
+          <div class="dropdown-menu" style="padding: 0; background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(255, 255, 255, 0.15); width: 220px; border-radius: 4px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);">
+            <!-- Profiles list: Render other profiles style dropdown -->
+            <div style="padding: 10px 0 5px 0;">
+              ${appState.profiles.map(pf => {
+                const isActive = pf.name === appState.currentProfile;
+                if (isActive) return ''; 
+                return `
+                  <div class="dropdown-profile-item" style="display:flex; align-items:center; padding: 5px 15px; cursor:pointer; gap:10px;" onclick="window.switchProfileDropdown('${pf.name}')">
+                    <img src="${pf.avatar}" style="width:32px; height:32px; border-radius:4px; object-fit:cover;" />
+                    <span style="color:#ffffff; font-size:13px; font-weight:500;">${pf.name}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div style="height:1px; background:rgba(255,255,255,0.1); margin: 5px 0;"></div>
+
+            <!-- Links list panel -->
+            <div style="padding: 5px 0;">
+              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openManageProfiles()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+                <span style="color:#ffffff; font-size:13px; font-weight:500;">Manage Profiles</span>
+              </div>
+
+              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.showTransferProfileInfo()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span style="color:#ffffff; font-size:13px; font-weight:500;">Transfer Profile</span>
+              </div>
+
+              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openSettingsModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span style="color:#ffffff; font-size:13px; font-weight:500;">Account</span>
+              </div>
+
+              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.showHelpCentre()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <span style="color:#ffffff; font-size:13px; font-weight:500;">Help Centre</span>
+              </div>
+
+              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openBulkManagerModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                <span style="color:#ffffff; font-size:13px; font-weight:500;">Bulk Manage Memories</span>
+              </div>
+            </div>
+
+            <div style="height:1px; background:rgba(255,255,255,0.1); margin: 5px 0;"></div>
+
+            <div class="dropdown-signout-item" style="color: #ffffff; font-size: 13px; font-weight: 700; text-align: center; padding: 12px 10px; cursor: pointer;" onclick="window.logoutProfile()">
+              Sign out of Netflix
+            </div>
           </div>
         </div>
       </div>
@@ -1645,7 +2043,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -1896,7 +2294,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2259,6 +2657,211 @@ window.toggleHeroMute = () => {
   }
 };
 
+// === MODERN DATEPICKER ===
+window.openModernDatePicker = (inputEl) => {
+  let currentDate = new Date();
+  if (inputEl.value) {
+    const parts = inputEl.value.split('-');
+    if (parts.length === 3) {
+      currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+  }
+
+  const dpOverlay = document.createElement('div');
+  dpOverlay.id = 'modern-datepicker-overlay';
+  dpOverlay.style.cssText = `
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 20000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  const calendarCard = document.createElement('div');
+  calendarCard.style.cssText = `
+    background: #181111;
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    border-radius: 12px;
+    padding: 24px;
+    width: 320px;
+    box-sizing: border-box;
+    transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  `;
+
+  dpOverlay.appendChild(calendarCard);
+  document.body.appendChild(dpOverlay);
+
+  setTimeout(() => {
+    dpOverlay.style.opacity = '1';
+    calendarCard.style.transform = 'scale(1)';
+  }, 10);
+
+  let activeYear = currentDate.getFullYear();
+  let activeMonth = currentDate.getMonth();
+  let selectedDay = currentDate.getDate();
+
+  const closePicker = () => {
+    dpOverlay.style.opacity = '0';
+    calendarCard.style.transform = 'scale(0.9)';
+    setTimeout(() => dpOverlay.remove(), 300);
+  };
+
+  dpOverlay.onclick = (e) => {
+    if (e.target === dpOverlay) closePicker();
+  };
+
+  const renderCalendar = () => {
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    calendarCard.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <button id="dp-prev-month" type="button" style="background:transparent; border:none; color:white; font-size:18px; cursor:pointer; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='transparent'">&lt;</button>
+        <div style="text-align:center;">
+          <div style="font-weight:700; color:white; font-size:16px;">${monthNames[activeMonth]}</div>
+          <div style="font-size:12px; color:#aaa; font-weight:500; margin-top:2px;">${activeYear}</div>
+        </div>
+        <button id="dp-next-month" type="button" style="background:transparent; border:none; color:white; font-size:18px; cursor:pointer; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='transparent'">&gt;</button>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:15px; justify-content:center;">
+        <select id="dp-sel-month" style="background:#2b2b2b; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:12px; font-family:inherit; outline:none; cursor:pointer;">
+          ${monthNames.map((m, idx) => `<option value="${idx}" ${idx === activeMonth ? 'selected' : ''}>${m}</option>`).join('')}
+        </select>
+        <select id="dp-sel-year" style="background:#2b2b2b; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:12px; font-family:inherit; outline:none; cursor:pointer;">
+          ${Array.from({length: 40}, (_, i) => new Date().getFullYear() - 30 + i).map(yr => `<option value="${yr}" ${yr === activeYear ? 'selected' : ''}>${yr}</option>`).join('')}
+        </select>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; text-align:center; font-size:11px; font-weight:700; color:#e50914; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+        <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+      </div>
+
+      <div id="dp-days-grid" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; font-size:13px; text-align:center;">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
+        <button id="dp-today-btn" type="button" style="background:transparent; border:none; color:#aaa; font-size:12px; font-weight:600; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#aaa'">Today</button>
+        <button id="dp-cancel-btn" type="button" style="background:transparent; border:none; color:#e50914; font-size:12px; font-weight:700; cursor:pointer; transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'">Cancel</button>
+      </div>
+    `;
+
+    calendarCard.querySelector('#dp-prev-month').onclick = () => {
+      activeMonth--;
+      if (activeMonth < 0) {
+        activeMonth = 11;
+        activeYear--;
+      }
+      renderCalendar();
+    };
+
+    calendarCard.querySelector('#dp-next-month').onclick = () => {
+      activeMonth++;
+      if (activeMonth > 11) {
+        activeMonth = 0;
+        activeYear++;
+      }
+      renderCalendar();
+    };
+
+    calendarCard.querySelector('#dp-sel-month').onchange = (e) => {
+      activeMonth = parseInt(e.target.value);
+      renderCalendar();
+    };
+
+    calendarCard.querySelector('#dp-sel-year').onchange = (e) => {
+      activeYear = parseInt(e.target.value);
+      renderCalendar();
+    };
+
+    calendarCard.querySelector('#dp-today-btn').onclick = () => {
+      const today = new Date();
+      activeYear = today.getFullYear();
+      activeMonth = today.getMonth();
+      const currentValStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      inputEl.value = currentValStr;
+      closePicker();
+    };
+
+    calendarCard.querySelector('#dp-cancel-btn').onclick = closePicker;
+
+    const daysGrid = calendarCard.querySelector('#dp-days-grid');
+    const firstDayIndex = new Date(activeYear, activeMonth, 1).getDay();
+    const totalDays = new Date(activeYear, activeMonth + 1, 0).getDate();
+    const totalPrevMonthDays = new Date(activeYear, activeMonth, 0).getDate();
+
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = totalPrevMonthDays - i;
+      const cell = document.createElement('div');
+      cell.innerText = dayNum;
+      cell.style.cssText = `color: #444; padding: 6px 0; user-select: none; pointer-events: none;`;
+      daysGrid.appendChild(cell);
+    }
+
+    const isTodayYear = new Date().getFullYear() === activeYear;
+    const isTodayMonth = new Date().getMonth() === activeMonth;
+    const todayDay = new Date().getDate();
+
+    for (let d = 1; d <= totalDays; d++) {
+      const cell = document.createElement('div');
+      cell.innerText = d;
+      
+      const isSelected = selectedDay === d && currentDate.getFullYear() === activeYear && currentDate.getMonth() === activeMonth;
+      const isCurrentToday = isTodayYear && isTodayMonth && todayDay === d;
+
+      let cellStyle = `
+        padding: 6px 0;
+        border-radius: 50%;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        display: flex; align-items: center; justify-content: center;
+        aspect-ratio: 1;
+        font-weight: 500;
+      `;
+
+      if (isSelected) {
+        cellStyle += `background: #e50914; color: white; font-weight: 700; transform: scale(1.05);`;
+      } else if (isCurrentToday) {
+        cellStyle += `border: 1px solid #e50914; color: #ff5252;`;
+      } else {
+        cellStyle += `color: #d0d0d0;`;
+      }
+
+      cell.style.cssText = cellStyle;
+
+      cell.onmouseenter = () => {
+        if (!isSelected) {
+          cell.style.background = 'rgba(255,255,255,0.1)';
+          cell.style.color = '#fff';
+        }
+      };
+      
+      cell.onmouseleave = () => {
+        if (!isSelected) {
+          cell.style.background = 'transparent';
+          cell.style.color = isCurrentToday ? '#ff5252' : '#d0d0d0';
+        }
+      };
+
+      cell.onclick = () => {
+        const valStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        inputEl.value = valStr;
+        closePicker();
+      };
+
+      daysGrid.appendChild(cell);
+    }
+  };
+
+  renderCalendar();
+};
+
 // === UPLOAD FEATURE ===
 window.openUploadModal = () => {
   const modal = document.createElement('div');
@@ -2289,7 +2892,7 @@ window.openUploadModal = () => {
           </div>
         </div>
         
-        <!-- YOUTUBE VIDEO LINK (56px) WITH EMBEDDED FETCH -->
+        <!-- YOUTUBE VIDEO LINK WITH EMBEDDED FETCH -->
         <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
           <input type="text" id="up-yt-link" placeholder=" " required style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 100px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 15px; box-sizing: border-box; transition: all 0.3s;" oninput="window.updateFetchButtonState(this)" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="if(!this.value){this.style.background='#2b2b2b'; this.style.borderColor='transparent';}">
           <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">YouTube Video Link</label>
@@ -2304,50 +2907,14 @@ window.openUploadModal = () => {
           <input type="text" id="up-title" placeholder=" " required style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 16px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 15px; box-sizing: border-box; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="if(!this.value){this.style.background='#2b2b2b'; this.style.borderColor='transparent';}">
           <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">Title</label>
         </div>
-        
-        <!-- POLISHED THUMBNAIL IMAGE CARD -->
-        <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
-            <span>Memory Thumbnail Image</span>
-            <span style="color:#e50914; font-size:10px; font-weight:700;">Netflix Cinematic Design</span>
-          </div>
-          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Select a custom image backdrop, upload any local file, or generate a stunning cinematic scene prompt.</div>
-          
-          <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
-            <input type="text" id="up-thumb-custom" placeholder=" " style="width:100%; height: 44px; background:rgba(255,255,255,0.06); border:none; padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-thumb-preview'); if(preview) { preview.src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block'; }">
-            <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Thumbnail Image URL</label>
-          </div>
-          
-          <div style="display:flex; gap:10px;">
-            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-thumb-file').click()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              Local File
-            </button>
-            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <span>Generate Prompt</span>
-            </button>
-          </div>
-          <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
-        </div>
-        
-        <div id="up-preview-container" style="display: none; text-align:center;">
-          <div style="position:relative; width: 100%; height: 160px; border-radius: 8px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-            <img id="up-thumb-preview" src="" style="width: 100%; height: 100%; object-fit: cover;">
-            <div style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.7); font-size:10px; color:#ccc; padding:3px 6px; border-radius:4px; display:flex; align-items:center; gap:4px;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#46d369" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-              Active Preview
-            </div>
-          </div>
-        </div>
 
-        <!-- POLISHED LOGO SUB-BOX CARD -->
+        <!-- POLISHED LOGO SUB-BOX CARD (OPTIONAL) -->
         <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
             <span>Custom Title Logo Image (Optional)</span>
             <span style="color:#e50914; font-size:10px; font-weight:700;">Netflix Brand Logo Style</span>
           </div>
-          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Upload or generate a stylized green-screen Title Logo that displays dynamically instead of plain text.</div>
+          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Upload or generate a stylized transparent Title Logo that displays dynamically instead of plain text.</div>
           
           <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
             <input type="text" id="up-title-img-url" placeholder=" " style="width:100%; height: 44px; background:rgba(255,255,255,0.06); border:none; padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
@@ -2370,9 +2937,58 @@ window.openUploadModal = () => {
              <img id="up-title-img-preview" src="" style="max-height:50px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
           </div>
         </div>
+
+        <!-- AUTOMATIC FETCHED THUMBNAIL -->
+        <div id="automatic-fetched-thumbnail-card" style="border: 1px solid #333; background: rgba(20,20,20,0.35); padding: 16px; border-radius: 8px; display: none; flex-direction: column; gap: 10px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>Automatic YouTube Thumbnail</span>
+            <span style="color:#22c55e; font-size:10px; font-weight:700; display:flex; align-items:center; gap:4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Automatically Fetched
+            </span>
+          </div>
+          <div style="position:relative; width: 100%; height: 160px; border-radius: 6px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+            <img id="up-auto-thumb-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        </div>
+
+        <!-- CUSTOM BACKDROP THUMBNAIL IMAGE CARD -->
+        <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>Memory Backdrop Thumbnail Image (Optional override)</span>
+            <span style="color:#e50914; font-size:10px; font-weight:700;">Local File/Custom Backdrop URL</span>
+          </div>
+          <div style="font-size:11px; color:#777; margin-top:-5px; line-height:1.4;">Select a custom image backdrop, upload any local file, or generate a stunning cinematic scene prompt.</div>
+          
+          <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
+            <input type="text" id="up-thumb-custom" placeholder=" " style="width:100%; height: 44px; background:rgba(255,255,255,0.06); border:none; padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" oninput="const preview = document.getElementById('up-thumb-preview'); if(preview) { preview.src = this.value || currentThumbData; document.getElementById('up-preview-container').style.display = 'block'; }">
+            <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Custom Thumbnail / Backdrop URL</label>
+          </div>
+          
+          <div style="display:flex; gap:10px;">
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-thumb-file').click()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Upload Local File
+            </button>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,10,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>Generate Prompt</span>
+            </button>
+          </div>
+          <input type="file" id="up-thumb-file" accept="image/*" style="display:none;">
+        </div>
         
+        <div id="up-preview-container" style="display: none; text-align:center;">
+          <div style="position:relative; width: 100%; height: 160px; border-radius: 8px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <img id="up-thumb-preview" src="" style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.7); font-size:10px; color:#ccc; padding:3px 6px; border-radius:4px; display:flex; align-items:center; gap:4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#46d369" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Custom Backdrop Active
+            </div>
+          </div>
+        </div>
+
         <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 162px;" id="desc-box-container">
+        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
           <textarea id="up-desc" rows="3" required style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
           
@@ -2401,12 +3017,12 @@ window.openUploadModal = () => {
           </div>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <!-- DATE PICKER -->
+            <!-- MODERN DATE TRIGGER -->
             <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
-              <input type="date" id="up-date" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';" value="${new Date().toISOString().split('T')[0]}">
-              <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Date / Year</label>
-              <div style="position: absolute; right: 16px; top: 20px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <input type="text" id="up-date" readonly style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; cursor: pointer; transition: all 0.3s;" value="${new Date().toISOString().split('T')[0]}" onclick="window.openModernDatePicker(this)">
+              <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Date</label>
+              <div style="position: absolute; right: 16px; top: 18px; color: #e50914; pointer-events: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
               </div>
             </div>
             
@@ -2457,7 +3073,7 @@ window.openUploadModal = () => {
   window.generateUploadDescriptionWithAI = () => {
     const badge = document.getElementById('desc-sparkle-btn');
     const uTitle = document.getElementById('up-title').value.trim();
-    if (!uTitle) return alert("Please enter a Title first, so Gemini can generate a matching description.");
+    if (!uTitle) return window.netflixAlert("Please enter a Title first, so Gemini can generate a matching description.");
     if (badge) {
       badge.innerHTML = '<span>⚙ Copying Prompt...</span>';
     }
@@ -2491,7 +3107,7 @@ window.openUploadModal = () => {
 
   document.getElementById('up-fetch').onclick = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
-    if (!link) return alert("Please paste a YouTube link first.");
+    if (!link) return window.netflixAlert("Please paste a YouTube link first.");
 
     let videoId = '';
     const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -2502,7 +3118,7 @@ window.openUploadModal = () => {
       videoId = link.length === 11 ? link : null;
     }
 
-    if (!videoId) return alert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
+    if (!videoId) return window.netflixAlert("Could not pull Video ID from the text. Make sure it's a valid YouTube link.");
     
     extractedVideoId = videoId;
     document.getElementById('up-fetch').innerText = "Fetching...";
@@ -2514,26 +3130,28 @@ window.openUploadModal = () => {
         if (data.title) document.getElementById('up-title').value = data.title;
         // Always prefer maxresdefault for crystal clear thumbnails
         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-        document.getElementById('up-thumb-preview').src = currentThumbData;
-        document.getElementById('up-preview-container').style.display = 'block';
       } else {
          currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-         document.getElementById('up-thumb-preview').src = currentThumbData;
-         document.getElementById('up-preview-container').style.display = 'block';
       }
     } catch(err) {
          currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
-         document.getElementById('up-thumb-preview').src = currentThumbData;
-         document.getElementById('up-preview-container').style.display = 'block';
     }
     
+    // Update automatic fetched thumbnail preview container
+    const autoThumbCard = document.getElementById('automatic-fetched-thumbnail-card');
+    const autoThumbImg = document.getElementById('up-auto-thumb-img');
+    if (autoThumbCard && autoThumbImg) {
+      autoThumbImg.src = currentThumbData;
+      autoThumbCard.style.display = 'flex';
+    }
+
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
   
   document.getElementById('up-publish').onclick = async (e) => {
     const title = document.getElementById('up-title').value.trim();
-    if(!title) return alert("Title required");
-    if(!extractedVideoId) return alert("Please fetch a valid YouTube link first.");
+    if(!title) return window.netflixAlert("Title is required.");
+    if(!extractedVideoId) return window.netflixAlert("Please fetch a valid YouTube link first.");
 
     e.target.innerText = "Adding...";
     e.target.disabled = true;
@@ -2614,7 +3232,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=${window.getVideoQualityParam()}" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
@@ -2887,8 +3505,8 @@ window.saveDetailEdit = async (id) => {
   toggleDetailEdit();
 };
 
-window.deleteMemory = async (id) => {
-  if (confirm("Are you sure you want to delete this memory?")) {
+window.deleteMemory = (id) => {
+  window.netflixConfirm("Are you sure you want to delete this memory?", async () => {
     appState.memories = appState.memories.filter(m => m.id !== id);
     appState.myList = appState.myList.filter(lId => lId !== id);
     appState.continueWatching = appState.continueWatching.filter(lId => lId !== id);
@@ -2913,7 +3531,7 @@ window.deleteMemory = async (id) => {
     if (dm) dm.remove();
     
     render();
-  }
+  });
 };
 
 window.showToast = (msg, duration = 3000) => {
@@ -3207,7 +3825,7 @@ window.playVideo = (id) => {
     }
     
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd2160&enablejsapi=1`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=${window.getVideoQualityParam()}&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
     
@@ -3491,6 +4109,13 @@ document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}
 window.compressPhotoFile = compressPhotoFile;
 function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   return new Promise((resolve) => {
+    const isPngOrWebp = file && (
+      file.type === 'image/png' || 
+      file.type === 'image/webp' || 
+      file.name?.toLowerCase().endsWith('.png') || 
+      file.name?.toLowerCase().endsWith('.webp') || 
+      file.name?.toLowerCase().endsWith('.svg')
+    );
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -3514,10 +4139,14 @@ function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        if (isPngOrWebp) {
+          ctx.clearRect(0, 0, width, height);
+        }
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to optimized JPEG format
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        // Convert to optimized format (preserve png/webp transparency)
+        const mimeType = isPngOrWebp ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(mimeType, isPngOrWebp ? undefined : quality);
         resolve(dataUrl);
       };
       img.onerror = () => {
@@ -4061,7 +4690,8 @@ window.startMomentsSlideshow = (startId) => {
      }, 400);
   };
   
-  document.getElementById('ss-close-btn').onclick = closePlayer;
+   const ssBtn = document.getElementById('ss-close-btn');
+   if (ssBtn) ssBtn.onclick = closePlayer;
 };
 
 // Bulk Memories Manager
@@ -4072,88 +4702,92 @@ window.openBulkManagerModal = () => {
   
   // Clear any existing bulk selection cache
   window.selectedBulkIds = [];
+  window.bulkThumbBase64 = '';
+  window.bulkTitleImgBase64 = '';
   
   const buildListHTML = () => {
     if (!appState.memories || appState.memories.length === 0) {
-      return '<div style="color: #888; text-align:center; padding:40px; font-size:16px;">No memories found to manage.</div>';
+      return '<div style="color: #666; text-align:center; padding:40px; font-size:14px; font-weight:500;">No memories found to manage.</div>';
     }
     return appState.memories.map(m => `
-      <div class="bm-card" data-id="${m.id}" onclick="toggleBulkSelect('${m.id}')">
+      <div class="bm-card" data-id="${m.id}" onclick="window.toggleBulkSelect('${m.id}')" style="box-shadow: 0 4px 12px rgba(0,0,0,0.5); border-radius: 8px; transition: all 0.25s;">
         <div class="bm-checkbox">
-          <input type="checkbox" id="chk-${m.id}" data-id="${m.id}" onclick="event.stopPropagation(); syncBulkCardSelect('${m.id}');">
+          <input type="checkbox" id="chk-${m.id}" data-id="${m.id}" onclick="event.stopPropagation(); window.syncBulkCardSelect('${m.id}');" style="width: 18px; height: 18px; accent-color:#e50914;">
         </div>
-        <img src="${m.thumbnail || './Netflix-Logo-Streaming-Platform-765.png'}" class="bm-thumb" onerror="this.src='./Netflix-Logo-Streaming-Platform-765.png';">
+        <img src="${m.thumbnail || './Netflix-Logo-Streaming-Platform-765.png'}" class="bm-thumb" onerror="this.src='./Netflix-Logo-Streaming-Platform-765.png';" style="border-radius: 4px; border: 1px solid rgba(255,255,255,0.08);">
         <div class="bm-info">
-          <div class="bm-title">${m.title || 'Untitled'}</div>
-          <div class="bm-meta">${m.category || 'No Category'} • ${m.year || '2026'}</div>
+          <div class="bm-title" style="font-size: 13px; font-weight: 700; color: #fff;">${m.title || 'Untitled'}</div>
+          <div class="bm-meta" style="margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="badge-cat">${m.category || 'Moments'}</span>
+            <span class="badge-tag">${m.year || '2026'}</span>
+            <span class="badge-rating-tag">${m.rating || 'G'}</span>
+          </div>
         </div>
       </div>
     `).join('');
   };
 
   modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 900px; width: 92vw; height: 85vh; display: flex; flex-direction: column; overflow: hidden; padding: 25px;">
-      <div class="upload-close" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">&times;</div>
-      
-      <h2 style="margin-bottom: 5px; font-weight: 700; color: white; font-size: 26px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #e50914;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Bulk Memories Manager
-      </h2>
-      <p style="color:#aaa; font-size:13px; margin-bottom: 20px;">Easily re-categorize, update metadata, or bulk-delete multiple memory tiles or photos in one go.</p>
-      
-      <!-- Toolbar -->
-      <div class="bm-toolbar">
-        <div class="bm-selection-controls">
-          <button class="btn btn-secondary" onclick="bulkSelectAll(true)" style="padding: 6px 14px; font-size: 13px;">✓ Select All</button>
-          <button class="btn btn-secondary" onclick="bulkSelectAll(false)" style="padding: 6px 14px; font-size: 13px;">✗ Deselect All</button>
-          <span id="bm-count-badge" class="bm-badge">0 selected</span>
+    <div class="upload-modal-content" style="max-width: 1200px; width: 95vw; height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0; background: #0c0c0c; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.95);">
+      <!-- Header -->
+      <div style="padding: 10px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.3);">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <h2 style="margin:0; font-size: 18px; font-weight:700; color: white; display:flex; align-items:center; gap:10px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.45));"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M12 8v8M8 12h8"></path></svg>
+            Bulk Memories Manager & Upgrader
+          </h2>
+          <span style="color:#777; font-size:11px; font-weight: 500;">Easily search, select, categorise, or completely style dozens of memory layers and backdrop covers using Gemini models.</span>
         </div>
-        
-        <div class="bm-actions-container hidden" id="bm-bulk-actions">
-          <input type="text" id="bulk-title-input" class="bm-input" placeholder="New Title (Bulk)" style="width: 130px;">
-          <input type="text" id="bulk-desc-input" class="bm-input" placeholder="New Description (Bulk)" style="width: 155px;">
-          
-          <select id="bulk-category-select" class="bm-select-input">
-            <option value="">-- Change Category --</option>
-            <option value="Moments">Moments (Photos)</option>
-            ${subCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-          </select>
-          
-          <input type="number" id="bulk-year-input" class="bm-input" placeholder="Change Year" style="width: 110px;">
-          
-          <select id="bulk-rating-select" class="bm-select-input" style="width: 120px;">
-            <option value="">-- Rating --</option>
-            <option value="G">G</option>
-            <option value="PG">PG</option>
-            <option value="PG-13">PG-13</option>
-            <option value="R">R</option>
-            <option value="TV-PG">TV-PG</option>
-            <option value="TV-14">TV-14</option>
-            <option value="TV-MA">TV-MA</option>
-          </select>
+        <button class="upload-close" style="position:static; background:transparent; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s; padding:0;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
 
-          <input type="text" id="bulk-thumbnail-input" class="bm-input" placeholder="New Thumbnail URL" style="width: 150px;">
+      <!-- Content Area -->
+      <div style="flex:1; display:grid; grid-template-columns: 1fr 410px; min-height: 0; box-sizing: border-box; background: #0c0c0c;">
+        
+        <!-- Left Section: Grid and Control Bar -->
+        <div style="display: flex; flex-direction: column; padding: 15px; border-right: 1px solid rgba(255,255,255,0.05); min-height:0; box-sizing:border-box;">
           
-          <button class="btn btn-primary" onclick="applyBulkEdit()" style="background:#46d369; color:black; font-weight:600; padding: 7px 16px; font-size: 13px;">Update Selected</button>
-          <button class="btn btn-primary" onclick="applyBulkDelete()" style="background:#e50914; color:white; font-weight:600; padding: 7px 16px; font-size: 13px;">Delete Selected</button>
+          <!-- Search Row -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
+            <div style="position: relative; flex: 1; min-width: 250px;">
+              <input type="text" id="bm-search-input" placeholder="🔍 Find memories by title, category, year or rating..." style="width:100%; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px 8px 12px; border-radius: 6px; color: white; outline: none; font-size: 13px; transition: all 0.2s;" oninput="window.filterBulkGrid()" onfocus="this.style.borderColor='#e50914'; this.style.background='#222';">
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(true)">✓ Select All</button>
+              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(false)">✗ Clear All</button>
+            </div>
+          </div>
+
+          <!-- List Container -->
+          <div class="bm-grid-container" style="flex: 1; overflow-y: auto;">
+            <div class="bm-grid" id="bulk-memories-grid-inner">
+              ${buildListHTML()}
+            </div>
+          </div>
+          
         </div>
-      </div>
-      
-      <!-- List Container -->
-      <div class="bm-grid-container">
-        <div class="bm-grid">
-          ${buildListHTML()}
+
+        <!-- Right Section: Netflix-Style Upgrade Toolbar Side Panel -->
+        <div id="bulk-edit-sidebar-panel" style="padding: 15px; display: flex; flex-direction: column; overflow-y: auto; background: #121212; box-sizing: border-box; border-left: 1px solid rgba(255,255,255,0.02);">
+          <!-- Content injected dynamically by window.updateBulkToolbar() -->
         </div>
+
       </div>
-      
-      <div style="display: flex; justify-content: flex-end; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
-        <button class="btn btn-secondary" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">Close Panel</button>
+
+      <!-- Footer -->
+      <div style="padding: 8px 24px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; background: rgba(0,0,0,0.25);">
+        <button class="btn" style="background: rgba(255,255,255,0.08); color: white; border: none; padding: 6px 18px; font-size: 13px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)';" onmouseleave="this.style.background='rgba(255,255,255,0.08)';" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">Close Panel</button>
       </div>
+
     </div>
   `;
   
   document.body.appendChild(modal);
-  setTimeout(() => modal.classList.add('open'), 10);
+  setTimeout(() => {
+    modal.classList.add('open');
+    window.updateBulkToolbar();
+  }, 10);
 };
 
 window.selectedBulkIds = [];
@@ -4206,42 +4840,315 @@ window.bulkSelectAll = (select) => {
   window.updateBulkToolbar();
 };
 
+window.filterBulkGrid = () => {
+  const query = document.getElementById('bm-search-input').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.bm-card');
+  
+  cards.forEach(card => {
+    const id = card.getAttribute('data-id');
+    const m = appState.memories.find(item => item.id === id);
+    if (m) {
+      const matchText = `${m.title || ''} ${m.category || ''} ${m.year || ''} ${m.rating || ''}`.toLowerCase();
+      if (matchText.includes(query)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    }
+  });
+};
+
 window.updateBulkToolbar = () => {
-  const badge = document.getElementById('bm-count-badge');
-  const actionPanel = document.getElementById('bm-bulk-actions');
+  const panel = document.getElementById('bulk-edit-sidebar-panel');
+  if (!panel) return;
+  
   const count = window.selectedBulkIds.length;
   
-  if (badge) {
-    badge.innerText = `${count} selected`;
+  if (count === 0) {
+    panel.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; color: #888;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(229,9,20,0.06); border: 2px dashed rgba(229,9,20,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(229,9,20,0.15));">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #e50914;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path><circle cx="9" cy="9" r="2"></circle></svg>
+        </div>
+        <h3 style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.2px;">No Memories Selected</h3>
+        <p style="font-size: 12px; line-height: 1.6; max-width: 280px; color: #666; margin: 0;">Click on memory tiles from the grid on the left to begin batch editing, categorising, or upgrading titles and custom imagery with Gemini AI.</p>
+      </div>
+    `;
+    return;
   }
   
-  if (actionPanel) {
-    if (count > 0) {
-      actionPanel.classList.remove('hidden');
-    } else {
-      actionPanel.classList.add('hidden');
+  // Keep values currently written in inputs if user had already typed them
+  const prevTitle = document.getElementById('bulk-title-override')?.value || '';
+  const prevTitleImgUrl = document.getElementById('bulk-title-img-url-override')?.value || '';
+  const prevThumbnailUrl = document.getElementById('bulk-thumbnail-override')?.value || '';
+  const prevDesc = document.getElementById('bulk-desc-override')?.value || '';
+  const prevCat = document.getElementById('bulk-category-override')?.value || '';
+  const prevRating = document.getElementById('bulk-rating-override')?.value || '';
+  const prevYear = document.getElementById('bulk-year-override')?.value || '';
+  
+  panel.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; height: 100%;">
+      
+      <!-- Panel Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #777; font-weight: 700;">Styling Suite & AI Upgrader</span>
+          <span style="color: white; font-weight: 700; font-size: 15px; margin-top: 2px;">Modify Selected Files</span>
+        </div>
+        <span class="bm-badge" style="background: #e50914; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; box-shadow: 0 0 10px rgba(229,9,20,0.5);">${count} Selected</span>
+      </div>
+
+      <!-- BULK TITLE INPUT (floating styled) -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div class="floating-input-group" style="position: relative; height: 50px; margin-bottom: 0;">
+          <input type="text" id="bulk-title-override" placeholder=" " style="width:100%; height: 44px; background:#1c1c1c; border: 1px solid rgba(255,255,255,0.08); padding:18px 12px 6px 12px; border-radius:6px; color:white; font-size:13px; outline:none;" onfocus="this.style.borderColor='rgba(255,255,255,0.3)';" onblur="if(!this.value){this.style.borderColor='rgba(255,255,255,0.08)';}">
+          <label style="position: absolute; top: 14px; left: 12px; color: #666; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">New Title (Bulk Override)</label>
+        </div>
+      </div>
+
+      <!-- TITLE LOGO IMAGE OVERRIDE BOX -->
+      <div style="border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #888; font-weight: 700; display:flex; justify-content:space-between; align-items:center;">
+          <span>Custom Title Logo Image (Optional)</span>
+          <span style="color: #e50914; font-weight: 700;">Netflix Brand Logo style</span>
+        </span>
+        
+        <div class="floating-input-group" style="position: relative; height: 44px; margin-bottom: 0;">
+          <input type="text" id="bulk-title-img-url-override" placeholder=" " style="width:100%; height: 38px; background:rgba(255,255,255,0.04); border:none; padding:15px 10px 4px 10px; border-radius:4px; color:white; font-size:12px; outline:none;" oninput="const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+          <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Title Logo Image URL</label>
+        </div>
+        
+        <div style="display:flex; gap:6px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
+            Local File
+          </button>
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAI()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            AI Prompt
+          </button>
+        </div>
+        <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+        
+        <div style="text-align:center;">
+           <img id="bulk-title-img-preview" src="" style="max-height:40px; max-width:80%; margin:0 auto; display:none; object-fit:contain; border-radius:4px;">
+        </div>
+      </div>
+
+      <!-- BACKDROP THUMBNAIL OVERRIDE BOX -->
+      <div style="border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #888; font-weight: 700;">Backdrop Cover image</span>
+        
+        <div class="floating-input-group" style="position: relative; height: 44px; margin-bottom: 0;">
+          <input type="text" id="bulk-thumbnail-override" placeholder=" " style="width:100%; height: 38px; background:rgba(255,255,255,0.04); border:none; padding:15px 10px 4px 10px; border-radius:4px; color:white; font-size:12px; outline:none;" oninput="const preview = document.getElementById('bulk-thumb-preview'); if(preview) { preview.src = this.value; document.getElementById('bulk-preview-container').style.display = this.value ? 'block' : 'none'; }">
+          <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Custom Backdrop URL</label>
+        </div>
+        
+        <div style="display:flex; gap:6px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
+            Local Photo
+          </button>
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            AI Poster
+          </button>
+        </div>
+        <input type="file" id="bulk-thumb-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('bulk-thumbnail-override').value = 'Local File: ' + this.files[0].name; window.bulkThumbBase64 = b64; const preview = document.getElementById('bulk-thumb-preview'); if(preview) { preview.src = b64; document.getElementById('bulk-preview-container').style.display = 'block'; } }); }">
+        
+        <div id="bulk-preview-container" style="display: none; text-align:center;">
+           <img id="bulk-thumb-preview" src="" style="width:100%; height:75px; object-fit:cover; margin:0 auto; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
+        </div>
+      </div>
+
+      <!-- BULK DESCRIPTION INPUT -->
+      <div style="position: relative; border-radius: 8px; overflow: hidden; background: #1c1c1c; border: 1px solid rgba(255,255,255,0.08); height: 86px;" id="bulk-desc-container">
+        <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color: #555; font-weight:700; padding:6px 12px 0 12px; position:absolute; top:2px; left:0; z-index:2; pointer-events:none;">New Description</div>
+        <textarea id="bulk-desc-override" rows="2" style="width:100%; border:none; padding:18px 12px 28px 12px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 12px; box-sizing: border-box; resize: none; height: 100%;"></textarea>
+        
+        <!-- Sparkle option inside textarea footer -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+          <div onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Gemini AI Desc</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- METADATA CONTROLS ROW -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Category -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #777; font-weight: 700;">Category override</span>
+          <select id="bulk-category-override" class="bm-select-input" style="width:100%; border-radius: 6px; background:#1c1c1c; border-color:rgba(255,255,255,0.08); font-size:12px; padding:6px 10px;">
+            <option value="">-- No Change --</option>
+            <option value="Moments">Moments (Photos)</option>
+            ${subCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Rating & Year grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #777; font-weight: 700;">Maturity Gating</span>
+            <select id="bulk-rating-override" class="bm-select-input" style="width:100%; border-radius: 6px; background:#1c1c1c; border-color:rgba(255,255,255,0.08); font-size:12px; padding:6px 10px;">
+              <option value="">-- No Change --</option>
+              <option value="G">G</option>
+              <option value="PG">PG</option>
+              <option value="PG-13">PG-13</option>
+              <option value="R">R</option>
+              <option value="TV-PG">TV-PG</option>
+              <option value="TV-14">TV-14</option>
+              <option value="TV-MA">TV-MA</option>
+            </select>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #777; font-weight: 700;">Date override</span>
+            <input type="text" id="bulk-year-override" class="bm-input" placeholder="Select Date" readonly style="border-radius: 6px; background:#1c1c1c; border-color:rgba(255,255,255,0.08); font-size:12px; padding:6px 10px; cursor: pointer;" onclick="window.openModernDatePicker(this)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top:10px;">
+        <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:10px; font-size:12px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:5px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.5)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none';" onclick="window.applyBulkEdit()">
+          Apply Bulk Upgrades
+        </button>
+        <button class="btn" style="width:100%; background:transparent; color:#999; font-weight:600; padding: 8px; font-size: 11px; border-radius: 6px; border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.4)'; this.style.color='#ff3b47';" onmouseleave="this.style.background='transparent'; this.style.borderColor='rgba(255,255,255,0.06)'; this.style.color='#999';" onclick="window.applyBulkDelete()">
+          Permanently Eliminate Selected
+        </button>
+      </div>
+
+    </div>
+  `;
+  
+  // Re-populate prev typed values to ensure state retention across selection updates
+  if (prevTitle) document.getElementById('bulk-title-override').value = prevTitle;
+  if (prevTitleImgUrl) {
+    document.getElementById('bulk-title-img-url-override').value = prevTitleImgUrl;
+    if (document.getElementById('bulk-title-img-preview')) {
+      document.getElementById('bulk-title-img-preview').src = window.bulkTitleImgBase64 || prevTitleImgUrl;
+      document.getElementById('bulk-title-img-preview').style.display = 'block';
     }
   }
+  if (prevThumbnailUrl) {
+    document.getElementById('bulk-thumbnail-override').value = prevThumbnailUrl;
+    if (document.getElementById('bulk-thumb-preview')) {
+      document.getElementById('bulk-thumb-preview').src = window.bulkThumbBase64 || prevThumbnailUrl;
+      document.getElementById('bulk-preview-container').style.display = 'block';
+    }
+  }
+  if (prevDesc) document.getElementById('bulk-desc-override').value = prevDesc;
+  if (prevCat) document.getElementById('bulk-category-override').value = prevCat;
+  if (prevRating) document.getElementById('bulk-rating-override').value = prevRating;
+  if (prevYear) document.getElementById('bulk-year-override').value = prevYear;
+};
+
+window.generateBulkTitleLogoPromptWithAI = () => {
+  const titleInput = document.getElementById('bulk-title-override');
+  const title = (titleInput ? titleInput.value.trim() : '') || 'Our Love Story';
+  
+  const catSelect = document.getElementById('bulk-category-override');
+  const category = (catSelect ? catSelect.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
+  }
+  
+  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
+Text must read EXACTLY: "${title}"
+The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
+Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Branded Title logo prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch(() => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
+};
+
+window.generateBulkThumbnailPromptWithAI = () => {
+  const titleInput = document.getElementById('bulk-title-override');
+  const title = (titleInput ? titleInput.value.trim() : '') || 'Our Love Story';
+  
+  const descInput = document.getElementById('bulk-desc-override');
+  const desc = (descInput ? descInput.value.trim() : '') || 'A beautiful memory worth reliving.';
+  
+  const catSelect = document.getElementById('bulk-category-override');
+  const category = (catSelect ? catSelect.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, nostalgic warmth, beautiful soft sunrise and sunset lighting, pastel tones, cozy intimate atmosphere';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'vibrant energy, colorful party lighting, laughter, motion blur, glittering sparklers, festive warm ambiance';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
+  }
+  
+  const prompt = `Create a spectacular, photo-realistic 16:9 cinematic movie scene cover that will act as the background thumbnail artwork.
+Concepts/Details: A stunning and emotionally resonant shot inspired by: "${title}".
+Description of the scene: ${desc}.
+Visual Vibe: ${vibe}.
+Style: Shot with 35mm anamorphic camera lens, rich cinematic color grading, beautiful shallow depth of field, natural dramatic lighting. The image must feel premium, high-budget, and tell a story (like a professional Netflix original movie poster background).
+CRITICAL: Do NOT add ANY text, titles, subtitles, words, logos, letterings, watermarks, frames, borders, or banners anywhere on the image. It must be a clean, pure, photo-realistic movie scene thumbnail.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch(() => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
+};
+
+window.generateBulkDescriptionWithAI = () => {
+  const titleInput = document.getElementById('bulk-title-override');
+  const title = titleInput ? titleInput.value.trim() : '';
+  if (!title) {
+    window.showToast('Please enter a Title first, so Gemini can generate a matching description.');
+    return;
+  }
+  const prompt = `Generate an engaging, short, dramatic Netflix-style tagline synopsis description (under 25 words) for a memory titled: "${title}". Make it emotional, romantic, energetic or documentary-style depending on memory title. Keep it clean and impactful.`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Gemini description request prompt copied! Opening Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  });
 };
 
 window.applyBulkEdit = async () => {
   if (window.selectedBulkIds.length === 0) return;
   
-  const titleVal = document.getElementById('bulk-title-input').value.trim();
-  const descVal = document.getElementById('bulk-desc-input').value.trim();
-  const catVal = document.getElementById('bulk-category-select').value;
-  const yearVal = document.getElementById('bulk-year-input').value;
-  const ratingVal = document.getElementById('bulk-rating-select').value;
-  const thumbVal = document.getElementById('bulk-thumbnail-input').value.trim();
+  const titleVal = document.getElementById('bulk-title-override').value.trim();
+  const descVal = document.getElementById('bulk-desc-override').value.trim();
+  const catVal = document.getElementById('bulk-category-override').value;
+  const yearVal = document.getElementById('bulk-year-override').value;
+  const ratingVal = document.getElementById('bulk-rating-override').value;
   
-  if (!titleVal && !descVal && !catVal && !yearVal && !ratingVal && !thumbVal) {
+  let thumbVal = document.getElementById('bulk-thumbnail-override').value.trim();
+  if (window.bulkThumbBase64 && thumbVal.startsWith('Local File')) {
+    thumbVal = window.bulkThumbBase64;
+  }
+  
+  let titleImgVal = document.getElementById('bulk-title-img-url-override').value.trim();
+  if (window.bulkTitleImgBase64 && titleImgVal.startsWith('Local File')) {
+    titleImgVal = window.bulkTitleImgBase64;
+  }
+  
+  if (!titleVal && !descVal && !catVal && !yearVal && !ratingVal && !thumbVal && !titleImgVal) {
     window.showToast('Please specify at least one metadata change field.');
     return;
   }
   
   let updatedCount = 0;
-  
-  // Activate bulk transaction to block live listener interference and avoid race conditions
   appState.bulkTransactionActive = true;
   
   try {
@@ -4252,9 +5159,11 @@ window.applyBulkEdit = async () => {
         if (titleVal) m.title = titleVal;
         if (descVal) m.desc = descVal;
         if (catVal) m.category = catVal;
-        if (yearVal) m.year = parseInt(yearVal, 10) || m.year;
+        if (yearVal) m.year = yearVal;
         if (ratingVal) m.rating = ratingVal;
         if (thumbVal) m.thumbnail = thumbVal;
+        if (titleImgVal) m.titleImage = titleImgVal;
+        
         memoriesToUpdate.push(m);
         updatedCount++;
       }
@@ -4278,7 +5187,8 @@ window.applyBulkEdit = async () => {
     handleFirestoreError(err, OperationType.UPDATE, 'bulk_memories');
   } finally {
     appState.bulkTransactionActive = false;
-    // Always persist to local cache immediately
+    window.bulkThumbBase64 = '';
+    window.bulkTitleImgBase64 = '';
     window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
     
     if (window.pendingMemoriesSnapshot) {
@@ -4292,7 +5202,7 @@ window.applyBulkEdit = async () => {
   }
   
   window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-  window.showToast(`Successfully updated ${updatedCount} memories!`);
+  window.showToast(`Successfully upgraded ${updatedCount} memories!`);
   
   const dm = document.getElementById('bulkManagerModal');
   if (dm) {
@@ -4308,70 +5218,133 @@ window.applyBulkDelete = async () => {
   if (window.selectedBulkIds.length === 0) return;
   
   const count = window.selectedBulkIds.length;
-  if (!confirm(`Are you sure you want to permanently delete all ${count} selected memories?`)) {
-    return;
-  }
-  
-  let deletedCount = 0;
-  
-  // Activate bulk transaction to block live listener interference and avoid race conditions
-  appState.bulkTransactionActive = true;
-  
-  try {
-    const idsToDelete = [...window.selectedBulkIds];
+  window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
+    let deletedCount = 0;
+    appState.bulkTransactionActive = true;
     
-    // Sync local arrays immediately so the UI is super fast
-    appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
-    appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
-    appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
-    if (appState.likedMemories) {
-      appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
-    }
-    
-    // Commit deletions in chunked batches of 400
-    const chunkSize = 400;
-    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
-      const chunk = idsToDelete.slice(i, i + chunkSize);
-      const batch = writeBatch(db);
-      chunk.forEach(id => {
-        const docRef = doc(db, 'memories', id);
-        batch.delete(docRef);
-        deletedCount++;
-      });
-      await batch.commit();
-    }
-    
-    // Also save state alterations
-    await saveStateList('myList', appState.myList);
-    await saveStateList('continueWatching', appState.continueWatching);
-    if (appState.likedMemories) {
-      await saveStateList('likedMemories', appState.likedMemories);
-    }
-  } catch (err) {
-    console.error('Error committing bulk delete batch:', err);
-    handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
-  } finally {
-    appState.bulkTransactionActive = false;
-    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    
-    if (window.pendingMemoriesSnapshot) {
-      const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
-      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
-      appState.memories = list;
+    try {
+      const idsToDelete = [...window.selectedBulkIds];
+      
+      appState.memories = appState.memories.filter(m => !idsToDelete.includes(m.id));
+      appState.myList = appState.myList.filter(item => !idsToDelete.includes(item));
+      appState.continueWatching = appState.continueWatching.filter(item => !idsToDelete.includes(item));
+      if (appState.likedMemories) {
+        appState.likedMemories = appState.likedMemories.filter(item => !idsToDelete.includes(item));
+      }
+      
+      const chunkSize = 400;
+      for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+        const chunk = idsToDelete.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+        chunk.forEach(id => {
+          const docRef = doc(db, 'memories', id);
+          batch.delete(docRef);
+          deletedCount++;
+        });
+        await batch.commit();
+      }
+      
+      await saveStateList('myList', appState.myList);
+      await saveStateList('continueWatching', appState.continueWatching);
+      if (appState.likedMemories) {
+        await saveStateList('likedMemories', appState.likedMemories);
+      }
+    } catch (err) {
+      console.error('Error committing bulk delete batch:', err);
+      handleFirestoreError(err, OperationType.DELETE, 'bulk_memories');
+    } finally {
+      appState.bulkTransactionActive = false;
       window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-      window.pendingMemoriesSnapshot = null;
+      
+      if (window.pendingMemoriesSnapshot) {
+        const list = window.pendingMemoriesSnapshot.docs.map(d => d.data());
+        list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+        appState.memories = list;
+        window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
+        window.pendingMemoriesSnapshot = null;
+      }
+      render();
     }
+    
+    window.showToast(`Deleted ${deletedCount} memories in bulk.`);
+    
+    const dm = document.getElementById('bulkManagerModal');
+    if (dm) {
+      dm.classList.remove('open');
+      setTimeout(() => {
+        dm.remove();
+        window.refreshRowsView(null, null, true);
+      }, 300);
+    }
+  });
+};
+
+/* --- HIGH FIDELITY DROPDOWN COMPONENT GLOBAL REGISTRATIONS --- */
+window.switchProfileDropdown = (profileName) => {
+  const pf = appState.profiles.find(p => p.name === profileName);
+  if (!pf) return;
+  
+  const dbContainer = document.querySelector('.dashboard-container');
+  if (dbContainer) {
+    try {
+      animate(dbContainer, { opacity: 0, scale: 0.95 }, { duration: 0.4 }).then(() => {
+        appState.currentProfile = pf.name;
+        window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
+        
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const dashboard = createDashboard();
+        app.appendChild(dashboard);
+        dashboard.style.opacity = '0';
+        dashboard.style.transform = 'scale(0.95)';
+        
+        animate(dashboard, { opacity: 1, scale: 1 }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
+        window.showToast(`Switched profile to ${pf.name}`);
+      });
+    } catch(err) {
+      appState.currentProfile = pf.name;
+      window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
+      render();
+    }
+  } else {
+    appState.currentProfile = pf.name;
+    window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
     render();
   }
+};
+
+window.openManageProfiles = () => {
+  appState.manageProfiles = true;
+  transitionView('profiles');
+};
+
+window.showTransferProfileInfo = () => {
+  window.netflixAlert("Profile Transfer feature has been enabled. To transfer your favorite items, categories, and viewing history to another household profile, please contact support or complete the process on account settings.");
+};
+
+window.showHelpCentre = () => {
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'helpCentreModal';
   
-  window.showToast(`Deleted ${deletedCount} memories in bulk.`);
-  
-  const dm = document.getElementById('bulkManagerModal');
-  if (dm) {
-    dm.classList.remove('open');
-    setTimeout(() => {
-      dm.remove();
-      window.refreshRowsView(null, null, true);
-    }, 300);
-  }
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 500px; background: #0f0f0f; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 25px;">
+      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()">&times;</button>
+      <div style="font-size:24px; font-weight:bold; color:white; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        Netflix Help Centre
+      </div>
+      <p style="color:#ccc; font-size:14px; line-height:1.5; margin-bottom:15px;">Welcome to your personalized household assistance panel. Here you can find help configuring your custom memories and adjusting video playback experiences.</p>
+      
+      <div style="font-weight:600; color:white; font-size:14px; margin-bottom:5px;">How do I adjust video quality?</div>
+      <p style="color:#aaa; font-size:13px; line-height:1.4; margin-bottom:15px; margin-top:0;">Navigate to the <strong>Account</strong> section within your profile selection menu at the top-right corner to open Playback Settings, where you can select 720p, 1080p, 1440p, or Auto quality.</p>
+      
+      <div style="font-weight:600; color:white; font-size:14px; margin-bottom:5px;">How can I backup/clear my memories?</div>
+      <p style="color:#aaa; font-size:13px; line-height:1.4; margin-bottom:20px; margin-top:0;">You can bulk-archive and manage your covers inside the <strong>Bulk Manage Memories</strong> item, or perform a total cloud wipe using the Administrator link on the Playback Settings page.</p>
+
+      <button class="btn btn-primary" style="width:100%; border-radius:4px; font-weight:600; background:#e50914; border:none; padding:10px; color:white; cursor:pointer;" onclick="document.getElementById('helpCentreModal').remove()">Got it</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
 };
