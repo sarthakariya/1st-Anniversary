@@ -1587,12 +1587,12 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 
 /* 5. Glowing search input */
 .search-input {
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+  box-shadow: none !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .search-input:focus {
-  box-shadow: 0 0 0 1.5px #fff !important;
-  background: rgba(0,0,0,0.95) !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 /* 6. Red pulse heartbeat for loading indicators */
@@ -1865,8 +1865,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
-  color: #333333;
+  background: #141414;
+  color: #eeeeee;
   z-index: 10000;
   overflow-y: auto;
   opacity: 0;
@@ -1910,6 +1910,124 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   background: rgba(255, 255, 255, 0.05);
   text-decoration: underline;
 }
+
+/* PREMIUM DARK CHECKBOX & RADiO SYSTEM */
+.netflix-custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #1f1f1f;
+  border: 1px solid #555;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.netflix-custom-checkbox:checked {
+  background-color: #e50914;
+  border-color: #e50914;
+}
+.netflix-custom-checkbox:checked::after {
+  content: "✔";
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+.netflix-custom-checkbox:hover {
+  border-color: #e50914;
+}
+
+.netflix-custom-radio {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #1f1f1f;
+  border: 1px solid #555;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  transition: all 0.2s ease;
+  margin-top: 3px;
+}
+.netflix-custom-radio:checked {
+  border-color: #e50914;
+}
+.netflix-custom-radio:checked::after {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: #e50914;
+  border-radius: 50%;
+}
+.netflix-custom-radio:hover {
+  border-color: #e50914;
+}
+
+/* PREMIUM HIGH GLOW CONFIRM CARD */
+.premium-confirm-card {
+  background: #181818 !important;
+  border-radius: 4px !important;
+  padding: 35px !important;
+  width: 90%;
+  max-width: 480px;
+  transform: scale(0.9);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid #333333 !important;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.8) !important;
+  box-sizing: border-box;
+}
+.premium-confirm-card h3 {
+  font-family: inherit;
+  font-weight: 700;
+  color: #fff;
+}
+.premium-confirm-button-yes {
+  background: #e50914 !important;
+  color: #fff !important;
+  border-radius: 2px !important;
+  font-weight: 700 !important;
+  border: none !important;
+  padding: 10px 24px !important;
+  cursor: pointer !important;
+  text-transform: uppercase;
+  font-size: 13px !important;
+  transition: background 0.2s, transform 0.1s !important;
+}
+.premium-confirm-button-yes:hover {
+  background: #b80710 !important;
+  transform: scale(1.02);
+}
+.premium-confirm-button-yes:active {
+  transform: scale(0.98);
+}
+
+.premium-confirm-button-no {
+  background: transparent !important;
+  color: #aaaaaa !important;
+  border-radius: 2px !important;
+  font-weight: 500 !important;
+  border: 1px solid #444444 !important;
+  padding: 10px 24px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  transition: all 0.2s !important;
+}
+.premium-confirm-button-no:hover {
+  border-color: #888888 !important;
+  color: #ffffff !important;
+}
+
 
 
 

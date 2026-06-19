@@ -963,96 +963,103 @@ window.openSettingsModal = () => {
   
   overlay.innerHTML = `
     <!-- Header bar -->
-    <div style="background:#000000; display:flex; justify-content:space-between; align-items:center; padding:10px 40px; height:68px; box-sizing:border-box; width: 100%;">
-      <div style="color:#e50914; font-size:26px; font-weight:900; letter-spacing:1px; font-family:'Arial Black', sans-serif; cursor:pointer;" onclick="window.closePlaybackSettings()">
-        NETFLIX
+    <div style="background:#000000; display:flex; justify-content:space-between; align-items:center; padding:10px 40px; height:68px; box-sizing:border-box; width: 100%; border-bottom: 1px solid #1f1f1f;">
+      <div style="cursor:pointer;" onclick="window.closePlaybackSettings()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" style="height:30px; object-fit:contain;" alt="Netflix">
       </div>
       <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.closePlaybackSettings()">
-        <span style="color:#ffffff; font-size:13px; font-weight:500;">Back to Browse</span>
+        <span style="color:#ffffff; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Back to Browse</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </div>
     </div>
     
-    <!-- White-theme Container -->
-    <div style="background:#f3f3f3; min-height: calc(100vh - 68px); width:100%; display:flex; flex-direction:column; align-items:center; padding: 40px 20px; box-sizing:border-box;">
-      <div style="background:#ffffff; width:100%; max-width:880px; padding:45px 50px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border:1px solid #e6e6e6; box-sizing:border-box; text-align:left; font-family: Helvetica, Arial, sans-serif;">
+    <!-- Dark-theme Container -->
+    <div style="background:#141414; min-height: calc(100vh - 68px); width:100%; display:flex; flex-direction:column; align-items:center; padding: 40px 20px; box-sizing:border-box; color:#ffffff;">
+      <div style="background:#181818; width:100%; max-width:880px; padding:45px 50px; border-radius:4px; box-shadow:0 10px 40px rgba(0,0,0,0.5); border:1px solid #282828; box-sizing:border-box; text-align:left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
         
-        <h1 style="margin:0 0 35px 0; font-size: 38px; font-weight: 300; color: #111; font-family: inherit;">Playback Settings</h1>
+        <h1 style="margin:0 0 35px 0; font-size: 34px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Playback Settings</h1>
         
         <!-- Autoplay Section -->
-        <div style="margin-bottom: 25px;">
-          <h2 style="margin:0 0 20px 0; font-size: 19px; font-weight: 600; color: #111;">Autoplay controls for ${currentProfileName}</h2>
+        <div style="margin-bottom: 35px;">
+          <h2 style="margin:0 0 20px 0; font-size: 19px; font-weight: 700; color: #ffffff;">Autoplay controls for ${currentProfileName}</h2>
           
           <!-- Next Episode Checkbox -->
-          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-            <input type="checkbox" id="set-next-episode" style="width: 22px; height: 22px; margin: 0; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''}>
-            <label for="set-next-episode" style="font-size: 14.5px; color: #333; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay next episode in a series on all devices.</label>
+          <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px;">
+            <input type="checkbox" id="set-next-episode" class="netflix-custom-checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''}>
+            <label for="set-next-episode" style="font-size: 14.5px; color: #cccccc; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay next episode in a series on all devices.</label>
           </div>
           
           <!-- Previews Checkbox (Highlighted with border like in screenshot) -->
-          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px; border: 2px solid ${appState.settings.autoPlayPreviews ? '#e50914' : 'transparent'}; padding: ${appState.settings.autoPlayPreviews ? '10px' : '0'}; border-radius: 4px; background: ${appState.settings.autoPlayPreviews ? 'rgba(229,9,20,0.02)' : 'transparent'}; transition: all 0.2s;">
-            <input type="checkbox" id="set-previews" style="width: 22px; height: 22px; margin: 0; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="this.parentElement.style.borderColor = this.checked ? '#e50914' : 'transparent'; this.parentElement.style.background = this.checked ? 'rgba(229,9,20,0.02)' : 'transparent'; this.parentElement.style.padding = this.checked ? '10px' : '0';">
-            <label for="set-previews" style="font-size: 14.5px; color: #333; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay previews whilst browsing on all devices.</label>
+          <div style="display: flex; align-items: flex-start; gap: 14px; border: 1px solid ${appState.settings.autoPlayPreviews ? '#e50914' : '#222222'}; padding: 15px; border-radius: 4px; background: ${appState.settings.autoPlayPreviews ? 'rgba(229,9,20,0.04)' : '#121212'}; transition: all 0.25s;">
+            <input type="checkbox" id="set-previews" class="netflix-custom-checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="this.parentElement.style.borderColor = this.checked ? '#e50914' : '#222222'; this.parentElement.style.background = this.checked ? 'rgba(229,9,20,0.04)' : '#121212';">
+            <label for="set-previews" style="font-size: 14.5px; color: #cccccc; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay previews whilst browsing on all devices.</label>
           </div>
         </div>
         
-        <hr style="border:none; border-bottom: 1px solid #dbdbdb; margin: 35px 0 30px 0;">
+        <hr style="border:none; border-bottom: 1px solid #282828; margin: 35px 0 35px 0;">
         
         <!-- Data Usage Section -->
         <div>
-          <h2 style="margin:0 0 10px 0; font-size: 19px; font-weight: 600; color: #111;">Data usage per screen</h2>
-          <p style="margin: 0 0 25px 0; font-size: 14px; color: #555; line-height:1.4;">Adjust the streaming bitrate below. Higher bitrates yield spectacular pixel-perfect details, but use more bandwidth or CPU capabilities.</p>
+          <h2 style="margin:0 0 10px 0; font-size: 19px; font-weight: 700; color: #ffffff;">Data usage per screen</h2>
+          <p style="margin: 0 0 25px 0; font-size: 14px; color: #aaaaaa; line-height:1.5;">Adjusting your streaming quality modifies the network buffer. High quality delivers breathtaking cinema stats but demands responsive speed.</p>
           
           <!-- Radio List -->
-          <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 24px;">
             <!-- Auto -->
             <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="auto" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'auto' ? 'checked' : ''}>
+              <input type="radio" name="videoQuality" value="auto" class="netflix-custom-radio" ${appState.settings.videoQuality === 'auto' ? 'checked' : ''}>
               <div>
-                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Auto</div>
-                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Default video and audio quality and data usage. Adjusts dynamically based on network speeds.</div>
+                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Auto</div>
+                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Default video and audio quality. Adjusts automatically to deliver the highest possible quality based on your current internet connection speed.</div>
               </div>
             </label>
             
             <!-- Low -->
             <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="low" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'low' ? 'checked' : ''}>
+              <input type="radio" name="videoQuality" value="low" class="netflix-custom-radio" ${appState.settings.videoQuality === 'low' ? 'checked' : ''}>
               <div>
-                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Low</div>
-                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;"></svg>Basic video and audio quality, up to 0.3 GB per hour (Locked to standard 720P depth).</div>
+                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Low</div>
+                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Basic video and audio quality. Uses up to <strong>0.3 GB per hour</strong> per device. (Locked to standard 720p HD resolution parameters).</div>
               </div>
             </label>
             
             <!-- Medium -->
             <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="medium" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'medium' ? 'checked' : ''}>
+              <input type="radio" name="videoQuality" value="medium" class="netflix-custom-radio" ${appState.settings.videoQuality === 'medium' ? 'checked' : ''}>
               <div>
-                <div style="font-size: 15.5px; font-weight: bold; color: #111;">Medium</div>
-                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Standard video and audio quality, up to 0.7 GB per hour (Locked to crisp 1080P format).</div>
+                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Medium</div>
+                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Standard video and audio quality. Uses up to <strong>0.7 GB per hour</strong> per device. (Locked to crisp 1080p Full HD resolution parameters).</div>
               </div>
             </label>
             
-            <!-- High (Auto selected as highest quality) -->
+            <!-- High -->
             <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="high" style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; accent-color: #0071eb; flex-shrink:0;" ${appState.settings.videoQuality === 'high' ? 'checked' : ''}>
+              <input type="radio" name="videoQuality" value="high" class="netflix-custom-radio" ${appState.settings.videoQuality === 'high' ? 'checked' : ''}>
               <div>
-                <div style="font-size: 15.5px; font-weight: bold; color: #111;">High</div>
-                <div style="font-size: 13.5px; color: #666; margin-top: 4px; line-height:1.4;">Best video and audio quality, up to 3 GB per hour for HD, 7 GB per hour for Ultra HD (Locked to breathtaking 1440P quality).</div>
+                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">High</div>
+                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Best video and audio quality. Uses up to <strong>3 GB per hour</strong> for HD, and up to <strong>7 GB per hour</strong> for Ultra HD/4K. (Locked to breathtaking 1440p/2160p resolution parameters).</div>
               </div>
             </label>
           </div>
         </div>
         
         <!-- Save and Cancel Button Section -->
-        <div style="display: flex; gap: 15px; margin-top: 45px; border-top: 1px solid #dbdbdb; padding-top: 30px; box-sizing: border-box;">
-          <button class="btn" style="background:#0071eb; color:white; border:none; font-weight:bold; padding:12px 36px; font-size:14px; border-radius:4px; cursor:pointer;" onclick="window.savePlaybackSettings()">Save</button>
-          <button class="btn" style="background:#e0e0e0; color:#333; border: 1px solid #ccc; font-weight:bold; padding:12px 36px; font-size:14px; border-radius:4px; cursor:pointer;" onclick="window.closePlaybackSettings()">Cancel</button>
+        <div style="display: flex; gap: 15px; margin-top: 45px; border-top: 1px solid #282828; padding-top: 30px; box-sizing: border-box;">
+          <button class="premium-confirm-button-yes" style="padding: 12px 36px !important; font-size: 14px !important;" onclick="window.savePlaybackSettings()">Save</button>
+          <button class="premium-confirm-button-no" style="padding: 12px 36px !important; font-size: 14px !important;" onclick="window.closePlaybackSettings()">Cancel</button>
         </div>
         
-        <!-- Admin Section -->
-        <div style="border-top:1px dashed #dbdbdb; margin-top:40px; padding-top:20px; text-align: left; opacity:0.6; transition: opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.6'">
-          <span style="font-size:12px; color:#666; font-weight:bold;">ADMIN ACTIONS: </span>
-          <span style="font-size:12px; color:#ff3b30; cursor:pointer; font-weight:700; text-decoration:underline;" onclick="window.confirmPurgeAll()">🗑️ Purge and Empty Firestore Database</span>
+        <!-- Admin Section (Clean, Subtle Admin Warning Panel) -->
+        <div style="border-top: 1px dashed #333333; margin-top: 45px; padding-top: 25px; text-align: left;">
+          <div style="background: rgba(229, 9, 20, 0.03); border: 1px solid rgba(229, 9, 20, 0.15); border-radius: 4px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap:15px;">
+            <div>
+              <span style="font-size: 12.5px; color: #e50914; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Database Supervision</span>
+              <span style="font-size: 12px; color: #888888; font-weight: 400;">To instantly purge and restore empty factory variables for all profiles, trigger the cloud segment wipe:</span>
+            </div>
+            <button onclick="window.confirmPurgeAll()" style="background: transparent; color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3); border-radius: 2px; padding: 8px 16px; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255, 59, 48, 0.08)'; this.style.borderColor='#ff3b30';" onmouseleave="this.style.background='transparent'; this.style.borderColor='rgba(255, 59, 48, 0.3)';">
+              Wipe Core Segment
+            </button>
+          </div>
         </div>
         
       </div>
@@ -1412,32 +1419,32 @@ window.netflixConfirm = (message, onConfirm, onCancel) => {
   dialog.className = 'upload-modal open';
   dialog.style.cssText = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px);
     z-index: 30000; display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   `;
   dialog.innerHTML = `
-    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); box-sizing: border-box;">
-      <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 20px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        <span style="color: white; font-size: 18px; font-weight: 700; font-family: inherit;">Confirm Action</span>
+    <div class="premium-confirm-card">
+      <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 22px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span style="color: white; font-size: 19px; font-weight: 700; font-family: inherit; letter-spacing: 0.5px;">Confirm Action</span>
       </div>
-      <p style="color: #ccc; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: left; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
-      <div style="display: flex; gap: 12px; justify-content: flex-end;">
-        <button class="btn btn-secondary" id="netflix-confirm-cancel" style="border-radius: 4px; padding: 8px 18px; font-weight: 600; font-size: 13px; background: transparent; border: 1px solid rgba(255,255,255,0.20); color: #888; transition: all 0.2s; cursor: pointer;">Cancel</button>
-        <button class="btn btn-primary" id="netflix-confirm-yes" style="border-radius: 4px; padding: 8px 18px; font-weight: 700; font-size: 13px; background-color: #e50914; color: white; border: none; box-shadow: 0 0 10px rgba(229,9,20,0.3); transition: all 0.2s; cursor: pointer;">Proceed</button>
+      <p style="color: #cccccc; font-size: 14.5px; font-weight: 400; line-height: 1.6; margin-bottom: 30px; margin-top: 0; text-align: left; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <div style="display: flex; gap: 14px; justify-content: flex-end;">
+        <button class="premium-confirm-button-no" id="netflix-confirm-cancel">Cancel</button>
+        <button class="premium-confirm-button-yes" id="netflix-confirm-yes">Proceed</button>
       </div>
     </div>
   `;
   document.body.appendChild(dialog);
   setTimeout(() => {
     dialog.style.opacity = '1';
-    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
+    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(1)';
   }, 10);
   
   const handleAction = (agreed) => {
     dialog.style.opacity = '0';
-    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
+    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(0.9)';
     setTimeout(() => {
       dialog.remove();
       if (agreed && onConfirm) onConfirm();
@@ -1454,28 +1461,28 @@ window.netflixAlert = (message, onOk) => {
   dialog.className = 'upload-modal open';
   dialog.style.cssText = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px);
     z-index: 30000; display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   `;
   dialog.innerHTML = `
-    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); text-align: center; box-sizing: border-box;">
-      <div style="margin-bottom: 20px;">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); margin: 0 auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <div class="premium-confirm-card" style="text-align: center;">
+      <div style="margin-bottom: 22px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 6px rgba(229,9,20,0.6)); margin: 0 auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
       </div>
-      <p style="color: white; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: center; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
-      <button class="btn btn-primary" id="netflix-alert-ok-btn" style="width: 100%; border-radius: 4px; padding: 10px; font-weight: 700; text-transform: uppercase; font-size: 13px; background-color: #e50914; color: white; border: none; cursor: pointer; transition: all 0.2s;">OK</button>
+      <p style="color: white; font-size: 15px; font-weight: 400; line-height: 1.6; margin-bottom: 28px; margin-top: 0; text-align: center; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <button class="premium-confirm-button-yes" id="netflix-alert-ok-btn" style="width: 100%;">OK</button>
     </div>
   `;
   document.body.appendChild(dialog);
   setTimeout(() => {
     dialog.style.opacity = '1';
-    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
+    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(1)';
   }, 10);
   
   const closeAlert = () => {
     dialog.style.opacity = '0';
-    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
+    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(0.9)';
     setTimeout(() => { dialog.remove(); if (onOk) onOk(); }, 250);
   };
   dialog.querySelector('#netflix-alert-ok-btn').onclick = closeAlert;
@@ -1922,11 +1929,6 @@ function createNavbar() {
               <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openManageProfiles()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
                 <span style="color:#ffffff; font-size:13px; font-weight:500;">Manage Profiles</span>
-              </div>
-
-              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.showTransferProfileInfo()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                <span style="color:#ffffff; font-size:13px; font-weight:500;">Transfer Profile</span>
               </div>
 
               <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openSettingsModal()">
@@ -5328,23 +5330,181 @@ window.showHelpCentre = () => {
   modal.id = 'helpCentreModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 500px; background: #0f0f0f; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 25px;">
-      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()">&times;</button>
-      <div style="font-size:24px; font-weight:bold; color:white; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        Netflix Help Centre
+    <div class="upload-modal-content" style="max-width: 800px; width: 95%; background: #141414; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 35px; max-height: 85vh; overflow-y: auto; text-align: left; box-sizing: border-box; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-shadow: 0 20px 50px rgba(0,0,0,0.85);">
+      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()" style="font-size: 28px; top: 15px; right: 15px;">&times;</button>
+      
+      <!-- LOGO HEADER -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:20px; margin-bottom:25px; flex-wrap: wrap; gap:15px;">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" style="height:30px; object-fit:contain;" alt="Netflix">
+          <span style="color:#ffffff; font-size:22px; font-weight:700; border-left:1px solid #444; padding-left:15px; letter-spacing:0.5px;">Help Centre</span>
+        </div>
+        <div style="color:#888; font-size:13px; font-weight:500;">
+          Household Interactive Support Panel
+        </div>
       </div>
-      <p style="color:#ccc; font-size:14px; line-height:1.5; margin-bottom:15px;">Welcome to your personalized household assistance panel. Here you can find help configuring your custom memories and adjusting video playback experiences.</p>
-      
-      <div style="font-weight:600; color:white; font-size:14px; margin-bottom:5px;">How do I adjust video quality?</div>
-      <p style="color:#aaa; font-size:13px; line-height:1.4; margin-bottom:15px; margin-top:0;">Navigate to the <strong>Account</strong> section within your profile selection menu at the top-right corner to open Playback Settings, where you can select 720p, 1080p, 1440p, or Auto quality.</p>
-      
-      <div style="font-weight:600; color:white; font-size:14px; margin-bottom:5px;">How can I backup/clear my memories?</div>
-      <p style="color:#aaa; font-size:13px; line-height:1.4; margin-bottom:20px; margin-top:0;">You can bulk-archive and manage your covers inside the <strong>Bulk Manage Memories</strong> item, or perform a total cloud wipe using the Administrator link on the Playback Settings page.</p>
 
-      <button class="btn btn-primary" style="width:100%; border-radius:4px; font-weight:600; background:#e50914; border:none; padding:10px; color:white; cursor:pointer;" onclick="document.getElementById('helpCentreModal').remove()">Got it</button>
+      <p style="color:#cccccc; font-size:14.5px; line-height:1.6; margin-bottom:25px; margin-top:0;">
+        Welcome to the Netflix Help Centre. This master archive lists <strong>every native feature, integration capability, and configuration setting</strong> built into your custom video memory platform. Search below to learn what each feature does and how to master it.
+      </p>
+
+      <!-- SEARCH INPUT FOR TOPICS -->
+      <div style="position:relative; margin-bottom:30px;">
+        <input type="text" id="help-search-box" placeholder="Search features, tools, or playback modes..." style="width:100%; padding:14px 18px 14px 45px; background:#222; border:1px solid #444; border-radius:4px; color:#fff; font-size:14.5px; outline:none; transition: border-color 0.2s;" oninput="window.filterHelpTopics(this.value)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
+
+      <!-- FEATURES AND NATIVES CONTAINER -->
+      <div id="help-topics-container" style="display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- TOPIC 1 -->
+        <div class="help-card-topic" data-keywords="quality resolution content video bandwidth playback youtube ultra hd 1080p 1440p 720p 4k bitrate settings" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Ultra-HD Video Quality & Bandwidth Throttling</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Controls the target rendering resolution parameter (<code>vq</code> parameter) of the embedded video stream. This forces the media pipeline to buffer and display exact pixel formats, rather than relying on standard fuzzy network downscaling.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to adjust:</strong> Click on your profile avatar (top-right) &rarr; select <strong>Account</strong>. Under "Data usage per screen", choose your quality index (Low, Medium, High, or Auto).
+            <div style="margin-top:6px; color:#888;">Note: High-quality streams enforce a minimum 1440p/2160p Ultra HD buffer speed if supported.</div>
+          </div>
+        </div>
+
+        <!-- TOPIC 2 -->
+        <div class="help-card-topic" data-keywords="autoplay controls next episode previews series browse hover video toggle" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Autoplay controls for Series & Previews</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Handles playback behavior while exploring the dashboard or watching content. Prevents unsolicited video streams and saves system memory bandwidth by toggling autoplay previews.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to toggle:</strong> Access <strong>Account</strong> inside the profile avatar menu. Check or uncheck 'Autoplay next episode' and 'Autoplay previews whilst browsing'. Save changes to update immediately.
+          </div>
+        </div>
+
+        <!-- TOPIC 3 -->
+        <div class="help-card-topic" data-keywords="add custom memories uploads photos native mp4 crop zoom title youtube url category" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Memory Curator & Uploader</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Enables full custom compilation of family memories, nostalgia video links, clips or personal media. You can add links to YouTube or directly upload native photograph files.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to use:</strong> Click <strong>Add Memory +</strong> in the dashboard navigation bar. Enter a Title, choose a category bucket, paste a YouTube link (or choose an image file), and save. If uploading an image, use the <em>Live Visual Cropper</em> to set bounds.
+          </div>
+        </div>
+
+        <!-- TOPIC 4 -->
+        <div class="help-card-topic" data-keywords="bulk manage memory archiver backup administrator purge database delete wipe export list" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="21" y2="20"></line><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Bulk Manager (Administrative Supervision)</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Provides batch administration operations for bulk-organizing, search-filtering, and instantly pruning records out of your profile history. Includes safeguards to prevent accidental data loss.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to execute:</strong> Open your avatar menu and click <strong>Bulk Manage Memories</strong>. Mark multiple checkboxes to select items, then click "Delete Selected" to clear them from your cloud storage.
+          </div>
+        </div>
+
+        <!-- TOPIC 5 -->
+        <div class="help-card-topic" data-keywords="gemini ai draft story script description sparkles automatic tags helper" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Gemini Artificial Intelligence Draft Engine</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Harnesses advanced Google Gemini server-side AI key configurations. It analyzes the title prompt from a memory and instantly drafts cinematic, thematic summaries along with recommended tags.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to generate:</strong> In the <strong>Add Memory</strong> form, type in a Title (e.g. <em>"Samar's Highschool Soccer Finale"</em>), and click the sparkling **"AI Draft"** button next to the Description box to instantly write a professional synopsis.
+          </div>
+        </div>
+
+        <!-- TOPIC 6 -->
+        <div class="help-card-topic" data-keywords="my list wishlist bookmark watch list continue watching save history position resume video" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">My List & Continue Watching</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Creates personal bookmarks for watching later and remembers where you stepped away from a playback scene, facilitating fluid resumes.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to watch & queue:</strong> Hover over any card on the grid, and click the circular <strong>"+"</strong> button to queue it to your "My List". Playing a video automatically tracks the seconds, creating a "Continue Watching" row on the browser shelf when paused.
+          </div>
+        </div>
+
+        <!-- TOPIC 7 -->
+        <div class="help-card-topic" data-keywords="profile custom kid profiles pin security locks lock avatars switch kids code sarthak_netflix_profile" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Profiles & PIN Locks</h3>
+          </div>
+          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
+            Securely separate viewing preferences for different household members. Configures PIN protection on sensitive adult profiles and activates safe filters for children's viewing blocks.
+          </p>
+          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
+            <strong>How to manage:</strong> Hover over your avatar, select <strong>Manage Profiles</strong>, or use the "Edit Profile" link on profile startup selection cards. There, you can input custom names, upload custom crop photos, adjust Kids Mode on/off, and secure access with a custom 4-digit PIN lock.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- NO RESULTS PLACEHOLDER -->
+      <div id="help-no-results" style="display:none; text-align:center; padding:40px 10px; color:#777; font-size:15px;">
+         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" style="margin:0 auto 15px auto; display:block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+         No matches found for your query. Try searching for "autoplay", "database", or "AI draft".
+      </div>
+
+      <button class="btn" style="width:100%; border-radius:2px; font-weight:700; background:#e50914; border:none; padding:12px 15px; color:white; cursor:pointer; margin-top:35px; text-transform:uppercase; font-size:13px; transition: background 0.2s;" onclick="document.getElementById('helpCentreModal').remove()">Close Support Panel</button>
     </div>
   `;
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('open'), 10);
+};
+
+// Search filtering logic for Help Centre
+window.filterHelpTopics = (query) => {
+  const normQuery = query.toLowerCase().trim();
+  const topics = document.querySelectorAll('.help-card-topic');
+  const noResults = document.getElementById('help-no-results');
+  let matchCount = 0;
+  
+  topics.forEach(el => {
+    const keywords = (el.getAttribute('data-keywords') || "").toLowerCase();
+    const textContent = el.textContent.toLowerCase();
+    
+    if (keywords.includes(normQuery) || textContent.includes(normQuery)) {
+      el.style.display = 'block';
+      matchCount++;
+    } else {
+      el.style.display = 'none';
+    }
+  });
+  
+  if (noResults) {
+    noResults.style.display = (matchCount === 0) ? 'block' : 'none';
+  }
 };
