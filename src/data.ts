@@ -8,10 +8,9 @@ const PLACEHOLDER_IMG_4 = "https://images.unsplash.com/photo-1600880292203-757bb
 const HERO_BG = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=4096&auto=format&fit=crop";
 
 export const PROFILES: Profile[] = [
-  { id: '1', name: '1 month', avatar: PLACEHOLDER_IMG_1 },
-  { id: '2', name: '3 months', avatar: PLACEHOLDER_IMG_2 },
-  { id: '3', name: '5 months', avatar: PLACEHOLDER_IMG_3 },
-  { id: '4', name: '6 months', avatar: PLACEHOLDER_IMG_4 },
+  { id: '1', name: 'Moumita', avatar: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?q=80&w=256&auto=format&fit=crop' },
+  { id: '2', name: 'Samar :)', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop' },
+  { id: '3', name: 'Children', avatar: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/Sonic_the_Hedgehog_2_alternate_theatrical_poster._Sonic_only.png/220px-Sonic_the_Hedgehog_2_alternate_theatrical_poster._Sonic_only.png' },
 ];
 
 export const MAIN_FEATURE = {

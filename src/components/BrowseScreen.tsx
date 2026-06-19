@@ -1,8 +1,9 @@
-import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut } from 'lucide-react';
+import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle as HelpIcon } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES, PROFILES } from '../data';
 import { Memory, Profile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import HelpCentre from './HelpCentre';
 
 interface BrowseScreenProps {
   profile: Profile;
@@ -18,6 +19,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isHelpCentreOpen, setIsHelpCentreOpen] = useState(false);
 
   // Global Floating Hover State
   const [hoveredMemory, setHoveredMemory] = useState<Memory | null>(null);
@@ -113,15 +115,17 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
             <div className="flex items-center relative">
                <motion.div 
                  initial={false}
-                 animate={{ width: isSearchOpen ? '160px' : '0px', opacity: isSearchOpen ? 1 : 0 }}
+                 animate={{ width: isSearchOpen ? '200px' : '0px', opacity: isSearchOpen ? 1 : 0 }}
                  className="overflow-hidden absolute right-8"
                >
                  <input 
                   type="text" 
-                  placeholder="Search memories..."
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Titles, people, genres..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full bg-black/65 border border-neutral-700 text-white px-3 py-1 text-xs rounded outline-none ${isMorning ? 'bg-white/60 text-black border-black/20 focus:bg-white' : ''}`}
+                  className="w-full bg-black/40 text-white px-2 py-1.5 text-xs outline-none focus:outline-none focus:ring-0 border-b border-white/50 focus:border-white transition-all rounded-none placeholder:text-neutral-500 font-sans border-t-0 border-x-0"
                  />
                </motion.div>
                <Search className="w-5 h-5 cursor-pointer hover:scale-110 transition-transform" onClick={() => setIsSearchOpen(!isSearchOpen)} />
@@ -146,7 +150,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                 <div className="w-8 h-8 rounded-md overflow-hidden cursor-pointer border border-neutral-700 hover:border-white transition-colors">
                   <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
                 </div>
-                <ChevronDown className="w-4 h-4 cursor-pointer text-gray-400 hover:text-white transition-colors" />
+                <ChevronDown className={`w-4 h-4 cursor-pointer text-gray-400 hover:text-white transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Popover */}
@@ -155,58 +159,89 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className={`absolute right-0 mt-3 w-56 rounded-md shadow-2xl py-2 border z-50 ${isMorning ? 'bg-white border-gray-200 text-black' : 'bg-neutral-950 border-neutral-800 text-white'}`}
+                      initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 mt-4.5 w-[220px] bg-[#000000] border border-[#2b2b2b] text-white z-50 rounded-none shadow-[0_15px_35px_rgba(0,0,0,0.8)] py-3 flex flex-col font-sans"
                     >
-                      <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 tracking-wider uppercase mb-1">Switch Profile</div>
-                      {PROFILES.filter(p => p.id !== profile.id).map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            onSwitchProfile(p);
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-red-600 hover:text-white transition-colors`}
-                        >
-                          <div className="w-6 h-6 rounded-md overflow-hidden">
-                            <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                          </div>
-                          <span className="font-medium">{p.name}</span>
-                        </button>
-                      ))}
+                      {/* Double-layered upwards triangle caret aligning with avatar and screenshot style */}
+                      <div className="absolute top-[-8px] right-[20px] w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-[#000000] z-50 pointer-events-none" />
+                      <div className="absolute top-[-9px] right-[19px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[9px] border-b-[#2b2b2b] z-40 pointer-events-none" />
 
-                      <div className={`h-[1px] my-2 ${isMorning ? 'bg-gray-200' : 'bg-neutral-800'}`} />
-
-                      <button
-                        onClick={() => {
-                          onSignOut();
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-neutral-800/20 hover:text-red-500 transition-colors font-medium text-red-500"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Manage Profiles
-                      </button>
-
-                      <div className="px-3 py-1.5 text-xs text-gray-400 font-semibold select-none flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        Profile Settings
+                      {/* Profile List Rows */}
+                      <div className="space-y-1 pb-2">
+                        {PROFILES.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              if (p.id !== profile.id) {
+                                onSwitchProfile(p);
+                              }
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-1.5 text-sm text-left hover:underline select-none group"
+                          >
+                            <div className="w-8 h-8 rounded-sm overflow-hidden border border-transparent group-hover:border-white transition-all flex-shrink-0">
+                              <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                            </div>
+                            <span className={`text-[13px] tracking-wide truncate ${p.id === profile.id ? 'font-bold text-white' : 'text-neutral-200 group-hover:text-white font-medium'}`}>
+                              {p.name}
+                            </span>
+                          </button>
+                        ))}
                       </div>
 
-                      <div className={`h-[1px] my-1 ${isMorning ? 'bg-gray-200' : 'bg-neutral-800'}`} />
+                      {/* Links block */}
+                      <div className="flex flex-col space-y-0.5 pt-1.5 pb-2.5 border-t border-[#1c1c1c]">
+                        {/* Manage Profiles (Pencil Icon) */}
+                        <button
+                          onClick={() => {
+                            onSignOut();
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                        >
+                          <Pencil className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
+                          <span className="font-medium">Manage Profiles</span>
+                        </button>
 
+                        {/* Account (User/Person Icon) */}
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                        >
+                          <User className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
+                          <span className="font-medium">Account</span>
+                        </button>
+
+                        {/* Help Centre (Circle Question Icon) */}
+                        <button
+                          onClick={() => {
+                            setIsHelpCentreOpen(true);
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-4 px-4.5 py-2 text-[13px] text-left text-neutral-300 hover:underline select-none group"
+                        >
+                          <HelpIcon className="w-4 h-4 text-neutral-400 group-hover:text-neutral-100 flex-shrink-0 stroke-[2]" />
+                          <span className="font-medium font-sans">Help Centre</span>
+                        </button>
+                      </div>
+
+                      {/* Horizontal thin divider line */}
+                      <div className="w-full h-[1px] bg-[#1c1c1c] mb-1.5" />
+
+                      {/* Sign Out (Centered, bold text) */}
                       <button
                         onClick={() => {
                           onSignOut();
                           setIsProfileDropdownOpen(false);
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-red-600 hover:text-white transition-colors font-semibold"
+                        className="w-full text-center text-[13px] font-bold text-white hover:underline py-1.5 select-none"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out of Netflix
+                        Sign out of Netflix
                       </button>
                     </motion.div>
                   </>
@@ -507,6 +542,13 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Immersive Help Centre Overlay */}
+      <HelpCentre 
+        isOpen={isHelpCentreOpen} 
+        onClose={() => setIsHelpCentreOpen(false)} 
+        isMorning={isMorning} 
+      />
 
     </div>
   );

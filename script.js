@@ -103,8 +103,7 @@ let appState = {
   searchQuery: '',
   settings: {
     autoPlayPreviews: true,
-    autoPlayNextEpisode: true,
-    videoQuality: 'high'
+    autoPlayNextEpisode: true
   },
   myList: [],
   continueWatching: [],
@@ -906,171 +905,53 @@ window.confirmPurgeAll = () => {
   });
 };
 
-window.getVideoQualityParam = () => {
-  const settings = appState.settings || {};
-  const quality = settings.videoQuality || 'high'; // Default is highest ('high' = 1440p)
-  if (quality === 'high') return 'hd1440';
-  if (quality === 'medium') return 'hd1080';
-  if (quality === 'low') return 'hd720';
-  return 'auto';
-};
-
-window.savePlaybackSettings = async () => {
-  const nextEpValue = document.getElementById('set-next-episode').checked;
-  const prevValue = document.getElementById('set-previews').checked;
-  const qualityValue = document.querySelector('input[name="videoQuality"]:checked').value;
-  
-  if (!appState.settings) {
-    appState.settings = {};
-  }
-  appState.settings.autoPlayNextEpisode = nextEpValue;
-  appState.settings.autoPlayPreviews = prevValue;
-  appState.settings.videoQuality = qualityValue;
-  
-  window.showToast("Saving playback settings...");
-  await saveStateList('settings', appState.settings);
-  window.closePlaybackSettings();
-  
-  window.showToast("Reloading platform with new configurations...");
-  setTimeout(() => {
-    window.location.reload();
-  }, 1000);
-};
-
-window.closePlaybackSettings = () => {
-  const overlay = document.getElementById('playbackSettingsModal');
-  if (overlay) {
-    overlay.classList.remove('open');
-    setTimeout(() => {
-      overlay.remove();
-    }, 300);
-  }
-};
-
 window.openSettingsModal = () => {
-  const overlay = document.createElement('div');
-  overlay.className = 'playback-settings-overlay';
-  overlay.id = 'playbackSettingsModal';
+  const modal = document.createElement('div');
+  modal.className = 'upload-modal';
+  modal.id = 'settingsModal';
   
-  if (!appState.settings) {
-    appState.settings = {
-      autoPlayPreviews: true,
-      autoPlayNextEpisode: true,
-      videoQuality: 'high'
-    };
-  }
-  if (!appState.settings.videoQuality) {
-    appState.settings.videoQuality = 'high';
-  }
-  
-  const currentProfileName = appState.currentProfile || 'You';
-  
-  overlay.innerHTML = `
-    <!-- Header bar -->
-    <div style="background:#000000; display:flex; justify-content:space-between; align-items:center; padding:10px 40px; height:68px; box-sizing:border-box; width: 100%; border-bottom: 1px solid #1f1f1f;">
-      <div style="cursor:pointer;" onclick="window.closePlaybackSettings()">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" style="height:30px; object-fit:contain;" alt="Netflix">
-      </div>
-      <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.closePlaybackSettings()">
-        <span style="color:#ffffff; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Back to Browse</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </div>
-    </div>
-    
-    <!-- Dark-theme Container -->
-    <div style="background:#141414; min-height: calc(100vh - 68px); width:100%; display:flex; flex-direction:column; align-items:center; padding: 40px 20px; box-sizing:border-box; color:#ffffff;">
-      <div style="background:#181818; width:100%; max-width:880px; padding:45px 50px; border-radius:4px; box-shadow:0 10px 40px rgba(0,0,0,0.5); border:1px solid #282828; box-sizing:border-box; text-align:left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-        
-        <h1 style="margin:0 0 35px 0; font-size: 34px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Playback Settings</h1>
-        
-        <!-- Autoplay Section -->
-        <div style="margin-bottom: 35px;">
-          <h2 style="margin:0 0 20px 0; font-size: 19px; font-weight: 700; color: #ffffff;">Autoplay controls for ${currentProfileName}</h2>
-          
-          <!-- Next Episode Checkbox -->
-          <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px;">
-            <input type="checkbox" id="set-next-episode" class="netflix-custom-checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''}>
-            <label for="set-next-episode" style="font-size: 14.5px; color: #cccccc; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay next episode in a series on all devices.</label>
-          </div>
-          
-          <!-- Previews Checkbox (Highlighted with border like in screenshot) -->
-          <div style="display: flex; align-items: flex-start; gap: 14px; border: 1px solid ${appState.settings.autoPlayPreviews ? '#e50914' : '#222222'}; padding: 15px; border-radius: 4px; background: ${appState.settings.autoPlayPreviews ? 'rgba(229,9,20,0.04)' : '#121212'}; transition: all 0.25s;">
-            <input type="checkbox" id="set-previews" class="netflix-custom-checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="this.parentElement.style.borderColor = this.checked ? '#e50914' : '#222222'; this.parentElement.style.background = this.checked ? 'rgba(229,9,20,0.04)' : '#121212';">
-            <label for="set-previews" style="font-size: 14.5px; color: #cccccc; cursor: pointer; user-select: none; line-height: 22px; font-weight: 500;">Autoplay previews whilst browsing on all devices.</label>
-          </div>
-        </div>
-        
-        <hr style="border:none; border-bottom: 1px solid #282828; margin: 35px 0 35px 0;">
-        
-        <!-- Data Usage Section -->
+  modal.innerHTML = `
+    <div class="upload-modal-content" style="max-width: 400px;">
+      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
+      <div class="upload-title" style="margin-bottom:30px;">Account Settings</div>
+      
+      <div class="settings-row">
         <div>
-          <h2 style="margin:0 0 10px 0; font-size: 19px; font-weight: 700; color: #ffffff;">Data usage per screen</h2>
-          <p style="margin: 0 0 25px 0; font-size: 14px; color: #aaaaaa; line-height:1.5;">Adjusting your streaming quality modifies the network buffer. High quality delivers breathtaking cinema stats but demands responsive speed.</p>
-          
-          <!-- Radio List -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            <!-- Auto -->
-            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="auto" class="netflix-custom-radio" ${appState.settings.videoQuality === 'auto' ? 'checked' : ''}>
-              <div>
-                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Auto</div>
-                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Default video and audio quality. Adjusts automatically to deliver the highest possible quality based on your current internet connection speed.</div>
-              </div>
-            </label>
-            
-            <!-- Low -->
-            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="low" class="netflix-custom-radio" ${appState.settings.videoQuality === 'low' ? 'checked' : ''}>
-              <div>
-                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Low</div>
-                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Basic video and audio quality. Uses up to <strong>0.3 GB per hour</strong> per device. (Locked to standard 720p HD resolution parameters).</div>
-              </div>
-            </label>
-            
-            <!-- Medium -->
-            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="medium" class="netflix-custom-radio" ${appState.settings.videoQuality === 'medium' ? 'checked' : ''}>
-              <div>
-                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">Medium</div>
-                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Standard video and audio quality. Uses up to <strong>0.7 GB per hour</strong> per device. (Locked to crisp 1080p Full HD resolution parameters).</div>
-              </div>
-            </label>
-            
-            <!-- High -->
-            <label style="display: flex; align-items: flex-start; gap: 14px; cursor: pointer; margin: 0;">
-              <input type="radio" name="videoQuality" value="high" class="netflix-custom-radio" ${appState.settings.videoQuality === 'high' ? 'checked' : ''}>
-              <div>
-                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">High</div>
-                <div style="font-size: 13.5px; color: #aaaaaa; margin-top: 4px; line-height:1.5;">Best video and audio quality. Uses up to <strong>3 GB per hour</strong> for HD, and up to <strong>7 GB per hour</strong> for Ultra HD/4K. (Locked to breathtaking 1440p/2160p resolution parameters).</div>
-              </div>
-            </label>
-          </div>
+          <div style="font-weight:bold; font-size:16px;">Autoplay Previews</div>
+          <div style="font-size:12px; color:#888; margin-top:5px;">Play video previews on the home screen and hover.</div>
         </div>
-        
-        <!-- Save and Cancel Button Section -->
-        <div style="display: flex; gap: 15px; margin-top: 45px; border-top: 1px solid #282828; padding-top: 30px; box-sizing: border-box;">
-          <button class="premium-confirm-button-yes" style="padding: 12px 36px !important; font-size: 14px !important;" onclick="window.savePlaybackSettings()">Save</button>
-          <button class="premium-confirm-button-no" style="padding: 12px 36px !important; font-size: 14px !important;" onclick="window.closePlaybackSettings()">Cancel</button>
+        <label class="switch">
+          <input type="checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="toggleSetting('autoPlayPreviews')">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div style="font-weight:bold; font-size:16px;">Autoplay Next Episode</div>
+          <div style="font-size:12px; color:#888; margin-top:5px;">Automatically play the next memory/video.</div>
         </div>
-        
-        <!-- Admin Section (Clean, Subtle Admin Warning Panel) -->
-        <div style="border-top: 1px dashed #333333; margin-top: 45px; padding-top: 25px; text-align: left;">
-          <div style="background: rgba(229, 9, 20, 0.03); border: 1px solid rgba(229, 9, 20, 0.15); border-radius: 4px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap:15px;">
-            <div>
-              <span style="font-size: 12.5px; color: #e50914; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Database Supervision</span>
-              <span style="font-size: 12px; color: #888888; font-weight: 400;">To instantly purge and restore empty factory variables for all profiles, trigger the cloud segment wipe:</span>
-            </div>
-            <button onclick="window.confirmPurgeAll()" style="background: transparent; color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3); border-radius: 2px; padding: 8px 16px; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255, 59, 48, 0.08)'; this.style.borderColor='#ff3b30';" onmouseleave="this.style.background='transparent'; this.style.borderColor='rgba(255, 59, 48, 0.3)';">
-              Wipe Core Segment
-            </button>
-          </div>
-        </div>
-        
+        <label class="switch">
+          <input type="checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''} onchange="toggleSetting('autoPlayNextEpisode')">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 25px; padding-top: 20px;">
+        <div style="font-weight: bold; font-size: 15px; color: #ff5252; margin-bottom: 5px;">Danger Zone</div>
+        <p style="font-size: 11px; color: #888; margin: 0 0 15px 0; line-height: 1.4;">Permanently delete and wipe all active videos and photos from Firebase Firestore.</p>
+        <button class="btn" style="background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.5); color: #ff5252; width: 100%; justify-content: center; font-weight: 600; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.confirmPurgeAll()">
+          🗑️ Purge Firebase Database
+        </button>
+      </div>
+      
+      <div class="actions" style="margin-top:30px; justify-content:center;">
+        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('settingsModal').remove()">Done</button>
       </div>
     </div>
   `;
-  document.body.appendChild(overlay);
-  setTimeout(() => overlay.classList.add('open'), 10);
+  document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('open'), 10);
 };
 
 window.syncMyListUI = (id) => {
@@ -1423,32 +1304,32 @@ window.netflixConfirm = (message, onConfirm, onCancel) => {
   dialog.className = 'upload-modal open';
   dialog.style.cssText = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
     z-index: 30000; display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   `;
   dialog.innerHTML = `
-    <div class="premium-confirm-card">
-      <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 22px;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        <span style="color: white; font-size: 19px; font-weight: 700; font-family: inherit; letter-spacing: 0.5px;">Confirm Action</span>
+    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); box-sizing: border-box;">
+      <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span style="color: white; font-size: 18px; font-weight: 700; font-family: inherit;">Confirm Action</span>
       </div>
-      <p style="color: #cccccc; font-size: 14.5px; font-weight: 400; line-height: 1.6; margin-bottom: 30px; margin-top: 0; text-align: left; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
-      <div style="display: flex; gap: 14px; justify-content: flex-end;">
-        <button class="premium-confirm-button-no" id="netflix-confirm-cancel">Cancel</button>
-        <button class="premium-confirm-button-yes" id="netflix-confirm-yes">Proceed</button>
+      <p style="color: #ccc; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: left; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" id="netflix-confirm-cancel" style="border-radius: 4px; padding: 8px 18px; font-weight: 600; font-size: 13px; background: transparent; border: 1px solid rgba(255,255,255,0.20); color: #888; transition: all 0.2s; cursor: pointer;">Cancel</button>
+        <button class="btn btn-primary" id="netflix-confirm-yes" style="border-radius: 4px; padding: 8px 18px; font-weight: 700; font-size: 13px; background-color: #e50914; color: white; border: none; box-shadow: 0 0 10px rgba(229,9,20,0.3); transition: all 0.2s; cursor: pointer;">Proceed</button>
       </div>
     </div>
   `;
   document.body.appendChild(dialog);
   setTimeout(() => {
     dialog.style.opacity = '1';
-    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(1)';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
   }, 10);
   
   const handleAction = (agreed) => {
     dialog.style.opacity = '0';
-    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(0.9)';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
     setTimeout(() => {
       dialog.remove();
       if (agreed && onConfirm) onConfirm();
@@ -1465,28 +1346,28 @@ window.netflixAlert = (message, onOk) => {
   dialog.className = 'upload-modal open';
   dialog.style.cssText = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
     z-index: 30000; display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   `;
   dialog.innerHTML = `
-    <div class="premium-confirm-card" style="text-align: center;">
-      <div style="margin-bottom: 22px;">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" style="filter: drop-shadow(0 0 6px rgba(229,9,20,0.6)); margin: 0 auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <div class="confirm-card" style="background: #181a1c; border-radius: 8px; padding: 30px; width: 90%; max-width: 440px; transform: scale(0.9); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); border-left: 3px solid #e50914; box-shadow: 0 20px 50px rgba(0,0,0,0.95); text-align: center; box-sizing: border-box;">
+      <div style="margin-bottom: 20px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.5)); margin: 0 auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
       </div>
-      <p style="color: white; font-size: 15px; font-weight: 400; line-height: 1.6; margin-bottom: 28px; margin-top: 0; text-align: center; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
-      <button class="premium-confirm-button-yes" id="netflix-alert-ok-btn" style="width: 100%;">OK</button>
+      <p style="color: white; font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 25px; margin-top: 0; text-align: center; font-family: inherit;">${message.replace(/\n/g, '<br>')}</p>
+      <button class="btn btn-primary" id="netflix-alert-ok-btn" style="width: 100%; border-radius: 4px; padding: 10px; font-weight: 700; text-transform: uppercase; font-size: 13px; background-color: #e50914; color: white; border: none; cursor: pointer; transition: all 0.2s;">OK</button>
     </div>
   `;
   document.body.appendChild(dialog);
   setTimeout(() => {
     dialog.style.opacity = '1';
-    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(1)';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(1)';
   }, 10);
   
   const closeAlert = () => {
     dialog.style.opacity = '0';
-    dialog.querySelector('.premium-confirm-card').style.transform = 'scale(0.9)';
+    dialog.querySelector('.confirm-card').style.transform = 'scale(0.9)';
     setTimeout(() => { dialog.remove(); if (onOk) onOk(); }, 250);
   };
   dialog.querySelector('#netflix-alert-ok-btn').onclick = closeAlert;
@@ -1542,25 +1423,6 @@ window.openProfileCropper = (imageDataUrl, onCropped) => {
   let baseH = 0;
   const containerSize = 220;
   
-  const updateImageStyle = () => {
-    const maxPosX = 0;
-    const minPosX = containerSize - baseW * scale;
-    const maxPosY = 0;
-    const minPosY = containerSize - baseH * scale;
-    
-    if (baseW && baseH) {
-      if (posX > maxPosX) posX = maxPosX;
-      if (posX < minPosX) posX = minPosX;
-      if (posY > maxPosY) posY = maxPosY;
-      if (posY < minPosY) posY = minPosY;
-    }
-    
-    img.style.width = baseW + "px";
-    img.style.height = baseH + "px";
-    img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-    zoomTag.innerText = Math.round(scale * 100) + "%";
-  };
-
   img.onload = () => {
     if (img.naturalWidth > img.naturalHeight) {
       baseH = containerSize;
@@ -1579,6 +1441,25 @@ window.openProfileCropper = (imageDataUrl, onCropped) => {
   if (img.complete) {
     img.onload();
   }
+  
+  const updateImageStyle = () => {
+    const maxPosX = 0;
+    const minPosX = containerSize - baseW * scale;
+    const maxPosY = 0;
+    const minPosY = containerSize - baseH * scale;
+    
+    if (baseW && baseH) {
+      if (posX > maxPosX) posX = maxPosX;
+      if (posX < minPosX) posX = minPosX;
+      if (posY > maxPosY) posY = maxPosY;
+      if (posY < minPosY) posY = minPosY;
+    }
+    
+    img.style.width = baseW + "px";
+    img.style.height = baseH + "px";
+    img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    zoomTag.innerText = Math.round(scale * 100) + "%";
+  };
   
   zoomInput.oninput = (e) => {
     const oldScale = scale;
@@ -1911,51 +1792,13 @@ function createNavbar() {
         </button>
         <div class="profile-dropdown">
           <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; cursor:pointer; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
-          <div class="dropdown-menu" style="padding: 0; background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(255, 255, 255, 0.15); width: 220px; border-radius: 4px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);">
-            <!-- Profiles list: Render other profiles style dropdown -->
-            <div style="padding: 10px 0 5px 0;">
-              ${appState.profiles.map(pf => {
-                const isActive = pf.name === appState.currentProfile;
-                if (isActive) return ''; 
-                return `
-                  <div class="dropdown-profile-item" style="display:flex; align-items:center; padding: 5px 15px; cursor:pointer; gap:10px;" onclick="window.switchProfileDropdown('${pf.name}')">
-                    <img src="${pf.avatar}" style="width:32px; height:32px; border-radius:4px; object-fit:cover;" />
-                    <span style="color:#ffffff; font-size:13px; font-weight:500;">${pf.name}</span>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-
-            <div style="height:1px; background:rgba(255,255,255,0.1); margin: 5px 0;"></div>
-
-            <!-- Links list panel -->
-            <div style="padding: 5px 0;">
-              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openManageProfiles()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-                <span style="color:#ffffff; font-size:13px; font-weight:500;">Manage Profiles</span>
-              </div>
-
-              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openSettingsModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span style="color:#ffffff; font-size:13px; font-weight:500;">Account</span>
-              </div>
-
-              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.showHelpCentre()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                <span style="color:#ffffff; font-size:13px; font-weight:500;">Help Centre</span>
-              </div>
-
-              <div class="dropdown-link-item" style="display:flex; align-items:center; gap:10px; padding: 8px 15px; cursor:pointer;" onclick="window.openBulkManagerModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-link-icon"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
-                <span style="color:#ffffff; font-size:13px; font-weight:500;">Bulk Manage Memories</span>
-              </div>
-            </div>
-
-            <div style="height:1px; background:rgba(255,255,255,0.1); margin: 5px 0;"></div>
-
-            <div class="dropdown-signout-item" style="color: #ffffff; font-size: 13px; font-weight: 700; text-align: center; padding: 12px 10px; cursor: pointer;" onclick="window.logoutProfile()">
-              Sign out of Netflix
-            </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-item" onclick="openSettingsModal()">⚙ Settings</div>
+            <div class="dropdown-item" onclick="openBulkManagerModal()">🛠 Bulk Manage Memories</div>
+            <div class="dropdown-item" onclick="window.editProfile('${currentPf ? currentPf.id : ''}')">✎ Edit Current Profile</div>
+            <div class="dropdown-item" onclick="window.openManageProfiles()">✎ Manage Profiles</div>
+            <div class="dropdown-item" onclick="transitionView('profiles')">⇄ Switch Profile</div>
+            <div class="dropdown-item" onclick="window.logoutProfile()">🚪 Logout Profile</div>
           </div>
         </div>
       </div>
@@ -2049,7 +1892,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2300,7 +2143,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2581,7 +2424,7 @@ function createRow(title, memories, index = 0) {
     `;
 
     card.innerHTML = `
-      <img data-src="${displayThumb}" src="${displayThumb}" alt="${m.title}" decoding="async" loading="lazy">
+      <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
       <div class="hover-chassis">
         <div class="hc-buttons">
           ${buttonsHtml}
@@ -2598,8 +2441,6 @@ function createRow(title, memories, index = 0) {
       </div>
     `;
     
-    let hoverTimeout = null;
-    
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
@@ -2613,77 +2454,10 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
-      
-      if (hoverTimeout) clearTimeout(hoverTimeout);
-      
-      // Auto-play preview after 1s delay
-      hoverTimeout = setTimeout(() => {
-        if (!card.matches(':hover')) return;
-        if (card.querySelector('.media-card-hover-video-wrapper')) return;
-        
-        if (m.videoUrl) {
-          const isYouTube = m.videoUrl.includes('youtube.com') || m.videoUrl.includes('youtu.be') || !m.videoUrl.includes('.');
-          
-          const wrapper = document.createElement('div');
-          wrapper.className = 'media-card-hover-video-wrapper';
-          wrapper.style.cssText = `
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            overflow: hidden; border-radius: 4px; z-index: 5; pointer-events: none;
-            background: #000;
-          `;
-
-          let videoElement;
-          
-          if (isYouTube) {
-            let ytId = m.videoUrl;
-            if (m.videoUrl.includes('v=')) {
-              ytId = m.videoUrl.split('v=')[1].split('&')[0];
-            } else if (m.videoUrl.includes('youtu.be/')) {
-              ytId = m.videoUrl.split('youtu.be/')[1].split('?')[0];
-            } else if (m.videoUrl.includes('embed/')) {
-              ytId = m.videoUrl.split('embed/')[1].split('?')[0];
-            }
-            
-            videoElement = document.createElement('iframe');
-            videoElement.className = 'media-card-hover-video';
-            videoElement.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=${window.getVideoQualityParam()}&disablekb=1&autohide=1&fs=0&color=white`;
-            videoElement.style.cssText = `
-              position: absolute; top: 0; left: 0;
-              width: 320%; height: 320%;
-              transform: scale(0.3125); transform-origin: top left;
-              pointer-events: none; border: none; border-radius: 4px;
-            `;
-            videoElement.setAttribute('allow', 'autoplay');
-          } else {
-            videoElement = document.createElement('video');
-            videoElement.className = 'media-card-hover-video';
-            videoElement.src = m.videoUrl;
-            videoElement.autoplay = true;
-            videoElement.muted = true;
-            videoElement.loop = true;
-            videoElement.playsInline = true;
-            videoElement.setAttribute('playsinline', '');
-            videoElement.style.cssText = `
-              position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-              object-fit: cover; border-radius: 4px; z-index: 5; pointer-events: none;
-            `;
-          }
-          
-          wrapper.appendChild(videoElement);
-          card.insertBefore(wrapper, card.firstChild);
-        }
-      }, 1000);
     };
 
     card.onmouseleave = () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-        hoverTimeout = null;
-      }
-      const existingVideoWrapper = card.querySelector('.media-card-hover-video-wrapper');
-      if (existingVideoWrapper) {
-        existingVideoWrapper.remove();
-      }
+      // Empty and optimized
     };
 
     fragment.appendChild(card);
@@ -3307,7 +3081,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=${window.getVideoQualityParam()}" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
@@ -3900,7 +3674,7 @@ window.playVideo = (id) => {
     }
     
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=${window.getVideoQualityParam()}&enablejsapi=1`;
+      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd2160&enablejsapi=1`;
     }
     mainPlayer.style.display = 'flex';
     
@@ -5352,232 +5126,4 @@ window.applyBulkDelete = async () => {
       }, 300);
     }
   });
-};
-
-/* --- HIGH FIDELITY DROPDOWN COMPONENT GLOBAL REGISTRATIONS --- */
-window.switchProfileDropdown = (profileName) => {
-  const pf = appState.profiles.find(p => p.name === profileName);
-  if (!pf) return;
-  
-  const dbContainer = document.querySelector('.dashboard-container');
-  if (dbContainer) {
-    try {
-      animate(dbContainer, { opacity: 0, scale: 0.95 }, { duration: 0.4 }).then(() => {
-        appState.currentProfile = pf.name;
-        window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
-        
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        const dashboard = createDashboard();
-        app.appendChild(dashboard);
-        dashboard.style.opacity = '0';
-        dashboard.style.transform = 'scale(0.95)';
-        
-        animate(dashboard, { opacity: 1, scale: 1 }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
-        window.showToast(`Switched profile to ${pf.name}`);
-      });
-    } catch(err) {
-      appState.currentProfile = pf.name;
-      window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
-      render();
-    }
-  } else {
-    appState.currentProfile = pf.name;
-    window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
-    render();
-  }
-};
-
-window.openManageProfiles = () => {
-  appState.manageProfiles = true;
-  transitionView('profiles');
-};
-
-window.showTransferProfileInfo = () => {
-  window.netflixAlert("Profile Transfer feature has been enabled. To transfer your favorite items, categories, and viewing history to another household profile, please contact support or complete the process on account settings.");
-};
-
-window.showHelpCentre = () => {
-  const modal = document.createElement('div');
-  modal.className = 'upload-modal';
-  modal.id = 'helpCentreModal';
-  
-  modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 800px; width: 95%; background: #141414; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 35px; max-height: 85vh; overflow-y: auto; text-align: left; box-sizing: border-box; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-shadow: 0 20px 50px rgba(0,0,0,0.85);">
-      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()" style="font-size: 28px; top: 15px; right: 15px;">&times;</button>
-      
-      <!-- LOGO HEADER -->
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:20px; margin-bottom:25px; flex-wrap: wrap; gap:15px;">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" style="height:30px; object-fit:contain;" alt="Netflix">
-          <span style="color:#ffffff; font-size:22px; font-weight:700; border-left:1px solid #444; padding-left:15px; letter-spacing:0.5px;">Help Centre</span>
-        </div>
-        <div style="color:#888; font-size:13px; font-weight:500;">
-          Household Interactive Support Panel
-        </div>
-      </div>
-
-      <p style="color:#cccccc; font-size:14.5px; line-height:1.6; margin-bottom:25px; margin-top:0;">
-        Welcome to the Netflix Help Centre. This master archive lists <strong>every native feature, integration capability, and configuration setting</strong> built into your custom video memory platform. Search below to learn what each feature does and how to master it.
-      </p>
-
-      <!-- SEARCH INPUT FOR TOPICS -->
-      <div style="position:relative; margin-bottom:30px;">
-        <input type="text" id="help-search-box" placeholder="Search features, tools, or playback modes..." style="width:100%; padding:14px 18px 14px 45px; background:#222; border:1px solid #444; border-radius:4px; color:#fff; font-size:14.5px; outline:none; transition: border-color 0.2s;" oninput="window.filterHelpTopics(this.value)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      </div>
-
-      <!-- FEATURES AND NATIVES CONTAINER -->
-      <div id="help-topics-container" style="display:flex; flex-direction:column; gap:20px;">
-        
-        <!-- TOPIC 1 -->
-        <div class="help-card-topic" data-keywords="quality resolution content video bandwidth playback youtube ultra hd 1080p 1440p 720p 4k bitrate settings" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Ultra-HD Video Quality & Bandwidth Throttling</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Controls the target rendering resolution parameter (<code>vq</code> parameter) of the embedded video stream. This forces the media pipeline to buffer and display exact pixel formats, rather than relying on standard fuzzy network downscaling.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to adjust:</strong> Click on your profile avatar (top-right) &rarr; select <strong>Account</strong>. Under "Data usage per screen", choose your quality index (Low, Medium, High, or Auto).
-            <div style="margin-top:6px; color:#888;">Note: High-quality streams enforce a minimum 1440p/2160p Ultra HD buffer speed if supported.</div>
-          </div>
-        </div>
-
-        <!-- TOPIC 2 -->
-        <div class="help-card-topic" data-keywords="autoplay controls next episode previews series browse hover video toggle" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Autoplay controls for Series & Previews</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Handles playback behavior while exploring the dashboard or watching content. Prevents unsolicited video streams and saves system memory bandwidth by toggling autoplay previews.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to toggle:</strong> Access <strong>Account</strong> inside the profile avatar menu. Check or uncheck 'Autoplay next episode' and 'Autoplay previews whilst browsing'. Save changes to update immediately.
-          </div>
-        </div>
-
-        <!-- TOPIC 3 -->
-        <div class="help-card-topic" data-keywords="add custom memories uploads photos native mp4 crop zoom title youtube url category" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Memory Curator & Uploader</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Enables full custom compilation of family memories, nostalgia video links, clips or personal media. You can add links to YouTube or directly upload native photograph files.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to use:</strong> Click <strong>Add Memory +</strong> in the dashboard navigation bar. Enter a Title, choose a category bucket, paste a YouTube link (or choose an image file), and save. If uploading an image, use the <em>Live Visual Cropper</em> to set bounds.
-          </div>
-        </div>
-
-        <!-- TOPIC 4 -->
-        <div class="help-card-topic" data-keywords="bulk manage memory archiver backup administrator purge database delete wipe export list" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="21" y2="20"></line><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Bulk Manager (Administrative Supervision)</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Provides batch administration operations for bulk-organizing, search-filtering, and instantly pruning records out of your profile history. Includes safeguards to prevent accidental data loss.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to execute:</strong> Open your avatar menu and click <strong>Bulk Manage Memories</strong>. Mark multiple checkboxes to select items, then click "Delete Selected" to clear them from your cloud storage.
-          </div>
-        </div>
-
-        <!-- TOPIC 5 -->
-        <div class="help-card-topic" data-keywords="gemini ai draft story script description sparkles automatic tags helper" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Gemini Artificial Intelligence Draft Engine</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Harnesses advanced Google Gemini server-side AI key configurations. It analyzes the title prompt from a memory and instantly drafts cinematic, thematic summaries along with recommended tags.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to generate:</strong> In the <strong>Add Memory</strong> form, type in a Title (e.g. <em>"Samar's Highschool Soccer Finale"</em>), and click the sparkling **"AI Draft"** button next to the Description box to instantly write a professional synopsis.
-          </div>
-        </div>
-
-        <!-- TOPIC 6 -->
-        <div class="help-card-topic" data-keywords="my list wishlist bookmark watch list continue watching save history position resume video" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">My List & Continue Watching</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Creates personal bookmarks for watching later and remembers where you stepped away from a playback scene, facilitating fluid resumes.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to watch & queue:</strong> Hover over any card on the grid, and click the circular <strong>"+"</strong> button to queue it to your "My List". Playing a video automatically tracks the seconds, creating a "Continue Watching" row on the browser shelf when paused.
-          </div>
-        </div>
-
-        <!-- TOPIC 7 -->
-        <div class="help-card-topic" data-keywords="profile custom kid profiles pin security locks lock avatars switch kids code sarthak_netflix_profile" style="background:#1f1f1f; border-left:4px solid #e50914; padding:20px; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="background:rgba(229,9,20,0.1); padding:8px; border-radius:4px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-            </div>
-            <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Profiles & PIN Locks</h3>
-          </div>
-          <p style="color:#aaa; font-size:13.5px; line-height:1.5; margin:0 0 12px 0;">
-            Securely separate viewing preferences for different household members. Configures PIN protection on sensitive adult profiles and activates safe filters for children's viewing blocks.
-          </p>
-          <div style="background:rgba(255,255,255,0.03); border-radius:4px; padding:12px; font-size:13px; color:#bbb; line-height:1.5;">
-            <strong>How to manage:</strong> Hover over your avatar, select <strong>Manage Profiles</strong>, or use the "Edit Profile" link on profile startup selection cards. There, you can input custom names, upload custom crop photos, adjust Kids Mode on/off, and secure access with a custom 4-digit PIN lock.
-          </div>
-        </div>
-
-      </div>
-
-      <!-- NO RESULTS PLACEHOLDER -->
-      <div id="help-no-results" style="display:none; text-align:center; padding:40px 10px; color:#777; font-size:15px;">
-         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" style="margin:0 auto 15px auto; display:block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-         No matches found for your query. Try searching for "autoplay", "database", or "AI draft".
-      </div>
-
-      <button class="btn" style="width:100%; border-radius:2px; font-weight:700; background:#e50914; border:none; padding:12px 15px; color:white; cursor:pointer; margin-top:35px; text-transform:uppercase; font-size:13px; transition: background 0.2s;" onclick="document.getElementById('helpCentreModal').remove()">Close Support Panel</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  setTimeout(() => modal.classList.add('open'), 10);
-};
-
-// Search filtering logic for Help Centre
-window.filterHelpTopics = (query) => {
-  const normQuery = query.toLowerCase().trim();
-  const topics = document.querySelectorAll('.help-card-topic');
-  const noResults = document.getElementById('help-no-results');
-  let matchCount = 0;
-  
-  topics.forEach(el => {
-    const keywords = (el.getAttribute('data-keywords') || "").toLowerCase();
-    const textContent = el.textContent.toLowerCase();
-    
-    if (keywords.includes(normQuery) || textContent.includes(normQuery)) {
-      el.style.display = 'block';
-      matchCount++;
-    } else {
-      el.style.display = 'none';
-    }
-  });
-  
-  if (noResults) {
-    noResults.style.display = (matchCount === 0) ? 'block' : 'none';
-  }
 };
