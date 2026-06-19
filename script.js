@@ -2211,7 +2211,7 @@ window.startHeroMinimizeTimer = (textRollItem) => {
   textRollItem.classList.remove('minimized');
   window.heroMinimizeTimeout = setTimeout(() => {
     textRollItem.classList.add('minimized');
-  }, 3000); // 3 seconds matches pristine Netflix cinematic transitions as requested
+  }, 3500); // 3.5 seconds matches the pristine cinematic timeline as requested
 };
 
 function createHero() {
