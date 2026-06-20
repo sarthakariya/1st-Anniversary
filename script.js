@@ -484,12 +484,21 @@ function internalRender() {
   else if (appState.view === 'profiles') {
     const profs = createProfileSelection();
     app.appendChild(profs);
-    profs.style.opacity = '1';
-    const cards = profs.querySelectorAll('.profile-card');
-    cards.forEach(c => {
-      c.style.opacity = '1';
-      c.style.animation = 'none';
-    });
+    
+    // Entrance Animation
+    profs.style.opacity = '0';
+    setTimeout(() => {
+      animate(profs, { opacity: [0, 1] }, { duration: 0.6, ease: [0.16, 1, 0.3, 1] });
+      const cards = profs.querySelectorAll('.profile-card');
+      if (cards.length > 0) {
+        cards.forEach(c => c.style.animation = 'none'); // override css
+        animate(
+          cards, 
+          { opacity: [0, 1], y: [40, 0], scale: [0.95, 1] }, 
+          { duration: 0.5, delay: stagger(0.1, { startDelay: 0.1 }), ease: [0.16, 1, 0.3, 1] }
+        );
+      }
+    }, 50);
   }
   else if (appState.view === 'intro') app.appendChild(createIntroScreen());
   else if (appState.view === 'dashboard') {
@@ -1756,17 +1765,8 @@ function createNavbar() {
   
   let lastScrollY = window.scrollY;
   let ticking = false;
-  let scrollTimeout;
   
   window.addEventListener('scroll', () => {
-    if (!document.body.classList.contains('disable-hover')) {
-      document.body.classList.add('disable-hover');
-    }
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      document.body.classList.remove('disable-hover');
-    }, 150);
-
     if (!ticking) {
       window.requestAnimationFrame(() => {
         const velY = Math.abs(window.scrollY - lastScrollY);
@@ -1992,7 +1992,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:88vh;min-width:156.5vh;transform:translate(-50%, -50%) scale(1.04);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.05);border:none;pointer-events:none;"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2269,7 +2269,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd1080&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:88vh;min-width:156.5vh;transform:translate(-50%, -50%) scale(1.04);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2403,25 +2403,9 @@ function createRow(title, memories, index = 0) {
   arrowLeft.onclick = () => handleScrollClick(-1);
   arrowRight.onclick = () => handleScrollClick(1);
   
-  let scrollTicking = false;
-  let rowScrollTimeout;
   rc.addEventListener('scroll', () => {
-    if (!document.body.classList.contains('disable-hover')) {
-      document.body.classList.add('disable-hover');
-    }
-    clearTimeout(rowScrollTimeout);
-    rowScrollTimeout = setTimeout(() => {
-      document.body.classList.remove('disable-hover');
-    }, 150);
-
-    if (!scrollTicking) {
-      window.requestAnimationFrame(() => {
-        arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
-        arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
-        scrollTicking = false;
-      });
-      scrollTicking = true;
-    }
+    arrowLeft.style.visibility = rc.scrollLeft > 0 ? 'visible' : 'hidden';
+    arrowRight.style.visibility = rc.scrollLeft < rc.scrollWidth - rc.clientWidth - 5 ? 'visible' : 'hidden';
   }, { passive: true });
   arrowLeft.style.visibility = 'hidden';
 
@@ -2535,8 +2519,6 @@ function createRow(title, memories, index = 0) {
   }
 
   const fragment = document.createDocumentFragment();
-  const isContinueWatching = title.toLowerCase().includes('continue watching');
-  
   for (let i = 0; i < memories.length; i++) {
     const m = memories[i];
     const card = document.createElement('div');
@@ -2584,24 +2566,8 @@ function createRow(title, memories, index = 0) {
           </div>
     `;
 
-    let progressHtml = '';
-    if (isContinueWatching) {
-      let progressPercent = 30;
-      if (m.id) {
-        const seedStr = m.id + (m.title || '');
-        const code = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        progressPercent = 15 + (code % 65);
-      }
-      progressHtml = `
-        <div class="cw-progress-container" style="position: absolute; bottom: 8px; left: 15px; right: 15px; height: 3.5px; background: rgba(255, 255, 255, 0.25); border-radius: 2px; overflow: hidden; z-index: 5;">
-          <div class="cw-progress-fill" style="width: ${progressPercent}%; height: 100%; background: #e50914; border-radius: 2px;"></div>
-        </div>
-      `;
-    }
-
     card.innerHTML = `
       <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
-      ${progressHtml}
       <div class="hover-chassis">
         <div class="hc-buttons">
           ${buttonsHtml}
@@ -2631,51 +2597,10 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
-
-      if (card.hoverTimeout) {
-        clearTimeout(card.hoverTimeout);
-        card.hoverTimeout = null;
-      }
-
-      if (appState.settings && appState.settings.autoPlayPreviews && m.videoUrl) {
-        card.hoverTimeout = setTimeout(() => {
-          if (document.body.classList.contains('disable-hover')) return;
-          if (card.querySelector('.media-card-hover-video-container')) return;
-
-          const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
-          const videoContainer = document.createElement('div');
-          videoContainer.className = 'media-card-hover-video-container';
-          videoContainer.style.cssText = 'position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2; pointer-events: none; border-radius: 4px; overflow: hidden; opacity: 0; transition: opacity 0.4s ease-in-out; background: #000;';
-
-          if (isYouTube) {
-            videoContainer.innerHTML = `<iframe class="media-card-hover-video" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd720&loop=1&playlist=${m.videoUrl}" style="width: 100%; height: 100%; border: none; pointer-events: none; transform: scale(1.5); transform-origin: center center;"></iframe>`;
-          } else {
-            videoContainer.innerHTML = `<video class="media-card-hover-video" src="${m.videoUrl}" autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;"></video>`;
-          }
-
-          card.appendChild(videoContainer);
-          setTimeout(() => {
-            videoContainer.style.opacity = '1';
-            const img = card.querySelector('img');
-            if (img) img.style.opacity = '0.1';
-          }, 30);
-        }, 500);
-      }
     };
 
     card.onmouseleave = () => {
-      if (card.hoverTimeout) {
-        clearTimeout(card.hoverTimeout);
-        card.hoverTimeout = null;
-      }
-      const videoContainer = card.querySelector('.media-card-hover-video-container');
-      if (videoContainer) {
-        videoContainer.remove();
-      }
-      const img = card.querySelector('img');
-      if (img) {
-        img.style.opacity = '1';
-      }
+      // Empty and optimized
     };
 
     fragment.appendChild(card);
@@ -3299,7 +3224,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.45);transform-origin:center center;"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 

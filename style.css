@@ -83,7 +83,11 @@ img[src]:not([src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAA
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  opacity: 1;
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
 }
 .profile-avatar-wrapper {
   position: relative;
@@ -1982,11 +1986,6 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   border: 1px dashed rgba(255,255,255,0.3);
   pointer-events: none;
   box-sizing: border-box;
-}
-
-/* Zero-overhead 120FPS scrolling performance: freeze interactions while dynamic scrolls occur */
-.disable-hover, .disable-hover * {
-  pointer-events: none !important;
 }
 
 
