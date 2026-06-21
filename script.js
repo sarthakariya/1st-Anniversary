@@ -884,7 +884,8 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         if (appState.continueWatching.length > 0) {
           const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
           if (cw.length) {
-            rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+            const rowTitle = appState.currentProfile ? `Continue Watching for ${appState.currentProfile}` : 'Continue Watching';
+            rc.appendChild(createRow(rowTitle, cw, rowIndex++));
           }
         }
 
@@ -920,7 +921,10 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
       if (appState.activeCategory === 'Dates') {
         if (appState.continueWatching.length > 0) {
           const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
-          if (cw.length) rc.appendChild(createRow('Continue Watching', cw, rowIndex++));
+          if (cw.length) {
+            const rowTitle = appState.currentProfile ? `Continue Watching for ${appState.currentProfile}` : 'Continue Watching';
+            rc.appendChild(createRow(rowTitle, cw, rowIndex++));
+          }
         }
         rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => window.getNormalizedCategory(m.category) !== 'Moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
       }
@@ -4861,20 +4865,20 @@ window.playVideo = (id) => {
     document.body.appendChild(c);
   }
   
-  // Apply starting state: start from a smooth, smaller rounded screen-like rectangular box
+  // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
   c.style.display = 'block';
   c.style.transition = 'none';
   c.style.opacity = '0';
-  c.style.transform = 'scale(0.2)';
-  c.style.borderRadius = '20px';
+  c.style.transform = 'scale(0.8)';
+  c.style.borderRadius = '24px';
   c.style.overflow = 'hidden';
   
   // Force a browser reflow paint
   c.offsetHeight;
   
-  // Transition to full screen size smoothly over exactly 1.0 second as requested
+  // Transition to full screen size smoothly over exactly 2.2 seconds for cinematic comfort
   setTimeout(() => {
-    c.style.transition = 'opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1), transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), border-radius 1.0s cubic-bezier(0.16, 1, 0.3, 1)';
+    c.style.transition = 'opacity 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), transform 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 2.2s cubic-bezier(0.15, 0.85, 0.35, 1)';
     c.style.opacity = '1';
     c.style.transform = 'scale(1)';
     c.style.borderRadius = '0px';
@@ -6025,9 +6029,25 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
   
   // Remove no-animation class to ensure transitions work for the slideshow
   c.classList.remove('no-animation');
+  
+  // Set starting state for a smooth cinematic slow zoom matching the main player
   c.style.display = 'block';
-  c.style.transform = 'translateY(0)';
-  c.style.opacity = '1';
+  c.style.transition = 'none';
+  c.style.opacity = '0';
+  c.style.transform = 'scale(0.8)';
+  c.style.borderRadius = '24px';
+  c.style.overflow = 'hidden';
+  
+  // Force browser reflow
+  c.offsetHeight;
+  
+  // Smoothly expand to full-screen over 2.2 seconds
+  setTimeout(() => {
+    c.style.transition = 'opacity 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), transform 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 2.2s cubic-bezier(0.15, 0.85, 0.35, 1)';
+    c.style.opacity = '1';
+    c.style.transform = 'scale(1)';
+    c.style.borderRadius = '0px';
+  }, 30);
 
   // Request fullscreen
   if (c.requestFullscreen) {
@@ -6041,7 +6061,133 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
   }
   
   let isAutoplayActive = autoPlay;
-  const playIntroVideo = isAutoplayActive && !startId;
+  // Always play the iconic Netflix intro animation when watching photos as a video!
+  const playIntroVideo = true;
+
+  // Initialize Background Song (music.mp3)
+  const slideshowAudio = new Audio('./music.mp3');
+  slideshowAudio.loop = true;
+  slideshowAudio.volume = 0.8; // Default volume: 80%
+
+  // Zoom management state
+  let zoomLevel = 1.0;
+  let panX = 0;
+  let panY = 0;
+
+  const applyZoom = (withTransition = true) => {
+    const activeMedia = container ? container.querySelector('img, video') : null;
+    if (activeMedia) {
+      activeMedia.style.transition = withTransition ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+      activeMedia.style.transform = `scale(${zoomLevel}) translate(${panX / zoomLevel}px, ${panY / zoomLevel}px)`;
+      activeMedia.style.cursor = zoomLevel > 1.0 ? 'grab' : 'default';
+    }
+    const zoomLabel = document.getElementById('ss-zoom-label');
+    if (zoomLabel) {
+      zoomLabel.innerText = `${Math.round(zoomLevel * 100)}%`;
+    }
+  };
+
+  const setupZoomListeners = () => {
+    const zoomInBtn = document.getElementById('ss-zoom-in');
+    const zoomOutBtn = document.getElementById('ss-zoom-out');
+    const zoomResetBtn = document.getElementById('ss-zoom-reset');
+
+    if (zoomInBtn) {
+      zoomInBtn.onclick = (e) => {
+        e.stopPropagation();
+        zoomLevel = Math.min(3.0, zoomLevel + 0.15);
+        if (zoomLevel <= 1.0) { panX = 0; panY = 0; }
+        applyZoom();
+      };
+    }
+    if (zoomOutBtn) {
+      zoomOutBtn.onclick = (e) => {
+        e.stopPropagation();
+        zoomLevel = Math.max(0.5, zoomLevel - 0.15);
+        if (zoomLevel <= 1.0) { panX = 0; panY = 0; }
+        applyZoom();
+      };
+    }
+    if (zoomResetBtn) {
+      zoomResetBtn.onclick = (e) => {
+        e.stopPropagation();
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        applyZoom();
+      };
+    }
+
+    // Capture dragging and panning interactions
+    let isDraggingActive = false;
+    let sX = 0;
+    let sY = 0;
+
+    if (container) {
+      container.addEventListener('mousedown', (e) => {
+        if (zoomLevel <= 1.0) return;
+        isDraggingActive = true;
+        sX = e.clientX - panX;
+        sY = e.clientY - panY;
+        
+        const activeMedia = container.querySelector('img, video');
+        if (activeMedia) {
+          activeMedia.style.cursor = 'grabbing';
+          activeMedia.style.transition = 'none';
+        }
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDraggingActive) return;
+        panX = e.clientX - sX;
+        panY = e.clientY - sY;
+        applyZoom(false); // Direct reactive update
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDraggingActive) {
+          isDraggingActive = false;
+          const activeMedia = container.querySelector('img, video');
+          if (activeMedia) {
+            activeMedia.style.cursor = zoomLevel > 1.0 ? 'grab' : 'default';
+          }
+          applyZoom(true); // Smoothly animate bounds snap
+        }
+      });
+
+      // Phone Touch support
+      container.addEventListener('touchstart', (e) => {
+        if (zoomLevel <= 1.0) return;
+        isDraggingActive = true;
+        const touch = e.touches[0];
+        sX = touch.clientX - panX;
+        sY = touch.clientY - panY;
+        e.preventDefault();
+      }, { passive: false });
+
+      container.addEventListener('touchmove', (e) => {
+        if (!isDraggingActive) return;
+        const touch = e.touches[0];
+        panX = touch.clientX - sX;
+        panY = touch.clientY - sY;
+        applyZoom(false);
+        e.preventDefault();
+      }, { passive: false });
+
+      container.addEventListener('touchend', () => {
+        isDraggingActive = false;
+        applyZoom(true);
+      });
+    }
+  };
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds === Infinity) return "00:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+  };
 
   c.innerHTML = `
     <!-- Top left Back/Close -->
@@ -6049,9 +6195,33 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
 
-    <!-- Top Right Autoplay Toggle Indicator -->
+    <!-- Top Right Autoplay Toggle Indicator (far right) -->
     <div id="ss-play-pause-btn" style="z-index: 10006; position:absolute; top: 30px; right: 30px; cursor: pointer; color: white; background: rgba(0,0,0,0.55); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.15); transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)';" onmouseleave="this.style.background='rgba(0,0,0,0.55)';">
       <!-- Dynamic Icon loaded by JS -->
+    </div>
+
+    <!-- Floating Background Music Panel (compact single row) -->
+    <div id="ss-audio-controls-panel" style="position: absolute; top: 30px; right: 84px; height: 44px; background: rgba(15, 15, 15, 0.85); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); padding: 0 16px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.18); color: white; display: flex; align-items: center; gap: 12px; z-index: 10006; box-shadow: 0 8px 32px rgba(0,0,0,0.5); width: 380px; max-width: calc(100vw - 180px); user-select: none;">
+      
+      <!-- Audio status icon / mini play-pause toggle -->
+      <div id="ss-audio-play-pause" style="cursor: pointer; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); flex-shrink: 0; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)';" onmouseleave="this.style.background='rgba(255,255,255,0.1)';" title="Play/Pause Background Music">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" id="ss-audio-play-icon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+
+      <!-- Seeker Section in one line -->
+      <input type="range" id="ss-audio-seeker" min="0" max="100" value="0" style="flex-grow: 1; min-width: 50px; height: 4px; accent-color: #e50914; background: rgba(255,255,255,0.25); border-radius: 10px; cursor: pointer; outline: none; border: none; margin: 0; padding: 0;" title="Music Seeker">
+
+      <!-- Compact Time Indicator -->
+      <span id="ss-audio-time-label" style="font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.60); letter-spacing: 0.5px; flex-shrink: 0; white-space: nowrap;">00:00 / 00:00</span>
+
+      <!-- Volume section -->
+      <div id="ss-audio-mute-btn" style="cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,0.05); flex-shrink: 0;" title="Mute/Unmute">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="ss-audio-volume-icon">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+      </div>
+      <input type="range" id="ss-audio-volume" min="0" max="100" value="80" style="width: 50px; height: 3px; accent-color: #e50914; background: rgba(255,255,255,0.20); border-radius: 10px; cursor: pointer; outline: none; border: none; margin: 0; padding: 0; flex-shrink: 0;" title="Volume">
     </div>
 
     <!-- Left/Right Gallery Arrows -->
@@ -6067,11 +6237,21 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
        <!-- Content injected here dynamically -->
     </div>
 
-    <!-- Info Subbar (shows title and current index/total overlay) -->
-    <div id="ss-info-overlay" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.73); padding: 12px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.14); color: white; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 15px; z-index: 10005; pointer-events: none; transition: opacity 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.6);">
-      <span id="ss-info-title" style="letter-spacing: -0.2px;">Title</span>
+    <!-- Info Overlay with Zoom Controls inside (positioned bottom-left corner!) -->
+    <div id="ss-info-overlay" style="position: absolute; bottom: 30px; left: 30px; background: rgba(0,0,0,0.73); padding: 12px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.14); color: white; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 15px; z-index: 10005; pointer-events: auto; transition: opacity 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.6);">
+      <span id="ss-info-title" style="letter-spacing: -0.2px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Title</span>
       <span style="width: 1px; height: 16px; background: rgba(255,255,255,0.25);"></span>
       <span id="ss-info-count" style="color: rgba(255,255,255,0.6); font-family: monospace; font-size: 13px;">1 / 10</span>
+      
+      <span style="width: 1px; height: 16px; background: rgba(255,255,255,0.25);"></span>
+      
+      <!-- Integrated Compact Visual Zoom Indicator and Controller -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="ss-zoom-out" style="border: none; background: rgba(255,255,255,0.1); color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: bold; font-size: 16px; line-height: 1;" onmouseenter="this.style.background='rgba(255,255,255,0.25)';" onmouseleave="this.style.background='rgba(255,255,255,0.1)';" title="Zoom Out">-</button>
+        <span id="ss-zoom-label" style="font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.85); width: 34px; text-align: center; font-weight: 600;">100%</span>
+        <button id="ss-zoom-in" style="border: none; background: rgba(255,255,255,0.1); color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: bold; font-size: 16px; line-height: 1;" onmouseenter="this.style.background='rgba(255,255,255,0.25)';" onmouseleave="this.style.background='rgba(255,255,255,0.1)';" title="Zoom In">+</button>
+        <button id="ss-zoom-reset" style="border: none; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); font-size: 11px; padding: 2px 8px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='rgba(255,255,255,0.7)';" title="Reset Zoom">Fit</button>
+      </div>
     </div>
 
     ${playIntroVideo ? `<video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:10010; position:absolute; top:0; left:0; pointer-events:none;"></video>` : ''}
@@ -6100,10 +6280,36 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     }
   };
 
+  const updateMusicControlsUI = () => {
+    const audioPPBtn = document.getElementById('ss-audio-play-pause');
+    if (audioPPBtn) {
+      if (slideshowAudio && !slideshowAudio.paused) {
+        audioPPBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg>
+        `;
+        audioPPBtn.title = "Pause Background Music";
+      } else {
+        audioPPBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        `;
+        audioPPBtn.title = "Play Background Music";
+      }
+    }
+  };
+
   const renderCurrentSlide = () => {
     if (!container) return;
     if (slideshowTimeout) clearTimeout(slideshowTimeout);
     
+    // Reset zoom state on load for the new focus target
+    zoomLevel = 1.0;
+    panX = 0;
+    panY = 0;
+    const zoomLabel = document.getElementById('ss-zoom-label');
+    if (zoomLabel) {
+      zoomLabel.innerText = "100%";
+    }
+
     const currentMem = mems[currentIndex];
     
     // Pick a random transition class from our 50 options!
@@ -6116,11 +6322,11 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     let slideHtml = '';
     if (currentMem.videoUrl) {
       slideHtml = `
-        <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none;"></video>
+        <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1);"></video>
       `;
     } else {
       slideHtml = `
-        <img src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none;">
+        <img id="ss-image" src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1);">
       `;
     }
     
@@ -6181,9 +6387,12 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     updateControlsUI();
     if (isAutoplayActive) {
       renderCurrentSlide();
+      slideshowAudio.play().catch(e => console.warn(e));
     } else {
       if (slideshowTimeout) clearTimeout(slideshowTimeout);
+      slideshowAudio.pause();
     }
+    updateMusicControlsUI();
   };
 
   const startSlideshowLoop = () => {
@@ -6191,6 +6400,14 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     if (introP) introP.style.display = 'none';
     updateControlsUI();
     renderCurrentSlide();
+    
+    // Play the background melody after intro finishes
+    slideshowAudio.play().then(() => {
+      updateMusicControlsUI();
+    }).catch(e => {
+      console.warn("Background audio play waiting for interaction", e);
+      updateMusicControlsUI();
+    });
   };
 
   // Wire events
@@ -6209,7 +6426,10 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     };
   }
 
-  // Keyboard Event Listeners for Left and Right Arrow Keys!
+  // Set up zoom controller click handlers
+  setupZoomListeners();
+
+  // Keyboard Event Listeners for Arrow Keys and Zoom keys!
   const handleSlideshowKeydownMsg = (e) => {
     if (e.code === 'ArrowRight') {
       e.preventDefault();
@@ -6220,11 +6440,112 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     } else if (e.code === 'Space') {
       e.preventDefault();
       togglePlayback();
+    } else if (e.code === 'Equal' || e.key === '=') {
+      e.preventDefault();
+      zoomLevel = Math.min(3.0, zoomLevel + 0.15);
+      applyZoom();
+    } else if (e.code === 'Minus' || e.key === '-') {
+      e.preventDefault();
+      zoomLevel = Math.max(0.5, zoomLevel - 0.15);
+      applyZoom();
+    } else if (e.code === 'KeyR' || e.key === 'r') {
+      e.preventDefault();
+      zoomLevel = 1.0;
+      applyZoom();
     } else if (e.code === 'Escape') {
       closePlayer();
     }
   };
   window.addEventListener('keydown', handleSlideshowKeydownMsg);
+
+  // Background Audio Control Logic setup
+  const audioPPBtn = document.getElementById('ss-audio-play-pause');
+  if (audioPPBtn) {
+    audioPPBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (slideshowAudio.paused) {
+        slideshowAudio.play().then(updateMusicControlsUI).catch(e => console.warn(e));
+      } else {
+        slideshowAudio.pause();
+        updateMusicControlsUI();
+      }
+    };
+  }
+
+  const ssAudioSeeker = document.getElementById('ss-audio-seeker');
+  const ssAudioTimeLabel = document.getElementById('ss-audio-time-label');
+
+  slideshowAudio.addEventListener('timeupdate', () => {
+    if (ssAudioSeeker) {
+      const dur = slideshowAudio.duration || 0;
+      ssAudioSeeker.max = dur;
+      ssAudioSeeker.value = slideshowAudio.currentTime;
+      if (ssAudioTimeLabel) {
+        ssAudioTimeLabel.innerText = `${formatTime(slideshowAudio.currentTime)} / ${formatTime(dur)}`;
+      }
+    }
+  });
+
+  slideshowAudio.addEventListener('loadedmetadata', () => {
+    if (ssAudioSeeker) {
+      ssAudioSeeker.max = slideshowAudio.duration || 0;
+    }
+  });
+
+  if (ssAudioSeeker) {
+    ssAudioSeeker.oninput = (e) => {
+      e.stopPropagation();
+      slideshowAudio.currentTime = parseFloat(ssAudioSeeker.value);
+    };
+    ssAudioSeeker.onclick = (e) => {
+      e.stopPropagation();
+    };
+  }
+
+  const ssAudioVolume = document.getElementById('ss-audio-volume');
+  const updateVolumeIcon = (vol) => {
+    const icon = document.getElementById('ss-audio-volume-icon');
+    if (!icon) return;
+    if (vol === 0 || slideshowAudio.muted) {
+      icon.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <line x1="23" y1="9" x2="17" y2="15"></line>
+        <line x1="17" y1="9" x2="23" y2="15"></line>
+      `;
+    } else if (vol < 0.5) {
+      icon.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      `;
+    } else {
+      icon.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      `;
+    }
+  };
+
+  if (ssAudioVolume) {
+    ssAudioVolume.oninput = (e) => {
+      e.stopPropagation();
+      const val = parseFloat(ssAudioVolume.value) / 100;
+      slideshowAudio.volume = val;
+      slideshowAudio.muted = false;
+      updateVolumeIcon(val);
+    };
+    ssAudioVolume.onclick = (e) => {
+      e.stopPropagation();
+    };
+  }
+
+  const ssAudioMuteBtn = document.getElementById('ss-audio-mute-btn');
+  if (ssAudioMuteBtn) {
+    ssAudioMuteBtn.onclick = (e) => {
+      e.stopPropagation();
+      slideshowAudio.muted = !slideshowAudio.muted;
+      updateVolumeIcon(slideshowAudio.volume);
+    };
+  }
 
   // Intro Player
   const introPlayer = document.getElementById('introPlayer');
@@ -6251,6 +6572,15 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
      }
      window.removeEventListener('keydown', handleSlideshowKeydownMsg);
      
+     // Stop and dispose the background music audio
+     if (slideshowAudio) {
+       try {
+         slideshowAudio.pause();
+         slideshowAudio.src = '';
+         slideshowAudio.load();
+       } catch(e) {}
+     }
+
      if (document.fullscreenElement) {
        document.exitFullscreen().catch(e => {});
      }
@@ -6261,7 +6591,7 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
      setTimeout(() => {
        c.innerHTML = '';
        c.remove();
-        document.documentElement.style.overflow = '';
+       document.documentElement.style.overflow = '';
        document.body.style.overflow = '';
      }, 400);
   };
