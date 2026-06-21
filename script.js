@@ -389,8 +389,68 @@ async function loadData() {
   window.currentHeroIndex = undefined;
 }
 
+async function ensureMemoryDataSize(mem) {
+  // If mem has base64 data that exceeds safety levels, downsize it here
+  const maxSafeSize = 450000;
+  
+  const compressBase64Str = async (base64) => {
+    if (!base64 || typeof base64 !== 'string' || !base64.startsWith('data:image')) return base64;
+    if (base64.length < maxSafeSize) return base64;
+    
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const runCrop = (scale, qualityVal) => {
+            const canvas = document.createElement('canvas');
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            // Force lossy jpeg compression
+            return canvas.toDataURL('image/jpeg', qualityVal);
+          };
+          
+          let scale = 0.95;
+          let qualityVal = 0.8;
+          let compressed = runCrop(scale, qualityVal);
+          let attempts = 0;
+          while (compressed && compressed.length > maxSafeSize && attempts < 6) {
+            attempts++;
+            if (attempts === 1) {
+              qualityVal = 0.7; // Try quality reduction first
+            } else {
+              scale -= 0.15;
+              qualityVal = 0.68;
+            }
+            compressed = runCrop(Math.max(0.15, scale), qualityVal);
+          }
+          resolve(compressed || base64);
+        } catch (e) {
+          console.warn('[ensureMemoryDataSize] Error re-compressing base64', e);
+          resolve(base64);
+        }
+      };
+      img.onerror = () => resolve(base64);
+      img.src = base64;
+    });
+  };
+
+  if (mem.thumbnail && typeof mem.thumbnail === 'string' && mem.thumbnail.length > maxSafeSize) {
+    mem.thumbnail = await compressBase64Str(mem.thumbnail);
+  }
+  if (mem.titleImage && typeof mem.titleImage === 'string' && mem.titleImage.length > maxSafeSize) {
+    mem.titleImage = await compressBase64Str(mem.titleImage);
+  }
+}
+
 async function saveMemoryToDB(memory) {
   if(!memory.id) memory.id = "m_" + Date.now();
+  await ensureMemoryDataSize(memory);
   try {
     await setDoc(doc(db, 'memories', memory.id), memory);
   } catch (err) {
@@ -5358,52 +5418,70 @@ document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}
 
 // Helper to compress images on the client side before uploading to Firestore to stay safely within 1MB quota and upload super fast
 window.compressPhotoFile = compressPhotoFile;
-function compressPhotoFile(file, maxWidth = 1000, maxHeight = 1000, quality = 0.65) {
+function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.82) {
   return new Promise((resolve) => {
-    const isPngOrWebp = file && (
+    const isPng = file && (
       file.type === 'image/png' || 
-      file.type === 'image/webp' || 
-      file.name?.toLowerCase().endsWith('.png') || 
-      file.name?.toLowerCase().endsWith('.webp') || 
-      file.name?.toLowerCase().endsWith('.svg')
+      file.name?.toLowerCase().endsWith('.png')
     );
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         try {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
+          const runCompression = (w, h, q, forceJpeg) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return e.target.result;
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            // Convert to JPEG for large images to save 10x space while preserving facial clarity
+            const mimeType = forceJpeg || (img.width * img.height > 200000) ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
+            return canvas.toDataURL(mimeType, mimeType === 'image/png' ? undefined : q);
+          };
+
+          let currentWidth = img.width;
+          let currentHeight = img.height;
           
-          if (width > height) {
-            if (width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
+          if (currentWidth > currentHeight) {
+            if (currentWidth > maxWidth) {
+              currentHeight = Math.round((currentHeight * maxWidth) / currentWidth);
+              currentWidth = maxWidth;
             }
           } else {
-            if (height > maxHeight) {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
+            if (currentHeight > maxHeight) {
+              currentWidth = Math.round((currentWidth * maxHeight) / currentHeight);
+              currentHeight = maxHeight;
             }
           }
+
+          let currentQuality = quality;
+          let forceJpeg = (currentWidth * currentHeight > 250000);
+          let res = runCompression(currentWidth, currentHeight, currentQuality, forceJpeg);
           
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(e.target.result);
-            return;
+          // Let's target less than 450,000 characters to make sure we stay perfectly safe!
+          let attempts = 0;
+          while (res && res.length > 450000 && attempts < 6) {
+            attempts++;
+            if (attempts === 1) {
+              // Reduce quality first, keeping resolution high
+              currentQuality = 0.72;
+              forceJpeg = true;
+            } else if (attempts === 2) {
+              currentQuality = 0.65;
+            } else {
+              // Slowly shrink resolution but keep quality high enough for faces
+              currentWidth = Math.round(currentWidth * 0.85);
+              currentHeight = Math.round(currentHeight * 0.85);
+              currentQuality = 0.68;
+            }
+            res = runCompression(currentWidth, currentHeight, currentQuality, true);
           }
-          if (isPngOrWebp) {
-            ctx.clearRect(0, 0, width, height);
-          }
-          ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to optimized format (preserve png/webp transparency)
-          const mimeType = isPngOrWebp ? 'image/png' : 'image/jpeg';
-          const dataUrl = canvas.toDataURL(mimeType, isPngOrWebp ? undefined : quality);
-          resolve(dataUrl);
+          resolve(res);
         } catch (err) {
           console.warn('[compressPhotoFile] Failed to process canvas image, resolving original reader base64.', err);
           resolve(e.target.result);
@@ -5545,45 +5623,7 @@ CRITICAL: Do NOT add ANY text, titles, subtitles, words, logos, letterings, wate
 
 // View Photo Static Modal (for moments static photo previews)
 window.viewPhotoStatic = (id) => {
-  const m = appState.memories.find(i => i.id === id);
-  if(!m) return;
-  
-  const existingPlayer = document.getElementById('playbackOverlay');
-  if(existingPlayer) existingPlayer.remove();
-  
-  document.body.style.overflow = 'hidden';
-  
-  let c = document.getElementById('playbackOverlay');
-  if (!c) {
-    c = document.createElement('div');
-    c.className = 'playback-overlay no-animation';
-    c.id = 'playbackOverlay';
-    document.body.appendChild(c);
-  } else {
-    c.className = 'playback-overlay no-animation';
-  }
-  
-  c.style.display = 'block';
-  c.style.transform = 'translateY(0)';
-  c.style.opacity = '1';
-  
-  c.innerHTML = `
-    <div class="playback-back close-btn" id="photo-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </div>
-    <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center;">
-       <img src="${m.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius: 0; filter: none;">
-    </div>
-  `;
-
-  const closePlayer = () => {
-     if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
-     c.style.display = 'none';
-     c.innerHTML = '';
-     document.body.style.overflow = '';
-  };
-  
-  document.getElementById('photo-close-btn').onclick = closePlayer;
+  window.startMomentsSlideshow(id, false);
 };
 
 // Moments functions
@@ -5830,11 +5870,144 @@ window.openBulkUploadModal = () => {
   };
 };
 
-window.startMomentsSlideshow = (startId) => {
+window.startMomentsSlideshow = (startId, autoPlay = true) => {
+  // Inject transition CSS if not already there
+  const transitionCSS = `
+/* 50 CSS transitions for playback overlay */
+@keyframes ss-kf-1 { from { opacity: 0; filter: blur(20px); } to { opacity: 1; filter: blur(0); } }
+@keyframes ss-kf-2 { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes ss-kf-3 { from { opacity: 0; transform: scale(1.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes ss-kf-4 { from { opacity: 0; transform: translateX(-150px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ss-kf-5 { from { opacity: 0; transform: translateX(150px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ss-kf-6 { from { opacity: 0; transform: translateY(-150px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ss-kf-7 { from { opacity: 0; transform: translateY(150px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ss-kf-8 { from { opacity: 0; transform: rotate(-15deg) scale(0.8); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@keyframes ss-kf-9 { from { opacity: 0; transform: rotate(15deg) scale(1.2); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@keyframes ss-kf-10 { from { opacity: 0; transform: perspective(800px) rotateX(75deg); } to { opacity: 1; transform: perspective(800px) rotateX(0); } }
+@keyframes ss-kf-11 { from { opacity: 0; transform: perspective(800px) rotateY(75deg); } to { opacity: 1; transform: perspective(800px) rotateY(0); } }
+@keyframes ss-kf-12 { from { opacity: 0; transform: skewX(20deg) translateX(80px); } to { opacity: 1; transform: skewX(0) translateX(0); } }
+@keyframes ss-kf-13 { from { opacity: 0; transform: skewX(-20deg) translateX(-80px); } to { opacity: 1; transform: skewX(0) translateX(0); } }
+@keyframes ss-kf-14 { from { opacity: 0; transform: scale(0.1); } 50% { opacity: 0.9; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes ss-kf-15 { from { opacity: 0; filter: brightness(3) rgb(255 255 255); } to { opacity: 1; filter: brightness(1) none; } }
+@keyframes ss-kf-16 { from { opacity: 0; transform: perspective(1000px) rotateY(-90deg); transform-origin: left; } to { opacity: 1; transform: perspective(1000px) rotateY(0); transform-origin: left; } }
+@keyframes ss-kf-17 { from { opacity: 0; transform: perspective(1000px) rotateY(90deg); transform-origin: right; } to { opacity: 1; transform: perspective(1000px) rotateY(0); transform-origin: right; } }
+@keyframes ss-kf-18 { from { opacity: 0; transform: perspective(1000px) rotateX(90deg); transform-origin: top; } to { opacity: 1; transform: perspective(1000px) rotateX(0); transform-origin: top; } }
+@keyframes ss-kf-19 { from { opacity: 0; transform: perspective(1000px) rotateX(-90deg); transform-origin: bottom; } to { opacity: 1; transform: perspective(1000px) rotateX(0); transform-origin: bottom; } }
+@keyframes ss-kf-20 { from { opacity: 0; transform: rotate(-360deg) scale(0.1); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@keyframes ss-kf-21 { from { opacity: 0; transform: rotate(360deg) scale(1.5); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@keyframes ss-kf-22 { from { opacity: 0; transform: translate(-100px, -100px) scale(0.8); } to { opacity: 1; transform: translate(0,0) scale(1); } }
+@keyframes ss-kf-23 { from { opacity: 0; transform: translate(100px, -100px) scale(0.8); } to { opacity: 1; transform: translate(0,0) scale(1); } }
+@keyframes ss-kf-24 { from { opacity: 0; transform: translate(-100px, 100px) scale(0.8); } to { opacity: 1; transform: translate(0,0) scale(1); } }
+@keyframes ss-kf-25 { from { opacity: 0; transform: translate(100px, 100px) scale(0.8); } to { opacity: 1; transform: translate(0,0) scale(1); } }
+@keyframes ss-kf-26 { from { opacity: 0; clip-path: circle(0% at 50% 50%); } to { opacity: 1; clip-path: circle(100% at 50% 50%); } }
+@keyframes ss-kf-27 { from { opacity: 0; clip-path: inset(50% 50% 50% 50%); } to { opacity: 1; clip-path: inset(0% 0% 0% 0%); } }
+@keyframes ss-kf-28 { from { opacity: 0; transform: scaleX(0.01); } to { opacity: 1; transform: scaleX(1); } }
+@keyframes ss-kf-29 { from { opacity: 0; transform: scaleY(0.01); } to { opacity: 1; transform: scaleY(1); } }
+@keyframes ss-kf-30 { from { opacity: 0; filter: contrast(3) saturate(0); } to { opacity: 1; filter: contrast(1) saturate(1); } }
+@keyframes ss-kf-31 { 0% { opacity:0; transform:translateX(-100%) skewX(-15deg); } 100% { opacity:1; transform:translateX(0) skewX(0); } }
+@keyframes ss-kf-32 { 0% { opacity:0; transform:translateX(100%) skewX(15deg); } 100% { opacity:1; transform:translateX(0) skewX(0); } }
+@keyframes ss-kf-33 { from { opacity: 0; transform: scale(1.6); filter: blur(15px); } to { opacity: 1; transform: scale(1); filter: blur(0); } }
+@keyframes ss-kf-34 { from { opacity: 0; transform: scale(0.4); filter: blur(15px); } to { opacity: 1; transform: scale(1); filter: blur(0); } }
+@keyframes ss-kf-35 { from { opacity: 0; transform: perspective(1200px) rotateY(-80deg); transform-origin: left center; } to { opacity: 1; transform: perspective(1200px) rotateY(0deg); transform-origin: left center; } }
+@keyframes ss-kf-36 { from { opacity: 0; transform: perspective(1200px) rotateY(80deg); transform-origin: right center; } to { opacity: 1; transform: perspective(1200px) rotateY(0deg); transform-origin: right center; } }
+@keyframes ss-kf-37 { from { opacity: 0; transform: rotateX(180deg) scale(0.7); } to { opacity: 1; transform: rotateX(0) scale(1); } }
+@keyframes ss-kf-38 { from { opacity: 0; transform: rotateY(180deg) scale(0.7); } to { opacity: 1; transform: rotateY(0) scale(1); } }
+@keyframes ss-kf-39 { from { opacity: 0; clip-path: polygon(0 0, 100% 0, 0 100%); } to { opacity: 1; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } }
+@keyframes ss-kf-40 { from { opacity: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); } to { opacity: 1; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } }
+@keyframes ss-kf-41 { from { opacity:0; transform: rotate(-90deg); transform-origin: left top; } to { opacity:1; transform: rotate(0); transform-origin: left top; } }
+@keyframes ss-kf-42 { from { opacity:0; transform: rotate(90deg); transform-origin: right top; } to { opacity:1; transform: rotate(0); transform-origin: right top; } }
+@keyframes ss-kf-43 { from { opacity: 0; transform: translateY(-300px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ss-kf-44 { from { opacity: 0; transform: skewY(12deg) rotate(-8deg) scale(0.85); transform-origin: left bottom; } to { opacity: 1; transform: skewY(0) rotate(0) scale(1); transform-origin: left bottom; } }
+@keyframes ss-kf-45 { from { opacity: 0; transform: skewY(-12deg) rotate(8deg) scale(0.85); transform-origin: right bottom; } to { opacity: 1; transform: skewY(0) rotate(0) scale(1); transform-origin: right bottom; } }
+@keyframes ss-kf-46 { from { opacity: 0; transform: rotate(45deg) translate(-50px, -50px); filter: blur(5px); } to { opacity:1; transform: rotate(0) translate(0, 0); filter: none; } }
+@keyframes ss-kf-47 { from { opacity: 0; transform: rotate(-45deg) translate(50px, -50px); filter: blur(5px); } to { opacity:1; transform: rotate(0) translate(0, 0); filter: none; } }
+@keyframes ss-kf-48 { from { opacity: 0; clip-path: polygon(50% 0%, 50% 100%, 50% 100%, 50% 0%); } to { opacity: 1; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); } }
+@keyframes ss-kf-49 { from { opacity: 0; clip-path: polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%); } to { opacity: 1; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); } }
+@keyframes ss-kf-50 { 0% { opacity:0; transform:scale(0.3); filter: hue-rotate(180deg); } 100% { opacity:1; transform:scale(1); filter: hue-rotate(0deg); } }
+
+.ss-slide-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: black;
+}
+
+.playback-overlay:hover .ss-nav-btn {
+  opacity: 0.85 !important;
+}
+.ss-nav-btn:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.72) !important;
+  transform: translateY(-50%) scale(1.08) !important;
+  box-shadow: 0 0 15px rgba(255,255,255,0.1);
+}
+
+.ss-trans-1 { animation: ss-kf-1 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-2 { animation: ss-kf-2 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-3 { animation: ss-kf-3 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-4 { animation: ss-kf-4 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-5 { animation: ss-kf-5 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-6 { animation: ss-kf-6 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-7 { animation: ss-kf-7 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-8 { animation: ss-kf-8 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-9 { animation: ss-kf-9 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-10 { animation: ss-kf-10 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-11 { animation: ss-kf-11 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-12 { animation: ss-kf-12 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-13 { animation: ss-kf-13 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-14 { animation: ss-kf-14 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-15 { animation: ss-kf-15 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-16 { animation: ss-kf-16 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-17 { animation: ss-kf-17 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-18 { animation: ss-kf-18 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-19 { animation: ss-kf-19 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-20 { animation: ss-kf-20 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-21 { animation: ss-kf-21 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-22 { animation: ss-kf-22 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-23 { animation: ss-kf-23 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-24 { animation: ss-kf-24 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-25 { animation: ss-kf-25 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-26 { animation: ss-kf-26 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-27 { animation: ss-kf-27 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-28 { animation: ss-kf-28 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-29 { animation: ss-kf-29 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-30 { animation: ss-kf-30 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-31 { animation: ss-kf-31 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-32 { animation: ss-kf-32 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-33 { animation: ss-kf-33 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-34 { animation: ss-kf-34 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-35 { animation: ss-kf-35 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-36 { animation: ss-kf-36 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-37 { animation: ss-kf-37 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-38 { animation: ss-kf-38 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-39 { animation: ss-kf-39 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-40 { animation: ss-kf-40 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-41 { animation: ss-kf-41 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-42 { animation: ss-kf-42 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-43 { animation: ss-kf-43 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-44 { animation: ss-kf-44 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-45 { animation: ss-kf-45 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-46 { animation: ss-kf-46 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-47 { animation: ss-kf-47 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-48 { animation: ss-kf-48 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-49 { animation: ss-kf-49 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ss-trans-50 { animation: ss-kf-50 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  `;
+
+  if (!document.getElementById('slideshow-transitions-style')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'slideshow-transitions-style';
+    styleEl.textContent = transitionCSS;
+    document.head.appendChild(styleEl);
+  }
+
   let mems = appState.memories.filter(m => String(m.category).toLowerCase() === 'moments');
   if (startId) {
     const mem = appState.memories.find(m => m.id === startId);
-    if (mem && String(mem.category).toLowerCase() !== 'moments') {
+    if (mem) {
         mems = appState.memories.filter(m => m.category === mem.category);
         if (mems.length === 0) mems = [mem];
     }
@@ -5867,89 +6040,203 @@ window.startMomentsSlideshow = (startId) => {
       if(idx !== -1) currentIndex = idx;
   }
   
+  let isAutoplayActive = autoPlay;
+  const playIntroVideo = isAutoplayActive && !startId;
+
   c.innerHTML = `
-    <div class="playback-back close-btn" id="ss-close-btn" style="z-index: 10002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <!-- Top left Back/Close -->
+    <div class="playback-back close-btn" id="ss-close-btn" style="z-index: 10006; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white; background: rgba(0,0,0,0.55); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.18); transition: all 0.2s;" onmouseenter="this.style.background='rgba(211,47,47,0.5)';" onmouseleave="this.style.background='rgba(0,0,0,0.55)';">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
-    <div id="ss-content-container" style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+
+    <!-- Top Right Autoplay Toggle Indicator -->
+    <div id="ss-play-pause-btn" style="z-index: 10006; position:absolute; top: 30px; right: 30px; cursor: pointer; color: white; background: rgba(0,0,0,0.55); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.15); transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)';" onmouseleave="this.style.background='rgba(0,0,0,0.55)';">
+      <!-- Dynamic Icon loaded by JS -->
+    </div>
+
+    <!-- Left/Right Gallery Arrows -->
+    <div class="ss-nav-btn ss-nav-left" id="ss-prev-btn" style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); width: 56px; height: 56px; border-radius: 50%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10005; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0; color: white;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </div>
+    <div class="ss-nav-btn ss-nav-right" id="ss-next-btn" style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); width: 56px; height: 56px; border-radius: 50%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10005; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0; color: white;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+
+    <!-- Transition Slides Container -->
+    <div id="ss-content-container" style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; overflow:hidden;">
        <!-- Content injected here dynamically -->
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0; pointer-events:none;"></video>
+
+    <!-- Info Subbar (shows title and current index/total overlay) -->
+    <div id="ss-info-overlay" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.73); padding: 12px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.14); color: white; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 15px; z-index: 10005; pointer-events: none; transition: opacity 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.6);">
+      <span id="ss-info-title" style="letter-spacing: -0.2px;">Title</span>
+      <span style="width: 1px; height: 16px; background: rgba(255,255,255,0.25);"></span>
+      <span id="ss-info-count" style="color: rgba(255,255,255,0.6); font-family: monospace; font-size: 13px;">1 / 10</span>
+    </div>
+
+    ${playIntroVideo ? `<video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:10010; position:absolute; top:0; left:0; pointer-events:none;"></video>` : ''}
   `;
 
   const container = document.getElementById('ss-content-container');
+  const playPauseBtn = document.getElementById('ss-play-pause-btn');
+  const infoTitle = document.getElementById('ss-info-title');
+  const infoCount = document.getElementById('ss-info-count');
+  
   let slideshowTimeout = null;
   let activeVideoEl = null;
 
-  const renderCurrentSlide = () => {
-    if (!container) return;
-    const currentMem = mems[currentIndex];
-    
-    // Fade out container slightly during transition
-    container.style.opacity = '0.3';
-    
-    setTimeout(() => {
-      if (currentMem.videoUrl) {
-        // Video slide with volume and audio playback enabled
-        container.innerHTML = `
-          <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain;"></video>
-        `;
-        const videoEl = document.getElementById('ss-video');
-        activeVideoEl = videoEl;
-        if (videoEl) {
-          videoEl.muted = false;
-          videoEl.volume = 1.0;
-          
-          videoEl.play().catch(e => {
-            console.warn("Video play interrupted/denied, retrying with volume", e);
-            videoEl.muted = true;
-            videoEl.play().catch(err => console.error("Error playing video momentum", err));
-          });
-          
-          videoEl.onended = () => {
-            advanceSlide();
-          };
-          videoEl.onerror = () => {
-            advanceSlide();
-          };
-        }
-      } else {
-        // Photo slide (Silent, highest possible quality, smooth transition)
-        container.innerHTML = `
-          <img src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain;">
-        `;
-        activeVideoEl = null;
-        // Schedule next slide after 4.5 seconds
-        slideshowTimeout = setTimeout(advanceSlide, 4500);
-      }
-      
-      container.style.opacity = '1';
-    }, 300);
+  const updateControlsUI = () => {
+    if (!playPauseBtn) return;
+    if (isAutoplayActive) {
+      playPauseBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      `;
+      playPauseBtn.title = "Pause Slideshow";
+    } else {
+      playPauseBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      `;
+      playPauseBtn.title = "Play Slideshow";
+    }
   };
 
-  const advanceSlide = () => {
+  const renderCurrentSlide = () => {
+    if (!container) return;
     if (slideshowTimeout) clearTimeout(slideshowTimeout);
+    
+    const currentMem = mems[currentIndex];
+    
+    // Pick a random transition class from our 50 options!
+    const randNum = Math.floor(Math.random() * 50) + 1;
+    const transitionClass = `ss-trans-${randNum}`;
+    
+    if (infoTitle) infoTitle.innerText = currentMem.title || "Memory";
+    if (infoCount) infoCount.innerText = `${currentIndex + 1} / ${mems.length}`;
+    
+    let slideHtml = '';
+    if (currentMem.videoUrl) {
+      slideHtml = `
+        <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none;"></video>
+      `;
+    } else {
+      slideHtml = `
+        <img src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none;">
+      `;
+    }
+    
+    container.innerHTML = `
+      <div class="ss-slide-wrapper ${transitionClass}">
+        ${slideHtml}
+      </div>
+    `;
+    
+    if (currentMem.videoUrl) {
+      const videoEl = document.getElementById('ss-video');
+      activeVideoEl = videoEl;
+      if (videoEl) {
+        videoEl.muted = false;
+        videoEl.volume = 1.0;
+        
+        videoEl.play().catch(e => {
+          console.warn("Video play interrupted, retrying with mute", e);
+          videoEl.muted = true;
+          videoEl.play().catch(err => console.error(err));
+        });
+        
+        videoEl.onended = () => {
+          advanceSlide(false);
+        };
+        videoEl.onerror = () => {
+          advanceSlide(false);
+        };
+      }
+    } else {
+      activeVideoEl = null;
+      if (isAutoplayActive) {
+        slideshowTimeout = setTimeout(() => advanceSlide(false), 4500);
+      }
+    }
+  };
+
+  const advanceSlide = (userInitiated = false) => {
+    if (slideshowTimeout) clearTimeout(slideshowTimeout);
+    if (activeVideoEl) {
+      try { activeVideoEl.pause(); } catch(e) {}
+    }
     currentIndex = (currentIndex + 1) % mems.length;
     renderCurrentSlide();
   };
 
-  const startSlideshowLoop = () => {
-    const introP = document.getElementById('introPlayer');
-    if(introP) introP.style.display = 'none';
+  const prevSlide = () => {
+    if (slideshowTimeout) clearTimeout(slideshowTimeout);
+    if (activeVideoEl) {
+      try { activeVideoEl.pause(); } catch(e) {}
+    }
+    currentIndex = (currentIndex - 1 + mems.length) % mems.length;
     renderCurrentSlide();
   };
 
+  const togglePlayback = () => {
+    isAutoplayActive = !isAutoplayActive;
+    updateControlsUI();
+    if (isAutoplayActive) {
+      renderCurrentSlide();
+    } else {
+      if (slideshowTimeout) clearTimeout(slideshowTimeout);
+    }
+  };
+
+  const startSlideshowLoop = () => {
+    const introP = document.getElementById('introPlayer');
+    if (introP) introP.style.display = 'none';
+    updateControlsUI();
+    renderCurrentSlide();
+  };
+
+  // Wire events
+  document.getElementById('ss-prev-btn').onclick = (e) => {
+    e.stopPropagation();
+    prevSlide();
+  };
+  document.getElementById('ss-next-btn').onclick = (e) => {
+    e.stopPropagation();
+    advanceSlide(true);
+  };
+  if (playPauseBtn) {
+    playPauseBtn.onclick = (e) => {
+      e.stopPropagation();
+      togglePlayback();
+    };
+  }
+
+  // Keyboard Event Listeners for Left and Right Arrow Keys!
+  const handleSlideshowKeydownMsg = (e) => {
+    if (e.code === 'ArrowRight') {
+      e.preventDefault();
+      advanceSlide(true);
+    } else if (e.code === 'ArrowLeft') {
+      e.preventDefault();
+      prevSlide();
+    } else if (e.code === 'Space') {
+      e.preventDefault();
+      togglePlayback();
+    } else if (e.code === 'Escape') {
+      closePlayer();
+    }
+  };
+  window.addEventListener('keydown', handleSlideshowKeydownMsg);
+
+  // Intro Player
   const introPlayer = document.getElementById('introPlayer');
-  if (introPlayer) {
-    introPlayer.muted = false; // ensure sound plays
-    introPlayer.volume = 1.0;  // set maximum volume
-    if (introPlayer.play() !== undefined) {
-      introPlayer.play().catch(() => {
-        // Fallback to muted playback if user hasn't interacted yet
+  if (introPlayer && playIntroVideo) {
+    introPlayer.muted = false;
+    introPlayer.volume = 1.0;
+    introPlayer.play().catch(() => {
+      if (introPlayer) {
         introPlayer.muted = true;
         introPlayer.play().catch(() => startSlideshowLoop());
-      });
-    }
+      }
+    });
     introPlayer.onended = startSlideshowLoop;
     introPlayer.onerror = startSlideshowLoop;
   } else {
@@ -5959,22 +6246,27 @@ window.startMomentsSlideshow = (startId) => {
   const closePlayer = () => {
      if (slideshowTimeout) clearTimeout(slideshowTimeout);
      if (activeVideoEl) {
-       activeVideoEl.pause();
+       try { activeVideoEl.pause(); } catch(e) {}
        activeVideoEl = null;
      }
-     if (document.fullscreenElement) document.exitFullscreen().catch(e => {});
+     window.removeEventListener('keydown', handleSlideshowKeydownMsg);
+     
+     if (document.fullscreenElement) {
+       document.exitFullscreen().catch(e => {});
+     }
      
      c.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease';
      c.style.transform = 'translateY(100%)';
      c.style.opacity = '0';
      setTimeout(() => {
        c.innerHTML = '';
-       c.style.display = 'none';
+       c.remove();
+        document.documentElement.style.overflow = '';
+       document.body.style.overflow = '';
      }, 400);
   };
-  
-   const ssBtn = document.getElementById('ss-close-btn');
-   if (ssBtn) ssBtn.onclick = closePlayer;
+
+  document.getElementById('ss-close-btn').onclick = closePlayer;
 };
 
 // Bulk Memories Manager
