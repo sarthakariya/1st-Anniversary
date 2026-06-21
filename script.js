@@ -2783,6 +2783,12 @@ function createNavbar() {
           </div>
         </div>
 
+        ${appState.activeCategory === 'Moments' ? `
+        <button class="add-memory-btn" onclick="window.openBulkManagerModal()" title="Manage & Bulk Edit Gallery" style="margin-right: 8px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </button>
+        ` : ''}
+
         <button class="add-memory-btn" onclick="${appState.activeCategory === 'Moments' ? 'openBulkUploadModal()' : (appState.activeCategory === 'My List' ? 'setCategory(\'Home\')' : 'openUploadModal()')}" title="${addButtonText}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
@@ -2802,6 +2808,10 @@ function createNavbar() {
             </div>
             
             <div class="dropdown-options-list">
+              <div class="dropdown-option-item" onclick="window.openBulkManagerModal()">
+                <svg class="dropdown-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Bulk Manage Gallery</span>
+              </div>
               <div class="dropdown-option-item" onclick="window.openManageProfiles()">
                 <svg class="dropdown-item-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
                 <span>Manage Profiles</span>
@@ -5348,7 +5358,7 @@ document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}
 
 // Helper to compress images on the client side before uploading to Firestore to stay safely within 1MB quota and upload super fast
 window.compressPhotoFile = compressPhotoFile;
-function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+function compressPhotoFile(file, maxWidth = 1000, maxHeight = 1000, quality = 0.65) {
   return new Promise((resolve) => {
     const isPngOrWebp = file && (
       file.type === 'image/png' || 
@@ -5361,34 +5371,43 @@ function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
           }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target.result);
+            return;
           }
+          if (isPngOrWebp) {
+            ctx.clearRect(0, 0, width, height);
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to optimized format (preserve png/webp transparency)
+          const mimeType = isPngOrWebp ? 'image/png' : 'image/jpeg';
+          const dataUrl = canvas.toDataURL(mimeType, isPngOrWebp ? undefined : quality);
+          resolve(dataUrl);
+        } catch (err) {
+          console.warn('[compressPhotoFile] Failed to process canvas image, resolving original reader base64.', err);
+          resolve(e.target.result);
         }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (isPngOrWebp) {
-          ctx.clearRect(0, 0, width, height);
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Convert to optimized format (preserve png/webp transparency)
-        const mimeType = isPngOrWebp ? 'image/png' : 'image/jpeg';
-        const dataUrl = canvas.toDataURL(mimeType, isPngOrWebp ? undefined : quality);
-        resolve(dataUrl);
       };
       img.onerror = () => {
         resolve(e.target.result); // fallback to original file reader string
@@ -5398,7 +5417,11 @@ function compressPhotoFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.
     reader.onerror = () => {
       resolve(null);
     };
-    reader.readAsDataURL(file);
+    try {
+      reader.readAsDataURL(file);
+    } catch (err) {
+      resolve(null);
+    }
   });
 }
 
@@ -5569,20 +5592,25 @@ window.openBulkUploadModal = () => {
   m.className = 'upload-modal';
   m.id = 'bulkUploadModal';
   m.innerHTML = `
-    <div class="upload-modal-content">
-      <div class="upload-close" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">&times;</div>
-      <h2 style="margin-bottom:30px; font-weight:700; color:white; font-size:28px; letter-spacing:-0.5px;">Add Photos</h2>
+    <div class="upload-modal-content" style="display: flex; flex-direction: column; padding: 30px 40px; box-sizing: border-box; background: #141414; border-left: 1px solid rgba(255,255,255,0.08);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h2 style="margin:0; font-weight:700; color:white; font-size:24px; letter-spacing:-0.5px;">Add Photos</h2>
+        <button class="upload-close" style="position:static; background:transparent; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s; padding:0;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
       
-      <div id="drop-zone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 25px; background: rgba(0,0,0,0.2); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;" onmouseenter="this.style.borderColor='rgba(255,255,255,0.5)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.2)'">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" style="margin-bottom:20px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-        <div style="color: rgba(255,255,255,0.8); font-size: 16px;">Click to select or drag photos here</div>
-        <div id="file-count" style="color: #e50914; font-size: 14px; margin-top: 10px; font-weight: 500;"></div>
+      <div id="drop-zone" style="border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px; padding: 45px 20px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); margin-bottom: 25px; background: rgba(0,0,0,0.2); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;" onmouseenter="this.style.borderColor='rgba(229,9,20,0.6)'; this.style.background='rgba(229,9,20,0.02)'; const icon = this.querySelector('.upload-cloud-icon'); if(icon) icon.style.transform='translateY(-4px) scale(1.05)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.15)'; this.style.background='rgba(0,0,0,0.3)'; const icon = this.querySelector('.upload-cloud-icon'); if(icon) icon.style.transform='translateY(0) scale(1)';">
+        <svg class="upload-cloud-icon" width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" style="margin-bottom:18px; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <div style="color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 500; font-family: inherit; margin-bottom: 4px;">Click to select or drag photos here</div>
+        <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-family: inherit;">Supports JPG, PNG, or WEBP images</div>
+        
+        <div id="file-count" style="margin-top: 15px;"></div>
+        <div id="upload-preview-container" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; justify-content:center; width:100%; max-height:120px; overflow-y:auto; padding: 2px;"></div>
       </div>
       <input type="file" id="bulk-upload-input" multiple accept="image/*" style="display:none;">
       
-      <div style="display: flex; gap: 15px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; padding:12px 24px; border-radius:6px; cursor:pointer;" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(()=>dm.remove(),300)">Cancel</button>
-        <button id="bulk-upload-save" style="background:#e50914; border:none; color:white; padding:12px 30px; font-weight:600; border-radius:6px; cursor:pointer;" disabled>Upload Photos</button>
+      <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.25); color:#e5e5e5; padding:12px 24px; font-size:14px; font-weight:500; border-radius:4px; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.4)';" onmouseleave="this.style.background='transparent'; this.style.color='#e5e5e5'; this.style.borderColor='rgba(255,255,255,0.25)';" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(()=>dm.remove(),300)">Cancel</button>
+        <button id="bulk-upload-save" style="background:#e50914; border:none; color:white; padding:12px 30px; font-size:14px; font-weight:700; border-radius:4px; cursor:not-allowed; transition:all 0.2s; opacity:0.4;" onmouseenter="if(!this.disabled) { this.style.background='#ff0f22'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 0 20px rgba(229,9,20,0.5)'; }" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)'; this.style.boxShadow='none';" disabled>Upload Photos</button>
       </div>
     </div>
   `;
@@ -5595,29 +5623,66 @@ window.openBulkUploadModal = () => {
   const saveBtn = m.querySelector('#bulk-upload-save');
   const countDisp = m.querySelector('#file-count');
   
+  let currentBatchFiles = [];
+  
   const handleFiles = (files) => {
     if(files && files.length > 0) {
-      countDisp.innerText = files.length + ' photo' + (files.length>1?'s':'') + ' selected';
+      currentBatchFiles = Array.from(files);
+      countDisp.innerHTML = `<span style="background: rgba(229,9,20,0.15); border: 1px solid rgba(229,9,20,0.3); padding: 5px 12px; border-radius: 20px; color:#ff3b47; font-weight:700; font-size:11px; letter-spacing:0.5px;">${currentBatchFiles.length} PHOTO${currentBatchFiles.length>1?'S':''} READY</span>`;
       saveBtn.disabled = false;
+      saveBtn.style.opacity = '1';
+      saveBtn.style.cursor = 'pointer';
+      
+      const prevCont = m.querySelector('#upload-preview-container');
+      if (prevCont) {
+        prevCont.innerHTML = '';
+        const limit = Math.min(currentBatchFiles.length, 6);
+        for(let i=0; i<limit; i++) {
+          const file = currentBatchFiles[i];
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const previewCard = document.createElement('div');
+            previewCard.className = 'fade-in';
+            previewCard.style.cssText = 'position:relative; width:44px; height:44px; border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.25); background:#111; box-shadow: 0 4px 10px rgba(0,0,0,0.3);';
+            previewCard.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+            prevCont.appendChild(previewCard);
+          };
+          reader.readAsDataURL(file);
+        }
+        if (currentBatchFiles.length > 6) {
+          const moreCard = document.createElement('div');
+          moreCard.style.cssText = 'width:44px; height:44px; border-radius:6px; background:#222; border:1px solid rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; color:#888; font-size:11px; font-weight:700; box-shadow: 0 4px 10px rgba(0,0,0,0.3);';
+          moreCard.innerText = `+${currentBatchFiles.length - 6}`;
+          prevCont.appendChild(moreCard);
+        }
+      }
+    } else {
+      currentBatchFiles = [];
+      countDisp.innerHTML = '';
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = '0.4';
+      saveBtn.style.cursor = 'not-allowed';
+      const prevCont = m.querySelector('#upload-preview-container');
+      if (prevCont) prevCont.innerHTML = '';
     }
   };
 
   dropZone.onclick = () => input.click();
   input.onchange = (e) => handleFiles(e.target.files);
   
-  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = 'rgba(255,255,255,0.05)'; };
-  dropZone.ondragleave = (e) => { e.preventDefault(); dropZone.style.background = 'rgba(0,0,0,0.2)'; };
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor='rgba(229,9,20,0.85)'; dropZone.style.background = 'rgba(229,9,20,0.06)'; };
+  dropZone.ondragleave = (e) => { e.preventDefault(); dropZone.style.borderColor='rgba(255,255,255,0.15)'; dropZone.style.background = 'rgba(0,0,0,0.3)'; };
   dropZone.ondrop = (e) => {
     e.preventDefault();
-    dropZone.style.background = 'rgba(0,0,0,0.2)';
+    dropZone.style.borderColor='rgba(255,255,255,0.15)';
+    dropZone.style.background = 'rgba(0,0,0,0.3)';
     if(e.dataTransfer.files) {
-       input.files = e.dataTransfer.files;
        handleFiles(e.dataTransfer.files);
     }
   };
 
   saveBtn.onclick = async () => {
-    if (!input.files || input.files.length === 0) return;
+    if (currentBatchFiles.length === 0) return;
     saveBtn.innerText = 'Uploading...';
     saveBtn.disabled = true;
     appState.activeCategory = 'Moments';
@@ -5629,7 +5694,7 @@ window.openBulkUploadModal = () => {
         .map(mem => String(mem.title).trim().toLowerCase())
     );
     
-    const maxFiles = Array.from(input.files);
+    const maxFiles = currentBatchFiles;
     const toUpload = [];
     const skippedFiles = [];
     const seenInBatch = new Set();
@@ -5685,34 +5750,13 @@ window.openBulkUploadModal = () => {
 
     let done = 0;
     let failed = 0;
-    let fallbackCount = 0;
     const total = toUpload.length;
 
     // Toggle bulk transaction to pause snapshot logic and prevent rendering collisions
     appState.bulkTransactionActive = true;
-
-    const uploadWithRetryAndFallback = async (newMem, retries = 2) => {
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-          await saveMemoryToDB(newMem);
-          return { success: true };
-        } catch (err) {
-          console.warn(`[Upload Attempt ${attempt} Failed]:`, err);
-          if (attempt === retries) {
-            // Local fallback backup
-            try {
-              window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-            } catch(e) {}
-            return { success: false, error: err, fallbackSaved: true };
-          }
-          // Delay before next attempt
-          await new Promise(resolve => setTimeout(resolve, 800));
-        }
-      }
-    };
     
     for(let file of toUpload) {
-      const idx = done + failed + fallbackCount;
+      const idx = done + failed;
       progressText.innerText = `Compressing & Uploading: ${file.name} (${idx + 1}/${total})`;
       
       const compressedDataUrl = await compressPhotoFile(file);
@@ -5734,20 +5778,15 @@ window.openBulkUploadModal = () => {
         dateAdded: Date.now()
       };
       
-      appState.memories.push(newMem);
-      
-      const result = await uploadWithRetryAndFallback(newMem);
-      if (result && result.success) {
+      try {
+        await saveMemoryToDB(newMem);
         done++;
-      } else {
-        if (result && result.fallbackSaved) {
-          fallbackCount++;
-        } else {
-          failed++;
-        }
+      } catch (err) {
+        console.error(`Failed to save memory "${newMem.title}" to database:`, err);
+        failed++;
       }
       
-      const percent = Math.round(((done + failed + fallbackCount) / total) * 100);
+      const percent = Math.round(((done + failed) / total) * 100);
       progressBarFill.style.width = percent + '%';
       progressPercent.innerText = percent + '%';
       
@@ -5757,16 +5796,19 @@ window.openBulkUploadModal = () => {
     
     // Clear the transaction active flag
     appState.bulkTransactionActive = false;
+    
+    if (window.pendingMemoriesSnapshot) {
+      const snapshot = window.pendingMemoriesSnapshot;
+      window.pendingMemoriesSnapshot = null;
+      const list = snapshot.docs.map(d => d.data());
+      list.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      appState.memories = list;
+    }
     render();
 
-    window.safeSetSessionItem('netflix_memories', JSON.stringify(appState.memories));
-    
     let endMsg = `Successfully uploaded ${done} photo(s).`;
-    if (fallbackCount > 0) {
-      endMsg += ` ${fallbackCount} photo(s) saved securely in browser storage due to connection caps.`;
-    }
     if (failed > 0) {
-      endMsg += ` ${failed} photo(s) failed upload due to batch failures.`;
+      endMsg += ` ${failed} photo(s) failed database upload. Please verify your connection status.`;
     }
     if (skippedFiles.length > 0) {
       endMsg += ` ${skippedFiles.length} photo${skippedFiles.length > 1 ? 's were' : ' was'} not uploaded because they already exist in the gallery.`;
