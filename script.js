@@ -811,10 +811,10 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     } else {
       // For Home
       if (appState.activeCategory === 'Home') {
-        // 1. Today's Top Picks for You
+        // 1. Today's Top Picks for You (randomized order every reload as requested)
         const topPicksMems = [...appState.memories]
           .filter(m => window.getNormalizedCategory(m.category) !== 'Moments')
-          .sort((a, b) => b.title.localeCompare(a.title)) // deterministic stable order
+          .sort(() => Math.random() - 0.5)
           .slice(0, 8);
         if (topPicksMems.length) {
           rc.appendChild(createRow("Today's Top Picks for You", topPicksMems, rowIndex++));
@@ -1651,22 +1651,29 @@ window.openSettingsModal = () => {
   modal.className = 'settings-overlay-modern';
   modal.id = 'settingsModal';
   
+  // Close when clicking the backdrop
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      window.closeSettingsModal();
+    }
+  };
+  
   modal.innerHTML = `
     <style>
       .settings-overlay-modern {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
         display: flex;
-        align-items: center;
-        justify-content: center;
+        align-items: stretch;
+        justify-content: flex-end;
         z-index: 15000;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        padding: 20px;
+        transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        padding: 0;
         box-sizing: border-box;
       }
       .settings-overlay-modern.open {
@@ -1676,18 +1683,30 @@ window.openSettingsModal = () => {
       
       .netflix-settings-card {
         background: #141414;
-        border-radius: 12px;
-        padding: 30px;
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        padding: 40px 30px;
         max-width: 480px;
         width: 100%;
-        max-height: calc(100vh - 40px);
+        height: 100vh;
+        max-height: 100vh;
         overflow-y: auto;
-        border: 1px solid rgba(255,255,255,0.08);
+        border-left: 1px solid rgba(255,255,255,0.08);
+        border-right: none;
+        border-top: none;
+        border-bottom: none;
         position: relative;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.95);
-        animation: settingsFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        box-shadow: -15px 0 50px rgba(0,0,0,0.95);
+        transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
       }
+      .settings-overlay-modern.open .netflix-settings-card {
+        transform: translateX(0);
+      }
+      
       .netflix-settings-card::-webkit-scrollbar {
         width: 6px;
       }
@@ -1701,10 +1720,7 @@ window.openSettingsModal = () => {
       .netflix-settings-card::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.3);
       }
-      @keyframes settingsFadeIn {
-        from { opacity: 0; transform: scale(0.96) translateY(8px); }
-        to { opacity: 1; transform: scale(1) translateY(0); }
-      }
+
       
       .netflix-settings-row {
         display: flex;
@@ -1849,7 +1865,7 @@ window.openSettingsModal = () => {
     </style>
     
     <div class="netflix-settings-card">
-      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
+      <button class="upload-close" onclick="window.closeSettingsModal()">&times;</button>
       
       <!-- Modal Header -->
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px;">
@@ -1918,10 +1934,18 @@ window.openSettingsModal = () => {
       </div>
       
       <div class="actions" style="margin-top:25px; justify-content:center;">
-        <button class="btn btn-primary" style="width:100%; border:none; padding: 12px; font-weight:700; background:#fff; color:#000; transition:all 0.2s;" onmouseenter="this.style.background='#e50914'; this.style.color='#fff';" onmouseleave="this.style.background='#fff'; this.style.color='#000';" onclick="document.getElementById('settingsModal').remove()">Done</button>
+        <button class="btn btn-primary" style="width:100%; border:none; padding: 12px; font-weight:700; background:#fff; color:#000; transition:all 0.2s;" onmouseenter="this.style.background='#e50914'; this.style.color='#fff';" onmouseleave="this.style.background='#fff'; this.style.color='#000';" onclick="window.closeSettingsModal()">Done</button>
       </div>
     </div>
   `;
+  
+  window.closeSettingsModal = () => {
+    modal.classList.remove('open');
+    setTimeout(() => {
+      if (modal.parentNode) modal.remove();
+    }, 400);
+  };
+  
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('open'), 10);
 };
@@ -2888,7 +2912,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:115vw;height:64.6875vw;min-height:115vh;min-width:204.44vh;transform:translate(-50%, -50%) scale(1.01);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2975,10 +2999,31 @@ window.shuffleHero = () => {
       
       // Autoplay previews: once background element streams, fade the thumbnail cover safely
       if (nextBackgroundHtml) {
-        setTimeout(() => {
-          const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
-          if (imgOverlay) imgOverlay.style.opacity = '0';
-        }, 750);
+        const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
+        const nv = newMediaItem.querySelector('#hero-native-video');
+        if (nv) {
+          // Native video: fade out overlay as soon as playback actually starts streaming
+          nv.addEventListener('playing', () => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          });
+          // Fallback if event is slow to fire
+          setTimeout(() => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          }, 1000);
+        } else {
+          // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
+          const iframe = newMediaItem.querySelector('.hero-video');
+          if (iframe) {
+            iframe.addEventListener('load', () => {
+              setTimeout(() => {
+                if (imgOverlay) imgOverlay.style.opacity = '0';
+              }, 400);
+            });
+          }
+          setTimeout(() => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          }, 1200);
+        }
       }
       
       // Native preview audio volume fade logic
@@ -3115,7 +3160,7 @@ function createHero() {
   c.className = 'hero-billboard';
   
   if (!appState.memories) {
-    c.innerHTML = `<div class="skeleton-card" style="width:100%; height:85vh; border-radius:0;"></div>`;
+    c.innerHTML = `<div class="skeleton-card" style="width:100%; height:100vh; border-radius:0;"></div>`;
     return c;
   }
 
@@ -3156,7 +3201,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:115vw;height:64.6875vw;min-height:115vh;min-width:204.44vh;transform:translate(-50%, -50%) scale(1.01);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -3223,11 +3268,31 @@ function createHero() {
   }, 50);
 
   if (backgroundVideoHtml) {
-    // Gracefully fade out static picture once video/iframe starts streaming
-    setTimeout(() => {
-      const imgOverlay = c.querySelector('#hero-img-overlay');
-      if (imgOverlay) imgOverlay.style.opacity = '0';
-    }, 1000);
+    const imgOverlay = c.querySelector('#hero-img-overlay');
+    const nv = c.querySelector('#hero-native-video');
+    if (nv) {
+      // Native video: fade out overlay as soon as playback actually starts streaming
+      nv.addEventListener('playing', () => {
+        if (imgOverlay) imgOverlay.style.opacity = '0';
+      });
+      // Fallback if event is slow to fire
+      setTimeout(() => {
+        if (imgOverlay) imgOverlay.style.opacity = '0';
+      }, 1000);
+    } else {
+      // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
+      const iframe = c.querySelector('.hero-video');
+      if (iframe) {
+        iframe.addEventListener('load', () => {
+          setTimeout(() => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          }, 400);
+        });
+      }
+      setTimeout(() => {
+        if (imgOverlay) imgOverlay.style.opacity = '0';
+      }, 1200);
+    }
     
     // Volume Fade Loop Timer for native video
     setTimeout(() => {
@@ -4603,11 +4668,12 @@ window.likeMemory = async (id, btn) => {
     window.showToast('Added to Liked memories!');
   }
   
-  await saveStateList('likedMemories', appState.likedMemories);
-  try { await saveMemoryToDB(m); } catch(err){}
-  
-  // Sync all like buttons cleanly and dynamically
+  // OPTIMISTIC UPDATE: Sync all like buttons cleanly and dynamically *instantly*
   window.syncLikeUI(id);
+  
+  // Save to persistence store and remote DB non-blocking in background
+  saveStateList('likedMemories', appState.likedMemories).catch(err => console.error("Error saving state list in background:", err));
+  saveMemoryToDB(m).catch(err => console.error("Error saving memory state in background:", err));
 };
 
 window.downloadVideo = async (id) => {
@@ -4672,6 +4738,9 @@ window.downloadVideo = () => {
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
   let handleYtKeydown = null;
+  let handleNormalKeydown = null;
+  let handleYtMessage = null;
+  let ytTimer = null;
   const m = appState.memories.find(i => i.id === id);
   if(!m) return;
   
@@ -4722,20 +4791,23 @@ window.playVideo = (id) => {
     document.body.appendChild(c);
   }
   
-  // Apply starting state with transitions completely disabled to prevent flash
+  // Apply starting state: start from a smooth, smaller rounded screen-like rectangular box
   c.style.display = 'block';
   c.style.transition = 'none';
   c.style.opacity = '0';
-  c.style.transform = 'scale(0.85)';
+  c.style.transform = 'scale(0.2)';
+  c.style.borderRadius = '20px';
+  c.style.overflow = 'hidden';
   
   // Force a browser reflow paint
   c.offsetHeight;
   
-  // Transition to full visual size smoothly in the next execution tick
+  // Transition to full screen size smoothly over exactly 1.0 second as requested
   setTimeout(() => {
-    c.style.transition = 'opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1)';
+    c.style.transition = 'opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1), transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), border-radius 1.0s cubic-bezier(0.16, 1, 0.3, 1)';
     c.style.opacity = '1';
     c.style.transform = 'scale(1)';
+    c.style.borderRadius = '0px';
   }, 30);
   
   // Play Netflix initial animation before playing video
@@ -4747,24 +4819,8 @@ window.playVideo = (id) => {
   if (isYouTube) {
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
-        <iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:none; z-index:1;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>
-        <div id="video-click-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; background:transparent; cursor:pointer;"></div>
-        <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001; pointer-events:auto;">
-          <div style="display:flex; align-items:center; gap:25px; margin-top: 10px;">
-            <button id="play-pause-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Play/Pause (Space)">
-              <svg id="icon-play" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-              <svg id="icon-pause" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
-            </button>
-            <button id="mute-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Mute/Unmute (M)">
-              <svg id="icon-vol-up" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-              <svg id="icon-vol-off" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
-            </button>
-            <div style="flex:1;"></div>
-            <button id="fullscreen-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Fullscreen (F)">
-               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-            </button>
-          </div>
-        </div>
+        <iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:auto; z-index:1;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>
+        <div id="video-click-mask" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1; background:transparent; pointer-events:none;"></div>
       </div>
     `;
   } else {
@@ -4839,7 +4895,7 @@ window.playVideo = (id) => {
     }
     
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1&fs=0&disablekb=1`;
+      mainPlayer.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1&fs=1`;
       mainPlayer.style.display = 'block';
     } else {
       mainPlayer.style.display = 'block';
@@ -4965,7 +5021,7 @@ window.playVideo = (id) => {
       hideControlsTimeout = setTimeout(() => {
         if (!mainPlayer.paused) {
           controls.style.opacity = '0';
-          backBtn.style.opacity = '0';
+          // backBtn.style.opacity = '0'; // Always show close button
           document.body.style.cursor = 'none';
         }
       }, 6000);
@@ -4975,11 +5031,11 @@ window.playVideo = (id) => {
     videoContainer.onmouseleave = () => {
       if (!mainPlayer.paused) {
         controls.style.opacity = '0';
-        backBtn.style.opacity = '0';
+        // backBtn.style.opacity = '0'; // Always show close button
       }
     };
 
-    window.addEventListener('keydown', function(e) {
+    handleNormalKeydown = function(e) {
       if(document.getElementById('playbackOverlay')) {
         if (e.code === 'Space') {
           e.preventDefault();
@@ -5000,7 +5056,8 @@ window.playVideo = (id) => {
            fullscreenBtn.click();
         }
       }
-    });
+    };
+    window.addEventListener('keydown', handleNormalKeydown);
 
     mainPlayer.ontimeupdate = () => {
       seekBar.value = mainPlayer.currentTime;
@@ -5059,6 +5116,25 @@ window.playVideo = (id) => {
 
     let isYtPlaying = true;
     let isYtMuted = false;
+    let ytCurrentTime = 0;
+
+    handleYtMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "infoDelivery" && data.info) {
+          if (typeof data.info.currentTime === "number") {
+            ytCurrentTime = data.info.currentTime;
+          }
+        }
+      } catch (err) {}
+    };
+    window.addEventListener('message', handleYtMessage);
+
+    ytTimer = setInterval(() => {
+      if (isYtPlaying) {
+        ytCurrentTime += 1;
+      }
+    }, 1000);
 
     const toggleYtPlay = () => {
       isYtPlaying = !isYtPlaying;
@@ -5117,8 +5193,8 @@ window.playVideo = (id) => {
       hideControlsTimeout = setTimeout(() => {
         if (isYtPlaying) {
           if (controls) controls.style.opacity = '0';
-          if (backBtn) backBtn.style.opacity = '0';
-          document.body.style.cursor = 'none';
+          // if (backBtn) backBtn.style.opacity = '0'; // Always show close button
+          // document.body.style.cursor = 'none'; // Avoid custom overriding for YT iframe
         }
       }, 6000);
     };
@@ -5128,7 +5204,7 @@ window.playVideo = (id) => {
       videoContainer.onmouseleave = () => {
         if (isYtPlaying) {
           if (controls) controls.style.opacity = '0';
-          if (backBtn) backBtn.style.opacity = '0';
+          // if (backBtn) backBtn.style.opacity = '0'; // Always show close button
         }
       };
     }
@@ -5142,6 +5218,20 @@ window.playVideo = (id) => {
         } else if (e.key === 'm' || e.key === 'M') {
           toggleYtMute();
           showControls();
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          ytCurrentTime += 5;
+          if (mainPlayer) {
+            mainPlayer.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[' + ytCurrentTime + ',true]}', '*');
+          }
+          showControls();
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          ytCurrentTime = Math.max(0, ytCurrentTime - 5);
+          if (mainPlayer) {
+            mainPlayer.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[' + ytCurrentTime + ',true]}', '*');
+          }
+          showControls();
         } else if (e.key === 'f' || e.key === 'F') {
           if (fullscreenBtn) fullscreenBtn.click();
         }
@@ -5153,9 +5243,19 @@ window.playVideo = (id) => {
 
   // Handle closing player efficiently
   const closePlayer = (isPopState = false) => {
+     document.body.style.cursor = 'default'; // Restore cursor when player is closed
      window.closeActivePlayer = null;
      if (handleYtKeydown) {
        window.removeEventListener('keydown', handleYtKeydown);
+     }
+     if (handleNormalKeydown) {
+       window.removeEventListener('keydown', handleNormalKeydown);
+     }
+     if (handleYtMessage) {
+       window.removeEventListener('message', handleYtMessage);
+     }
+     if (ytTimer) {
+       clearInterval(ytTimer);
      }
      document.body.style.overflow = '';
      if (mainPlayer && typeof mainPlayer.pause === 'function') mainPlayer.pause();
@@ -5166,7 +5266,7 @@ window.playVideo = (id) => {
        if (typeof mainPlayer.load === 'function') mainPlayer.load();
      }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
-     c.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)';
+     c.style.transition = 'transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1)';
      c.style.transform = 'scale(0.92)';
      c.style.opacity = '0';
      setTimeout(() => {
@@ -5175,8 +5275,8 @@ window.playVideo = (id) => {
          if (typeof mainPlayer.load === 'function') mainPlayer.load();
        }
        c.innerHTML = ''; // fully unmount internal elements
-       c.style.display = 'none';
-     }, 600);
+       c.remove();
+     }, 1000);
 
      if (!isPopState) {
        if (history.state && history.state.playerOpen) {
@@ -5188,12 +5288,8 @@ window.playVideo = (id) => {
   
   document.getElementById('playback-back-btn').onclick = () => closePlayer(false);
   
-  // Click background to close
-  c.onclick = (e) => {
-    if (e.target.id === 'playbackOverlay' || e.target.id === 'video-container') {
-      closePlayer(false);
-    }
-  };
+  // Background click to close is disabled as requested to prevent player fragility
+  // Only the close/back button can close the overlay modal now!
 };
 
 // Initialize
