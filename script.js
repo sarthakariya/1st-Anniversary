@@ -87,6 +87,17 @@ function transitionView(v) {
 }
 window.transitionView = transitionView;
 
+window.extractYouTubeId = (url) => {
+  if (!url) return null;
+  const val = String(url).trim();
+  if (val.length === 11 && /^[a-zA-Z0-9_-]{11}$/.test(val)) {
+    return val;
+  }
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = val.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const DB_NAME = "netflix_clone_db";
 const DB_VERSION = 1;
 
@@ -314,7 +325,14 @@ async function loadData() {
       if(data.myList) appState.myList = data.myList;
       if(data.continueWatching) appState.continueWatching = data.continueWatching;
       if(data.likedMemories) appState.likedMemories = data.likedMemories;
-      if(data.settings) appState.settings = data.settings;
+      if(data.settings) {
+        appState.settings = {
+          autoPlayPreviews: data.settings.autoPlayPreviews !== false,
+          autoPlayNextEpisode: data.settings.autoPlayNextEpisode !== false
+        };
+      } else {
+        appState.settings = { autoPlayPreviews: true, autoPlayNextEpisode: true };
+      }
       if(data.profiles && data.profiles.length > 0) {
         appState.profiles = data.profiles;
         // Verify current profile is still valid
@@ -532,6 +550,7 @@ window.logoutProfile = () => {
   }
   setTimeout(() => {
     localStorage.removeItem('sarthak_netflix_profile');
+    sessionStorage.removeItem('sarthak_netflix_code'); // Require profile lock PIN when logging back in
     appState.currentProfile = null;
     transitionView('profiles');
   }, 500);
@@ -896,11 +915,88 @@ window.toggleSetting = (settingKey) => {
 };
 
 window.confirmPurgeAll = () => {
-  window.netflixConfirm("⚠️ WARNING: This will permanently delete ALL videos, photos, and memories from Firestore.\n\nAre you sure you want to perform this purge?", () => {
-    window.netflixConfirm("Double confirmation required:\n\nAre you absolutely sure you want to completely erase the memory lane?", async () => {
-      const modal = document.getElementById('settingsModal');
-      if (modal) modal.remove();
-      await window.purgeAllFirebaseMemories();
+  window.netflixConfirm("⚠️ WARNING: You are entering the administrative override zone.\n\nAre you sure you want to proceed to administrative PIN authorization?", () => {
+    window.showPurgePinModal();
+  });
+};
+
+window.showPurgePinModal = () => {
+  const overlay = document.createElement('div');
+  overlay.className = 'pin-overlay';
+  overlay.id = 'purgePinModal';
+  overlay.style.zIndex = '300000';
+  overlay.innerHTML = `
+    <div class="pin-container" style="border: 2px solid rgba(229, 9, 20, 0.4); box-shadow: 0 15px 40px rgba(229, 9, 20, 0.35); background: #141414; padding: 40px 30px; border-radius: 12px; text-align: center; max-width: 380px; width: 90%;">
+      <div style="display:flex; justify-content:center; margin-bottom:15px; color:#e50914;">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h2 style="color: #e50914; font-size: 19px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: -0.2px;">Authorize Database Purge</h2>
+      <p style="font-size: 12.5px; color: #a9a9a9; margin: 0 0 25px 0; line-height:1.5; font-family: inherit;">Please enter the 8-digit secure administrator PIN to authorize database deletion.</p>
+      
+      <div class="pin-inputs" style="display:flex; gap:6px; justify-content:center; margin-bottom:15px;">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+      </div>
+      <div id="purge-pin-error" style="color: #e50914; margin-top: 15px; font-size: 13px; opacity: 0; transition: opacity 0.3s; font-weight: 700;">⚠️ INCORRECT PIN. AUTHORIZATION DENIED.</div>
+      
+      <div style="display:flex; justify-content:center; gap:12px; margin-top:25px;">
+        <button class="btn" style="background:#222; color:#fff; border:1px solid rgba(255,255,255,0.08); border-radius:4px; padding:10px 20px; font-weight: 600; cursor:pointer;" onclick="document.getElementById('purgePinModal').remove()">Cancel Override</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  const inputs = overlay.querySelectorAll('.pin-in-purge');
+  setTimeout(() => inputs[0].focus(), 100);
+  
+  inputs.forEach((inEl, idx) => {
+    inEl.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      e.target.dataset.val = e.target.value;
+      if (e.target.value) {
+        e.target.type = 'text';
+        setTimeout(() => {
+          if (e.target.value && e.target.dataset.val) e.target.type = 'password';
+        }, 1000);
+        if (idx < inputs.length - 1) inputs[idx + 1].focus();
+      } else {
+        e.target.type = 'text';
+      }
+      
+      const val = Array.from(inputs).map(i => i.dataset.val || '').join('');
+      if (val.length === 8) {
+        if (val === '25072025') {
+          overlay.remove();
+          setTimeout(async () => {
+            const modal = document.getElementById('settingsModal');
+            if (modal) modal.remove();
+            await window.purgeAllFirebaseMemories();
+          }, 400);
+        } else {
+          const errEl = document.getElementById('purge-pin-error');
+          if (errEl) errEl.style.opacity = '1';
+          inputs.forEach(i => { i.value = ''; i.dataset.val = ''; i.type = 'text'; });
+          inputs[0].focus();
+        }
+      } else {
+        const errEl = document.getElementById('purge-pin-error');
+        if (errEl) errEl.style.opacity = '0';
+      }
+    });
+    
+    inEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+        inputs[idx - 1].focus();
+      }
     });
   });
 };
@@ -924,49 +1020,400 @@ window.openHelpCentreModal = () => {
   modal.id = 'helpCentreModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 600px; padding: 40px; background: #141414; border: 1px solid #333; border-radius: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.9);">
-      <button class="upload-close" onclick="document.getElementById('helpCentreModal').remove()" style="font-size:28px; color: #aaa; hover:color: #fff; background:none; border:none; cursor:pointer;">&times;</button>
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        <div class="upload-title" style="margin:0; font-size: 24px; font-weight:800; letter-spacing: -0.5px; color: #fff;">Help Centre</div>
-      </div>
+    <style>
+      @keyframes hcFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes checkPop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      .hc-animate-fade { animation: hcFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       
-      <p style="color:#aaa; font-size:14px; margin-bottom:30px; line-height:1.6;">Welcome to the Help Centre of <strong>Netflix - Our Story</strong>. Here you can find quick answers to common questions about Sarthak and Reechita's memory gallery.</p>
+      /* Redesigned accordians */
+      .faq-item-modern {
+        border-radius: 8px !important;
+        background: #1f1f1f !important;
+        border: 1px solid rgba(255,255,255,0.04) !important;
+        margin-bottom: 12px !important;
+        transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        overflow: hidden;
+      }
+      .faq-item-modern:hover {
+        background: #282828 !important;
+        border-color: rgba(229, 9, 20, 0.25) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+      }
+      .faq-trigger-modern {
+        padding: 18px 22px !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 700;
+        font-size: 14.5px !important;
+        color: #fff;
+        transition: color 0.2s, background 0.2s;
+      }
+      .faq-trigger-modern:hover {
+        color: #e50914 !important;
+      }
+      .faq-content-modern {
+        max-height: 0px;
+        opacity: 0;
+        overflow: hidden;
+        padding: 0 22px;
+        box-sizing: border-box;
+        color: #cccccc;
+        font-size: 13.5px;
+        line-height: 1.6;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      /* Modern Feature Cards Grid */
+      .feat-grid-modern {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 5px;
+      }
+      .feat-card-modern {
+        background: linear-gradient(135deg, #1d1d1d 0%, #151515 100%) !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      .feat-card-modern::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 3px; height: 100%;
+        background: #e50914;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .feat-card-modern:hover {
+        transform: translateY(-3px);
+        border-color: rgba(229, 9, 20, 0.2) !important;
+        background: linear-gradient(135deg, #242424 0%, #171717 100%) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      }
+      .feat-card-modern:hover::before {
+        opacity: 1;
+      }
+      .feat-card-modern:hover .feat-svg-container {
+        background: rgba(229, 9, 20, 0.18);
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.3);
+      }
+      .feat-card-modern:hover .svg-feat-icon {
+        transform: scale(1.1) rotate(4deg);
+      }
+      .feat-svg-container {
+        background: rgba(229, 9, 20, 0.07);
+        border: 1px solid rgba(229, 9, 20, 0.15);
+        padding: 9px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        flex-shrink: 0;
+      }
       
-      <div style="display:flex; flex-direction:column; gap:16px;">
-        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
-          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
-            <span>How do I add a new memory?</span>
-            <span style="color:#E50914;">+</span>
+      /* Input Controls with Glow */
+      .hc-input-modern {
+        width: 100%;
+        padding: 11px 13px !important;
+        border-radius: 6px !important;
+        border: 1px solid #333 !important;
+        background: #0f0f0f !important;
+        color: white !important;
+        outline: none;
+        font-family: inherit;
+        font-size: 13px !important;
+        transition: all 0.25s;
+      }
+      .hc-input-modern:focus {
+        border-color: #e50914 !important;
+        box-shadow: 0 0 8px rgba(229, 9, 20, 0.35) !important;
+        background: #141414 !important;
+      }
+      
+      /* Sliding underline tabs */
+      .hc-tab-btn-modern {
+        background: none;
+        border: none;
+        padding: 12px 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: #a3a3a3;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.25s, font-weight 0.25s;
+        font-family: inherit;
+      }
+      .hc-tab-btn-modern::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2.5px;
+        background: #e50914;
+        transform: scaleX(0);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        transform-origin: right center;
+      }
+      .hc-tab-btn-modern.active {
+        color: #ffffff;
+        font-weight: 700;
+      }
+      .hc-tab-btn-modern.active::after {
+        transform: scaleX(1);
+        transform-origin: left center;
+      }
+    </style>
+    <div class="upload-modal-content" style="max-width: 500px; width: 100%; height: 100vh; background: #141414; border-left: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; overflow: hidden; box-shadow: -15px 0 45px rgba(0,0,0,0.95); position: relative; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      
+      <!-- Close Button -->
+      <button class="upload-close" onclick="const hc = document.getElementById('helpCentreModal'); hc.classList.remove('open'); setTimeout(() => hc.remove(), 400);" style="position: absolute; top: 16px; right: 20px; font-size: 28px; color: #737373; background:none; border:none; cursor:pointer; z-index: 100; transition: color 0.2s, transform 0.2s; line-height: 1;" onmouseenter="this.style.color='#fff'; this.style.transform='scale(1.15)';" onmouseleave="this.style.color='#737373'; this.style.transform='scale(1)';">&times;</button>
+      
+      <!-- Header Area -->
+      <div style="padding: 24px 24px 0 24px; background: #141414; display: flex; flex-direction: column; gap: 14px; position: relative;">
+        <!-- Logo & Title & Search Bar Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <!-- Branding Title -->
+          <div style="display: flex; align-items: center; gap: 11px;">
+            <img src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix Logo" referrerPolicy="no-referrer" style="height: 28px; width: auto; object-fit: contain; margin-top: -3px; margin-bottom: -3px;">
+            <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.25);"></div>
+            <span style="font-weight: 700; font-size: 14.5px; color: #fff; letter-spacing: -0.1px; text-transform: uppercase;">Help Center</span>
           </div>
-          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
-            Simply click the "+" button in the top navigation bar. You can add a title, description, category, moment photos, or a video link. Your added memory will load right in the correct cinematic category row!
+          
+          <!-- Compact Expandable Search Bar (Like Netflix search) -->
+          <div style="position: relative; display: flex; align-items: center; margin-right: 36px;">
+            <input type="text" id="hc-search-input" oninput="window.filterHelpContent(this.value)" placeholder="Search..." style="width: 130px; padding: 6px 10px 6px 28px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.2); background: #000; color: #fff; font-size: 12px; outline: none; transition: width 0.3s ease, border-color 0.3s;" onfocus="this.style.width='170px'; this.style.borderColor='#e50914';" onblur="this.style.width='130px'; this.style.borderColor='rgba(255,255,255,0.2)';">
+            <span style="position: absolute; left: 10px; font-size: 11px; color: #888; pointer-events: none;">🔍</span>
           </div>
         </div>
         
-        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
-          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
-            <span>How does Bulk Management work?</span>
-            <span style="color:#E50914;">+</span>
-          </div>
-          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
-            By opening the Bulk Manage Memories modal from your dashboard, you can select multiple memories in cards, edit their categories collectively, delete obsolete duplicates, or backup lists in a consolidated view.
-          </div>
-        </div>
-        
-        <div style="background:#222; padding:18px; border-radius:6px; border:1px solid #333;">
-          <div style="font-weight:bold; font-size:15px; color:#fff; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.toggleHelpCollapse(this)">
-            <span>Is our data synchronized?</span>
-            <span style="color:#E50914;">+</span>
-          </div>
-          <div style="font-size:13px; color:#aaa; margin-top:8px; display:none; line-height:1.5;">
-            Yes! All lists, memories, likes, and profile settings are persistently synchronized in realtime with Firebase Firestore. Any changes made on one device are instantly propagated everywhere else.
-          </div>
+        <!-- Tab Underline selectors -->
+        <div style="display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-top: 4px;">
+          <button id="hc-tab-btn-faq" class="hc-tab-btn-modern active" onclick="window.setHelpTab('faq')">
+            User FAQs
+          </button>
+          <button id="hc-tab-btn-features" class="hc-tab-btn-modern" onclick="window.setHelpTab('features')">
+            Feature Guides
+          </button>
+          <button id="hc-tab-btn-support" class="hc-tab-btn-modern" onclick="window.setHelpTab('support')">
+            Send Message
+          </button>
         </div>
       </div>
       
-      <div style="margin-top:40px; display:flex; justify-content:flex-end;">
-        <button class="btn btn-primary" style="padding:10px 24px;" onclick="document.getElementById('helpCentreModal').remove()">Done</button>
+      <!-- Scrolling Panel Body -->
+      <div id="hc-scrolling-body" style="flex:1; overflow-y:auto; padding: 24px; box-sizing:border-box; display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- FAQs TAB CONTENT -->
+        <div id="hc-tab-faq" style="display:flex; flex-direction:column; gap:4px;">
+          <p style="color:#a3a3a3; font-size:13px; margin:0 0 12px 0; line-height:1.5;">Frequently asked platform questions. Select to expand.</p>
+          
+          <!-- Accordion 1 -->
+          <div class="faq-item faq-item-modern">
+            <div class="faq-trigger faq-trigger-modern" onclick="window.toggleHelpCollapse(this)">
+              <span class="faq-title">How do I add new memories/moments?</span>
+              <span class="collapse-toggle-icon" style="color:#FFF; font-size:18px; line-height:1; transition: transform 0.25s; display:inline-block;">+</span>
+            </div>
+            <div class="faq-content faq-content-modern">
+              <div style="padding-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                Simply click the <strong style="color:#fff;">“＋ Add Memory”</strong> button in the top navigation bar. A sophisticated dialog drawer will appear, allowing you to specify a Title, Description, Category, Image Backdrop option, and Video Links. Newly added parameters sync immediately with Firestore database!
+              </div>
+            </div>
+          </div>
+          
+          <!-- Accordion 2 -->
+          <div class="faq-item faq-item-modern">
+            <div class="faq-trigger faq-trigger-modern" onclick="window.toggleHelpCollapse(this)">
+              <span class="faq-title">What is the Bulk Management terminal?</span>
+              <span class="collapse-toggle-icon" style="color:#FFF; font-size:18px; line-height:1; transition: transform 0.25s; display:inline-block;">+</span>
+            </div>
+            <div class="faq-content faq-content-modern">
+              <div style="padding-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                Clicking the <strong style="color:#fff;">“⚙ Bulk Manage”</strong> button opens our administrative dashboard panel. In this panel, you can view all items comprehensively, checkbox multiple cards simultaneously, categorize lists collectively, edit metadata in a single click, or execute quick bulk deletes.
+              </div>
+            </div>
+          </div>
+          
+          <!-- Accordion 3 -->
+          <div class="faq-item faq-item-modern">
+            <div class="faq-trigger faq-trigger-modern" onclick="window.toggleHelpCollapse(this)">
+              <span class="faq-title">How do I crop and compress pictures?</span>
+              <span class="collapse-toggle-icon" style="color:#FFF; font-size:18px; line-height:1; transition: transform 0.25s; display:inline-block;">+</span>
+            </div>
+            <div class="faq-content faq-content-modern">
+              <div style="padding-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                When uploading a photo or moment thumbnail, our integrated Canvas moments cropper loads. Standardise layouts with pre-configured cinematic aspect ratios (16:9 or 1:1), rotate, zoom, and lock. Images compress client-side automatically before transmission to ensure speedy loading.
+              </div>
+            </div>
+          </div>
+          
+          <!-- Accordion 4 -->
+          <div class="faq-item faq-item-modern">
+            <div class="faq-trigger faq-trigger-modern" onclick="window.toggleHelpCollapse(this)">
+              <span class="faq-title">How is the Gemini AI Copilot utilized?</span>
+              <span class="collapse-toggle-icon" style="color:#FFF; font-size:18px; line-height:1; transition: transform 0.25s; display:inline-block;">+</span>
+            </div>
+            <div class="faq-content faq-content-modern">
+              <div style="padding-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                Our platform incorporates deep Gemini prompts generator assistants. When creating content, click the <strong style="color:#fff;">✨ Generate with Gemini AI</strong> button to copy a bespoke contextual movie description formula or style requests to your clipboard and easily open Gemini app directly in another tab!
+              </div>
+            </div>
+          </div>
+          
+          <!-- Accordion 5 -->
+          <div class="faq-item faq-item-modern">
+            <div class="faq-trigger faq-trigger-modern" onclick="window.toggleHelpCollapse(this)">
+              <span class="faq-title">Is data synchronized securely in realtime?</span>
+              <span class="collapse-toggle-icon" style="color:#FFF; font-size:18px; line-height:1; transition: transform 0.25s; display:inline-block;">+</span>
+            </div>
+            <div class="faq-content faq-content-modern">
+              <div style="padding-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                Yes! Sourced from Google Firestore capabilities, our account statistics, My List favorites, customized descriptions, and uploaded moments are broadcast securely. Any modification is instantly updated in all active screens.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- FEATURES TAB CONTENT -->
+        <div id="hc-tab-features" style="display:none; flex-direction:column; gap:12px;">
+          <p style="color:#a3a3a3; font-size:13px; margin:0 0 4px 0; line-height:1.5;">Matrix of custom capabilities built inside our Netflix interface:</p>
+          
+          <!-- Grid of Features -->
+          <div class="feat-grid-modern" id="features-list-container">
+            
+            <!-- Feature item 1 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /><polygon points="10 8 16 11 10 14 10 8" fill="#E50914" stroke="none"/></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Hero Billboard Slideshow</span>
+                  <span style="font-size:8px; background:#e50914; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">Core</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Smooth transition-crossfade banner showcasing key highlights with video ambient clips, volume toggles, and direct theater play access.</p>
+              </div>
+            </div>
+            
+            <!-- Feature item 2 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" fill="#E50914" stroke="none"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Theater Experience Controls</span>
+                  <span style="font-size:8px; background:#e50914; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">New</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Dynamic fullscreen media controls representing play, pause, volume sliders, and seamless shortcuts including Space, M, and F keys.</p>
+              </div>
+            </div>
+            
+            <!-- Feature item 3 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364-6.364l-2.121 2.121M7.757 16.243l-2.121 2.121m12.728 0l-2.121-2.121M7.757 7.757L5.636 5.636" /><circle cx="12" cy="12" r="3" fill="#E50914" stroke="none"/></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Gemini AI Formula Generator</span>
+                  <span style="font-size:8px; background:#ae27eb; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">AI Powered</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Deep server-side LLM connectivity. Instantly auto-generates heartfelt romance descriptions, custom titles, and logo design formulas.</p>
+              </div>
+            </div>
+            
+            <!-- Feature item 4 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Administrative Bulk Manager</span>
+                  <span style="font-size:8px; background:#46d369; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">Admin</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Select and manage multiple blocks comfortably. Swap categories collectively, rewrite properties in batches, or execute complete mass deletions securely.</p>
+              </div>
+            </div>
+            
+            <!-- Feature item 5 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><path d="M6 2v14a2 2 0 0 0 2 2h14" /><path d="M18 22V8a2 2 0 0 0-2-2H2" /></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Sleek Profile Crop Tool</span>
+                  <span style="font-size:8px; background:#00bcff; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">Media</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Pre-defined ratios (1:1 and 16:9), interactive positioning nodes, canvas rotation, and client-side web image compression to save space.</p>
+              </div>
+            </div>
+ 
+            <!-- Feature item 6 -->
+            <div class="feat-item feat-card-modern">
+              <div class="feat-svg-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-feat-icon" style="transition: transform 0.3s ease;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                  <span style="font-weight:700; font-size:13.5px; color:#fff;" class="feat-name">Real-time Cloud Sync Engine</span>
+                  <span style="font-size:8px; background:#e50914; color:#fff; font-weight:800; padding:2px 4px; border-radius:2px; text-transform:uppercase;">Database</span>
+                </div>
+                <p style="font-size:11.5px; color:#aaa; margin:0; line-height:1.4;" class="feat-desc">Full integration with Google Firestore database guarantees that account profiles, customized playlists, and likes load instantaneously without lag.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- SUPPORT TAB CONTENT -->
+        <div id="hc-tab-support" style="display:none; flex-direction:column; gap:12px;">
+          <p style="color:#a3a3a3; font-size:13px; margin:0 0 6px 0; line-height:1.5;">Send an email message directly to Sarthak (<strong style="color:#e50914;">26sarthakbasu@gmail.com</strong>) from your native client:</p>
+          
+          <div id="hc-support-form-container" style="background:#1f1f1f; border-radius:4px; padding:20px; display:flex; flex-direction:column; gap:15px;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Your Profile Identity</label>
+              <select id="hc-support-author" style="width:100%; padding:10px; border-radius:2px; border:1px solid #333; background:#141414; color:white; outline:none; font-family:inherit; font-size:13px;">
+                <option value="Sarthak">Sarthak</option>
+                <option value="Reechita">Reechita</option>
+                <option value="Visitor / Friend">Visitor / Friend</option>
+              </select>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Subject Category</label>
+              <select id="hc-support-type" style="width:100%; padding:10px; border-radius:2px; border:1px solid #333; background:#141414; color:white; outline:none; font-family:inherit; font-size:13px;">
+                <option value="Suggestion">💡 Romantic Suggestion</option>
+                <option value="Technical Issue">🔧 Bug or Display Glitch</option>
+                <option value="Love Letter">💖 Secret Sweet Message</option>
+                <option value="Other">📝 General Question</option>
+              </select>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Detailed Message</label>
+              <textarea id="hc-support-msg" rows="4" placeholder="Write whatever is on your mind..." style="width:100%; padding:10px; border-radius:2px; border:1px solid #333; background:#141414; color:white; outline:none; font-family:inherit; resize:none; font-size:13px; line-height:1.5;" required></textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="window.submitHelpTicket()" style="width:100%; padding:12px; font-weight:700; font-size:12.5px; margin-top:5px; text-transform:uppercase; letter-spacing:0.5px; border:none; border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; background:#e50914; color:#fff; transition: background 0.2s;">
+               <span>📨</span> Open Email Client
+            </button>
+          </div>
+        </div>
+        
       </div>
     </div>
   `;
@@ -974,55 +1421,504 @@ window.openHelpCentreModal = () => {
   setTimeout(() => modal.classList.add('open'), 10);
 };
 
+window.setHelpTab = (tabName) => {
+  const tabs = ['faq', 'features', 'support'];
+  tabs.forEach(t => {
+    const el = document.getElementById(`hc-tab-${t}`);
+    const btn = document.getElementById(`hc-tab-btn-${t}`);
+    if (el && btn) {
+      if (t === tabName) {
+        el.style.display = 'flex';
+        btn.style.color = '#fff';
+        btn.style.fontWeight = '700';
+        btn.style.borderBottomColor = '#E50914';
+      } else {
+        el.style.display = 'none';
+        btn.style.color = '#a3a3a3';
+        btn.style.fontWeight = '500';
+        btn.style.borderBottomColor = 'transparent';
+      }
+    }
+  });
+  
+  // Clear search field on tab shift
+  const searchInput = document.getElementById('hc-search-input');
+  if (searchInput) {
+    searchInput.value = '';
+    window.filterHelpContent('');
+  }
+};
+
 window.toggleHelpCollapse = (el) => {
+  const trigger = el;
   const content = el.nextElementSibling;
-  const isCollapsed = content.style.display === 'none' || !content.style.display;
-  content.style.display = isCollapsed ? 'block' : 'none';
-  el.querySelector('span:last-child').innerText = isCollapsed ? '−' : '+';
+  const icon = el.querySelector('.collapse-toggle-icon');
+  const faqItem = el.closest('.faq-item');
+  const isCollapsed = content.style.maxHeight === '0px' || !content.style.maxHeight;
+  
+  // Close all other collapsible items to prevent clutter (Netflix accordion style!)
+  const allItems = document.querySelectorAll('.faq-item');
+  allItems.forEach(item => {
+    const itemContent = item.querySelector('.faq-content');
+    const itemTrigger = item.querySelector('.faq-trigger');
+    const itemIcon = item.querySelector('.collapse-toggle-icon');
+    if (itemContent && itemContent !== content) {
+      itemContent.style.maxHeight = '0px';
+      itemContent.style.opacity = '0';
+      if (itemIcon) {
+        itemIcon.style.transform = 'rotate(0deg)';
+        itemIcon.innerText = '+';
+      }
+      item.style.background = '#303030';
+      if (itemTrigger) delete itemTrigger.dataset.active;
+    }
+  });
+
+  if (isCollapsed) {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    content.style.opacity = '1';
+    if (icon) {
+      icon.style.transform = 'rotate(45deg)'; // Tilt a bit or turn into close icon
+      icon.innerText = '×';
+    }
+    trigger.dataset.active = "true";
+  } else {
+    content.style.maxHeight = '0px';
+    content.style.opacity = '0';
+    if (icon) {
+      icon.style.transform = 'rotate(0deg)';
+      icon.innerText = '+';
+    }
+    delete trigger.dataset.active;
+  }
+};
+
+window.filterHelpContent = (query) => {
+  const q = query.toLowerCase().trim();
+  
+  // Filter FAQs
+  const faqItems = document.querySelectorAll('.faq-item');
+  faqItems.forEach(item => {
+    const titleEl = item.querySelector('.faq-title');
+    const contentEl = item.querySelector('.faq-content');
+    if (titleEl && contentEl) {
+      const title = titleEl.innerText.toLowerCase();
+      const content = contentEl.innerText.toLowerCase();
+      if (title.includes(q) || content.includes(q)) {
+        item.style.display = 'block';
+      } else {
+        item.style.display = 'none';
+      }
+    } else {
+      // If elements are missing but the item has the class, default to hiding or showing gracefully
+      item.style.display = q === '' ? 'block' : 'none';
+    }
+  });
+  
+  // Filter Features Guide
+  const featItems = document.querySelectorAll('.feat-item');
+  featItems.forEach(item => {
+    const nameEl = item.querySelector('.feat-name');
+    const descEl = item.querySelector('.feat-desc');
+    if (nameEl && descEl) {
+      const name = nameEl.innerText.toLowerCase();
+      const desc = descEl.innerText.toLowerCase();
+      if (name.includes(q) || desc.includes(q)) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    } else {
+      item.style.display = q === '' ? 'flex' : 'none';
+    }
+  });
+};
+
+window.submitHelpTicket = async () => {
+  const author = document.getElementById('hc-support-author').value;
+  const type = document.getElementById('hc-support-type').value;
+  const msg = document.getElementById('hc-support-msg').value.trim();
+  
+  if (!msg) {
+    return window.netflixAlert("Please write a message before submitting.");
+  }
+  
+  const emailTo = "26sarthakbasu@gmail.com";
+  const emailSubject = `Netflix Our-Story: ${type} from ${author}`;
+  const emailBody = `Sender Profile: ${author}\nCategory: ${type}\n\nMessage:\n${msg}`;
+  
+  let copySuccessful = false;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(emailBody);
+      copySuccessful = true;
+    } catch(e) {
+      console.warn("Clipboard locked:", e);
+    }
+  }
+  
+  const formContainer = document.getElementById('hc-support-form-container');
+  if (formContainer) {
+    formContainer.innerHTML = `
+      <div style="text-align:center; padding: 25px 5px; display:flex; flex-direction:column; align-items:center; gap:16px; animation: hcFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; font-family:inherit;">
+        
+        <!-- Success Check Rings -->
+        <div style="width:60px; height:60px; background:rgba(229,9,20,0.1); border: 2px solid #e50914; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#e50914; font-size:24px; box-shadow: 0 0 15px rgba(229,10,20,0.25); animation: checkPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+          ✔
+        </div>
+        
+        <h3 style="margin:0; font-size:16.5px; font-weight:800; color:#fff; tracking-tight">Email Fully Prepared!</h3>
+        
+        <p style="font-size:12.5px; color:#aaa; margin:0; line-height:1.55; max-width:300px;">
+          Your message is formatted and ready for delivery to:<br>
+          <strong style="color: #fff; text-decoration: underline; font-size: 13px;">${emailTo}</strong>
+        </p>
+
+        <div style="background:#0c0c0c; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px; width:100%; text-align:left; font-family:monospace; font-size:11.5px; color:#c5c5c5; overflow-x:auto; word-break:break-all; max-height:100px; overflow-y:auto; margin-top:5px;">
+          ${emailBody.replace(/\n/g, '<br>')}
+        </div>
+
+        <p style="font-size:11px; color:#888; margin:0; line-height:1.4; max-width:280px;">
+          ${copySuccessful ? '🎈 <strong>Message copied to clipboard!</strong> If your browser blocks launching mail apps, you can paste the text directly.' : 'Clipboard copy restricted; please click Launch Email below to send.'}
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%; margin-top:10px;">
+          <a href="mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}" target="_blank" class="btn btn-primary" style="padding:12px 14px; font-size:12px; font-weight:700; border-radius:4px; text-decoration:none; text-align:center; background:#e50914; color:#fff; text-transform:uppercase; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s;" onmouseenter="this.style.background='#ff1a22';" onmouseleave="this.style.background='#e50914';">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+            Launch System Mail
+          </a>
+          
+          <button class="btn" onclick="window.resetHelpSupportForm()" style="background: rgba(255,255,255,0.08); color: white; border: none; padding: 10px; font-size: 11.5px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseenter="this.style.background='rgba(255,255,255,0.15)';" onmouseleave="this.style.background='rgba(255,255,255,0.08)';">
+            Write Another Message
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  try {
+    const dummyLink = document.createElement('a');
+    dummyLink.href = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    dummyLink.target = '_blank';
+    document.body.appendChild(dummyLink);
+    dummyLink.click();
+    document.body.removeChild(dummyLink);
+  } catch(e) {
+    window.location.href = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  }
+  
+  window.showToast("Opening Email Client...");
+};
+
+window.resetHelpSupportForm = () => {
+  const formContainer = document.getElementById('hc-support-form-container');
+  if (formContainer) {
+    formContainer.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.7px;">Your Profile Identity</label>
+        <select id="hc-support-author" class="hc-input-modern">
+          <option value="Sarthak">Sarthak</option>
+          <option value="Reechita">Reechita</option>
+          <option value="Visitor / Friend">Visitor / Friend</option>
+        </select>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.7px;">Subject Category</label>
+        <select id="hc-support-type" class="hc-input-modern">
+          <option value="Suggestion">💡 Romantic Suggestion</option>
+          <option value="Technical Issue">🔧 Bug or Display Glitch</option>
+          <option value="Love Letter">💖 Secret Sweet Message</option>
+          <option value="Other">📝 General Question</option>
+        </select>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <label style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.7px;">Detailed Message</label>
+        <textarea id="hc-support-msg" class="hc-input-modern" rows="4" placeholder="Write whatever is on your mind..." style="resize:none; line-height:1.5;" required></textarea>
+      </div>
+      
+      <button class="btn btn-primary" onclick="window.submitHelpTicket()" style="width:100%; padding:14px; font-weight:700; font-size:12.5px; margin-top:5px; text-transform:uppercase; letter-spacing:0.7px; border:none; border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; background:#e50914; color:#fff; transition: all 0.25s; box-shadow: 0 4px 10px rgba(229,9,20,0.2);" onmouseenter="this.style.background='#ff1a22'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)';">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><polyline points="22 2 11 13 22 2"></polyline><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        Open Email Client
+      </button>
+    `;
+  }
 };
 
 window.openSettingsModal = () => {
   const modal = document.createElement('div');
-  modal.className = 'upload-modal';
+  modal.className = 'settings-overlay-modern';
   modal.id = 'settingsModal';
   
   modal.innerHTML = `
-    <div class="upload-modal-content" style="max-width: 400px;">
-      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
-      <div class="upload-title" style="margin-bottom:30px;">Account Settings</div>
+    <style>
+      .settings-overlay-modern {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 15000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .settings-overlay-modern.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
       
-      <div class="settings-row">
-        <div>
-          <div style="font-weight:bold; font-size:16px;">Autoplay Previews</div>
-          <div style="font-size:12px; color:#888; margin-top:5px;">Play video previews on the home screen and hover.</div>
+      .netflix-settings-card {
+        background: #141414;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 480px;
+        width: 100%;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.08);
+        position: relative;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.95);
+        animation: settingsFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        box-sizing: border-box;
+      }
+      .netflix-settings-card::-webkit-scrollbar {
+        width: 6px;
+      }
+      .netflix-settings-card::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .netflix-settings-card::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+      }
+      .netflix-settings-card::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      @keyframes settingsFadeIn {
+        from { opacity: 0; transform: scale(0.96) translateY(8px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      
+      .netflix-settings-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      
+      .settings-text-column {
+        padding-right: 15px;
+        flex: 1;
+      }
+      .settings-title-label {
+        font-size: 15px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.1px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .settings-desc-label {
+        font-size: 11.5px;
+        color: #a3a3a3;
+        line-height: 1.40;
+      }
+      
+      /* Netflix Custom RED Switch */
+      .netflix-red-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .netflix-red-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .netflix-red-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #2b2b2b;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+      .netflix-red-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #8a8a8a;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      }
+      .netflix-red-switch input:checked + .netflix-red-slider {
+        background-color: #e50914;
+        border-color: #e50914;
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.35);
+      }
+      .netflix-red-switch input:checked + .netflix-red-slider:before {
+        transform: translateX(20px);
+        background-color: #ffffff;
+      }
+      
+      /* Danger Zone Box */
+      .netflix-danger-box {
+        background: rgba(229, 9, 20, 0.02);
+        border: 1px solid rgba(229, 9, 20, 0.25);
+        padding: 18px 20px;
+        border-radius: 8px;
+        margin-top: 25px;
+        position: relative;
+        overflow: hidden;
+      }
+      .netflix-danger-box::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; bottom: 0; width: 4px;
+        background: #e50914;
+      }
+      .danger-box-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #ff333f;
+        margin-bottom: 8px;
+        letter-spacing: -0.1px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+      }
+      .danger-bullets {
+        margin: 10px 0 16px 0;
+        padding-left: 14px;
+        font-size: 11px;
+        color: #b3b3b3;
+        line-height: 1.55;
+        list-style-type: square;
+      }
+      .danger-bullets li {
+        margin-bottom: 5px;
+      }
+      .danger-bullets strong {
+        color: #ffffff;
+      }
+      
+      .purge-btn-netflix {
+        background: rgba(229, 9, 20, 0.12);
+        border: 1px solid #e50914;
+        color: #ffffff;
+        width: 100%;
+        justify-content: center;
+        font-weight: 700;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .purge-btn-netflix:hover {
+        background: #e50914;
+        box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+        transform: translateY(-1px);
+      }
+      .purge-btn-netflix:active {
+        transform: translateY(1px);
+      }
+    </style>
+    
+    <div class="netflix-settings-card">
+      <button class="upload-close" onclick="document.getElementById('settingsModal').remove()">&times;</button>
+      
+      <!-- Modal Header -->
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span style="font-weight:900; font-size:18px; color:#fff; letter-spacing:-0.2px;">Account Settings</span>
+      </div>
+      
+      <!-- Set 1: Autoplay Previews -->
+      <div class="netflix-settings-row">
+        <div class="settings-text-column">
+          <div class="settings-title-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Autoplay Previews
+          </div>
+          <div class="settings-desc-label">Stream video highlights automatically on home screen hover cards.</div>
         </div>
-        <label class="switch">
+        <label class="netflix-red-switch">
           <input type="checkbox" ${appState.settings.autoPlayPreviews ? 'checked' : ''} onchange="toggleSetting('autoPlayPreviews')">
-          <span class="slider"></span>
+          <span class="netflix-red-slider"></span>
         </label>
       </div>
 
-      <div class="settings-row">
-        <div>
-          <div style="font-weight:bold; font-size:16px;">Autoplay Next Episode</div>
-          <div style="font-size:12px; color:#888; margin-top:5px;">Automatically play the next memory/video.</div>
+      <!-- Set 2: Autoplay Next Episode -->
+      <div class="netflix-settings-row" style="border-bottom: none;">
+        <div class="settings-text-column">
+          <div class="settings-title-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            Autoplay Next Episode
+          </div>
+          <div class="settings-desc-label">Immediately queue and boot the next memory following video completion.</div>
         </div>
-        <label class="switch">
+        <label class="netflix-red-switch">
           <input type="checkbox" ${appState.settings.autoPlayNextEpisode ? 'checked' : ''} onchange="toggleSetting('autoPlayNextEpisode')">
-          <span class="slider"></span>
+          <span class="netflix-red-slider"></span>
         </label>
       </div>
       
-      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 25px; padding-top: 20px;">
-        <div style="font-weight: bold; font-size: 15px; color: #ff5252; margin-bottom: 5px;">Danger Zone</div>
-        <p style="font-size: 11px; color: #888; margin: 0 0 15px 0; line-height: 1.4;">Permanently delete and wipe all active videos and photos from Firebase Firestore.</p>
-        <button class="btn" style="background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.5); color: #ff5252; width: 100%; justify-content: center; font-weight: 600; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'" onclick="window.confirmPurgeAll()">
-          🗑️ Purge Firebase Database
+      <!-- Danger Zone block -->
+      <div class="netflix-danger-box">
+        <div class="danger-box-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Warning: Danger Zone
+        </div>
+        <p style="font-size: 11px; color:#adadad; margin:0; line-height:1.45;">Executing a database purge results in immediate and irreversible server modifications:</p>
+        <ul class="danger-bullets">
+          <li>Permanently <strong>deletes and wipes all videos, photos, categories, and memories</strong> from Firestore.</li>
+          <li>Clears all active <strong>My List</strong> bookmarks, user likes, and customized playlist statistics.</li>
+          <li><strong>IRREVERSIBLE EFFECT:</strong> Wiped databases cannot be restored under any circumstances.</li>
+        </ul>
+        <button class="purge-btn-netflix" onclick="window.confirmPurgeAll()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/>
+            <line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+          Purge Firebase Database
         </button>
       </div>
       
-      <div class="actions" style="margin-top:30px; justify-content:center;">
-        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('settingsModal').remove()">Done</button>
+      <div class="actions" style="margin-top:25px; justify-content:center;">
+        <button class="btn btn-primary" style="width:100%; border:none; padding: 12px; font-weight:700; background:#fff; color:#000; transition:all 0.2s;" onmouseenter="this.style.background='#e50914'; this.style.color='#fff';" onmouseleave="this.style.background='#fff'; this.style.color='#000';" onclick="document.getElementById('settingsModal').remove()">Done</button>
       </div>
     </div>
   `;
@@ -1992,7 +2888,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.05);border:none;pointer-events:none;"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -2003,7 +2899,8 @@ window.shuffleHero = () => {
       newMediaItem.className = 'hero-media-roll-item roll-in';
       newMediaItem.innerHTML = `
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
-          <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          ${nextBackgroundHtml}
         </div>
       `;
       
@@ -2013,7 +2910,7 @@ window.shuffleHero = () => {
       newTextItem.innerHTML = `
         <div class="hero-text-lockup" style="width: 100%;">
           <div class="${titleClass}">
-            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.25em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
+            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
             <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                 <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -2076,39 +2973,28 @@ window.shuffleHero = () => {
       const ratingBox = currentHero.querySelector('#hero-rating-box');
       if (ratingBox) ratingBox.innerText = nextHeroMem.rating || 'TV-14';
       
-      // Autoplay previews: delay loading video preview until after the transition finishes (900ms) to ensure smooth 60/120fps operations
+      // Autoplay previews: once background element streams, fade the thumbnail cover safely
       if (nextBackgroundHtml) {
         setTimeout(() => {
-          const videoWrapper = newMediaItem.querySelector('.hero-video-wrapper');
-          if (videoWrapper) {
-            const containerNode = document.createElement('div');
-            containerNode.innerHTML = nextBackgroundHtml;
-            while (containerNode.firstChild) {
-              videoWrapper.appendChild(containerNode.firstChild);
-            }
-            
-            // Once loaded, fade the cover image off smoothly
-            setTimeout(() => {
-              const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
-              if (imgOverlay) imgOverlay.style.opacity = '0';
-            }, 800);
-            
-            const nv = videoWrapper.querySelector('#hero-native-video');
-            if (nv && !nv.muted) {
-              nv.volume = 0;
-              let vol = 0;
-              const rampInterval = setInterval(() => {
-                vol += 0.05;
-                if (vol >= 0.25) {
-                  nv.volume = 0.25;
-                  clearInterval(rampInterval);
-                } else {
-                  nv.volume = vol;
-                }
-              }, 600);
-            }
+          const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
+          if (imgOverlay) imgOverlay.style.opacity = '0';
+        }, 750);
+      }
+      
+      // Native preview audio volume fade logic
+      const nv = newMediaItem.querySelector('#hero-native-video');
+      if (nv && !nv.muted) {
+        nv.volume = 0;
+        let vol = 0;
+        const rampInterval = setInterval(() => {
+          vol += 0.05;
+          if (vol >= 0.25) {
+            nv.volume = 0.25;
+            clearInterval(rampInterval);
+          } else {
+            nv.volume = vol;
           }
-        }, 900);
+        }, 600);
       }
       
       // Clean up previous elements after transition duration completes
@@ -2221,7 +3107,7 @@ window.startHeroMinimizeTimer = (textRollItem) => {
   textRollItem.classList.remove('minimized');
   window.heroMinimizeTimeout = setTimeout(() => {
     textRollItem.classList.add('minimized');
-  }, 3500); // 3.5 seconds matches the pristine cinematic timeline as requested
+  }, 5000); // 5 seconds matches pristine Netflix cinematic transitions as requested
 };
 
 function createHero() {
@@ -2253,7 +3139,8 @@ function createHero() {
   }
   
   const heroMem = vids[window.currentHeroIndex % vids.length] || vids[0];
-  const isYouTube = heroMem && heroMem.videoUrl && !heroMem.videoUrl.includes('/') && !heroMem.videoUrl.includes('blob:');
+  const ytId = heroMem && heroMem.videoUrl ? window.extractYouTubeId(heroMem.videoUrl) : null;
+  const isYouTube = !!ytId;
   
   const titleText = heroMem.title || '';
   const isLongTitle = titleText.length > 20;
@@ -2269,7 +3156,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${heroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${heroMem.videoUrl}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.03);border:none;pointer-events:none;"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd2160&disablekb=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.77vh;transform:translate(-50%, -50%) scale(1.35);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -2279,7 +3166,8 @@ function createHero() {
     <div class="hero-media-roll-container">
       <div class="hero-media-roll-item roll-active">
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
-          <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
+          ${backgroundVideoHtml}
           <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
         </div>
       </div>
@@ -2291,7 +3179,7 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.25em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
               <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -2334,40 +3222,30 @@ function createHero() {
     }
   }, 50);
 
-  // Lazy-load initial page background to guarantee lightning-first initial page load paint & zero stutter
   if (backgroundVideoHtml) {
+    // Gracefully fade out static picture once video/iframe starts streaming
     setTimeout(() => {
-      const videoWrapper = c.querySelector('.hero-video-wrapper');
-      if (videoWrapper) {
-        const containerNode = document.createElement('div');
-        containerNode.innerHTML = backgroundVideoHtml;
-        while (containerNode.firstChild) {
-          videoWrapper.appendChild(containerNode.firstChild);
-        }
-        
-        // Gracefully fade out static picture once video starts streaming
-        setTimeout(() => {
-          const imgOverlay = c.querySelector('#hero-img-overlay');
-          if (imgOverlay) imgOverlay.style.opacity = '0';
-        }, 1200);
-        
-        // Volume Fade Loop Timer for native video
-        const nv = videoWrapper.querySelector('#hero-native-video');
-        if (nv && !nv.muted) {
-          nv.volume = 0;
-          let vol = 0;
-          const rampInterval = setInterval(() => {
-            vol += 0.05; // 5 steps to 0.25
-            if (vol >= 0.25) {
-              nv.volume = 0.25;
-              clearInterval(rampInterval);
-            } else {
-              nv.volume = vol;
-            }
-          }, 600); // 5 steps * 600ms = 3000ms
-        }
+      const imgOverlay = c.querySelector('#hero-img-overlay');
+      if (imgOverlay) imgOverlay.style.opacity = '0';
+    }, 1000);
+    
+    // Volume Fade Loop Timer for native video
+    setTimeout(() => {
+      const nv = document.getElementById('hero-native-video');
+      if (nv && !nv.muted) {
+        nv.volume = 0;
+        let vol = 0;
+        const rampInterval = setInterval(() => {
+          vol += 0.05; // 5 steps to 0.25
+          if (vol >= 0.25) {
+            nv.volume = 0.25;
+            clearInterval(rampInterval);
+          } else {
+            nv.volume = vol;
+          }
+        }, 600); // 5 steps * 600ms = 3000ms
       }
-    }, 1400); // 1.4 seconds delay protects critical rendering paths on page bootstrap
+    }, 100);
   }
   return c;
 }
@@ -2567,8 +3445,12 @@ function createRow(title, memories, index = 0) {
     `;
 
     card.innerHTML = `
-      <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low">
-      <div class="hover-chassis">
+      <div class="media-card-img-wrapper" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; border-radius:4px; z-index:1;">
+        <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low" style="width:100%; height:100%; object-fit:cover; transition: opacity 0.3s; display: block;">
+        <div class="media-card-video-container" style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; transition: opacity 0.3s; background: black; pointer-events: none; overflow:hidden; display: none;"></div>
+        <div class="media-card-click-shield" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:10; background: rgba(0,0,0,0); pointer-events: auto; cursor: pointer;"></div>
+      </div>
+      <div class="hover-chassis" style="z-index: 15;">
         <div class="hc-buttons">
           ${buttonsHtml}
         </div>
@@ -2584,10 +3466,15 @@ function createRow(title, memories, index = 0) {
       </div>
     `;
     
+    let hoverTimer;
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
       const originOffset = r.width * 0.20;
+      
+      const row = card.closest('.row');
+      if (row) row.classList.add('row-active-hover');
+
       requestAnimationFrame(() => {
         if (r.left - originOffset < 30) {
           card.style.transformOrigin = 'left center';
@@ -2597,10 +3484,54 @@ function createRow(title, memories, index = 0) {
           card.style.transformOrigin = 'center center';
         }
       });
+      
+      if (appState.settings && appState.settings.autoPlayPreviews && m.videoUrl) {
+        hoverTimer = setTimeout(() => {
+          const videoContainer = card.querySelector('.media-card-video-container');
+          const thumbImg = card.querySelector('img');
+          if (videoContainer) {
+            const ytId = window.extractYouTubeId(m.videoUrl);
+            const isYouTube = !!ytId;
+            videoContainer.style.display = 'block';
+            
+            if (isYouTube) {
+              const cardW = card.offsetWidth || r.width || 260;
+              const scale = (cardW / 1200) * 1.5;
+              videoContainer.innerHTML = `
+                <iframe class="media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd360&fs=0&disablekb=1" style="position:absolute; top:50%; left:50%; width:1200px; height:675px; transform:translate(-50%, -50%) scale(${scale}); transform-origin:center center; border:none; pointer-events:none !important;" allow="autoplay; encrypted-media"></iframe>
+              `;
+            } else {
+              videoContainer.innerHTML = `
+                <video class="media-card-hover-video" src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+              `;
+            }
+            requestAnimationFrame(() => {
+              videoContainer.style.opacity = '1';
+              if (thumbImg) thumbImg.style.opacity = '0';
+            });
+          }
+        }, 400);
+      }
     };
 
     card.onmouseleave = () => {
-      // Empty and optimized
+      if (hoverTimer) clearTimeout(hoverTimer);
+      
+      const row = card.closest('.row');
+      if (row) row.classList.remove('row-active-hover');
+
+      const videoContainer = card.querySelector('.media-card-video-container');
+      const thumbImg = card.querySelector('img');
+      if (videoContainer) {
+        videoContainer.style.opacity = '0';
+        if (thumbImg) thumbImg.style.opacity = '1';
+        setTimeout(() => {
+          if (videoContainer.style.opacity === '0') {
+            videoContainer.innerHTML = '';
+            videoContainer.style.display = 'none';
+          }
+        }, 300);
+      }
     };
 
     fragment.appendChild(card);
@@ -3221,10 +4152,11 @@ window.openDetailModal = (id, e, editMode = false) => {
   modal.className = 'detail-overlay';
   modal.id = 'detailModal';
   
-  const isYouTube = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+  const ytId = m.videoUrl ? window.extractYouTubeId(m.videoUrl) : null;
+  const isYouTube = !!ytId;
   
   let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${m.videoUrl}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&vq=hd1080" style="width:100%;height:100%;pointer-events:none;border:none;transform:scale(1.35);"></iframe>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
+      (isYouTube ? `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd720&fs=0&disablekb=1" style="position:absolute; top:50%; left:50%; width:1600px; height:900px; transform:translate(-50%, -50%) scale(0.45); transform-origin:center center; pointer-events:none !important; border:none;" allow="autoplay"></iframe><div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; background:rgba(0,0,0,0); pointer-events:auto;"></div></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
@@ -3340,6 +4272,35 @@ window.openDetailModal = (id, e, editMode = false) => {
     </div>
   `;
   document.body.appendChild(modal);
+
+  const detailHeaderForYt = modal.querySelector('.detail-header');
+  if (detailHeaderForYt && isYouTube) {
+    const modalYtPlayer = modal.querySelector('#modalYtPlayer');
+    if (modalYtPlayer) {
+      const nativeW = 1600;
+      const nativeH = 900;
+      const updateSize = (width) => {
+        const mScale = (width / nativeW) * 1.5;
+        modalYtPlayer.style.width = `${nativeW}px`;
+        modalYtPlayer.style.height = `${nativeH}px`;
+        modalYtPlayer.style.transform = `translate(-50%, -50%) scale(${mScale})`;
+        modalYtPlayer.style.transformOrigin = 'center center';
+        modalYtPlayer.style.position = 'absolute';
+        modalYtPlayer.style.top = '50%';
+        modalYtPlayer.style.left = '50%';
+      };
+      
+      const headerRect = detailHeaderForYt.getBoundingClientRect();
+      updateSize(headerRect.width || 800);
+      
+      const ro = new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          updateSize(entry.contentRect.width);
+        }
+      });
+      ro.observe(detailHeaderForYt);
+    }
+  }
 
   // Dynamically fetch and display actual duration
   if (m.videoUrl) {
@@ -3534,22 +4495,42 @@ window.showToast = (msg, duration = 3000) => {
   toast.id = 'nf-toast';
   toast.style.cssText = `
     position: fixed;
-    bottom: 30px;
+    bottom: 40px;
     left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: rgba(229, 9, 20, 0.95);
+    transform: translateX(-50%) translateY(30px);
+    background: #181c1f;
     color: white;
-    padding: 12px 24px;
+    border-left: 4px solid #e50914;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 13px 20px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
-    z-index: 130000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 150000;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.85);
     pointer-events: none;
     opacity: 0;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.1px;
+    min-width: 260px;
+    max-width: 90%;
   `;
-  toast.innerText = msg;
+  
+  // High contrast red ring checkbox indicator icon
+  toast.innerHTML = `
+    <div style="flex-shrink:0; display:flex; align-items:center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="animation: checkPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+        <circle cx="12" cy="12" r="10" fill="rgba(229, 9, 20, 0.15)" stroke="#e50914" stroke-width="2.5"/>
+        <path d="M8.5 12.5l2.5 2.5 5-5" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div style="flex:1; word-break:break-word; font-family: inherit;">${msg}</div>
+  `;
   document.body.appendChild(toast);
   
   requestAnimationFrame(() => {
@@ -3558,9 +4539,9 @@ window.showToast = (msg, duration = 3000) => {
   });
   
   setTimeout(() => {
-    toast.style.transform = 'translateX(-50%) translateY(20px)';
+    toast.style.transform = 'translateX(-50%) translateY(30px)';
     toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
+    setTimeout(() => toast.remove(), 400);
   }, duration);
 };
 
@@ -3690,6 +4671,7 @@ window.downloadVideo = () => {
 
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
+  let handleYtKeydown = null;
   const m = appState.memories.find(i => i.id === id);
   if(!m) return;
   
@@ -3715,7 +4697,22 @@ window.playVideo = (id) => {
   // Convert File Object to URL if loaded from DB
   let url = m.videoUrl;
   const detailModal = document.getElementById('detailModal');
-  if(detailModal) detailModal.remove();
+  if (detailModal) {
+    // Gracefully close detail modal with its 300ms fade transition
+    const v = detailModal.querySelectorAll('video, iframe');
+    v.forEach(el => {
+      if (typeof el.pause === 'function') {
+        el.pause();
+      } else {
+        el.src = '';
+        if (typeof el.load === 'function') el.load();
+      }
+    });
+    detailModal.classList.remove('open');
+    setTimeout(() => {
+      if (detailModal.parentNode) detailModal.remove();
+    }, 400);
+  }
   
   let c = document.getElementById('playbackOverlay');
   if (!c) {
@@ -3725,24 +4722,51 @@ window.playVideo = (id) => {
     document.body.appendChild(c);
   }
   
+  // Apply starting state with transitions completely disabled to prevent flash
   c.style.display = 'block';
+  c.style.transition = 'none';
   c.style.opacity = '0';
-  c.style.transform = 'scale(1.12)';
+  c.style.transform = 'scale(0.85)';
   
-  // Force pipeline paint computation
+  // Force a browser reflow paint
   c.offsetHeight;
   
-  c.style.transition = 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)';
-  c.style.opacity = '1';
-  c.style.transform = 'scale(1)';
+  // Transition to full visual size smoothly in the next execution tick
+  setTimeout(() => {
+    c.style.transition = 'opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1)';
+    c.style.opacity = '1';
+    c.style.transform = 'scale(1)';
+  }, 30);
   
   // Play Netflix initial animation before playing video
-  const isYouTube = url && !url.includes('/') && !url.includes('blob:');
+  const ytId = window.extractYouTubeId(url);
+  const isYouTube = !!ytId;
   
   // Setup main player later to prevent YouTube autoplaying before intro ends
   let playerHtml = '';
   if (isYouTube) {
-    playerHtml = `<iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:auto;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>`;
+    playerHtml = `
+      <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
+        <iframe id="fsyPlayer" style="display:none; width:100%; height:100%; background:black; border:none; pointer-events:none; z-index:1;" src="" allowfullscreen="true" allow="autoplay; encrypted-media;"></iframe>
+        <div id="video-click-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; background:transparent; cursor:pointer;"></div>
+        <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001; pointer-events:auto;">
+          <div style="display:flex; align-items:center; gap:25px; margin-top: 10px;">
+            <button id="play-pause-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Play/Pause (Space)">
+              <svg id="icon-play" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+              <svg id="icon-pause" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
+            </button>
+            <button id="mute-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Mute/Unmute (M)">
+              <svg id="icon-vol-up" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              <svg id="icon-vol-off" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+            </button>
+            <div style="flex:1;"></div>
+            <button id="fullscreen-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Fullscreen (F)">
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   } else {
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
@@ -3772,7 +4796,7 @@ window.playVideo = (id) => {
       </div>
     `;
   }
-
+ 
   c.innerHTML = `
     <div id="playback-back-btn" class="playback-back" style="z-index: 10002; position:absolute; top: 40px; left: 40px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.25); transition: background 0.35s, border-color 0.35s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -3796,15 +4820,13 @@ window.playVideo = (id) => {
     </div>
   `;
   // don't appendChild here since we attached it at the top
-
+ 
   
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
   
-  // Request fullscreen automatically as early as possible
-  if (c.requestFullscreen) {
-    c.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
-  }
+  // Seamless virtual fullscreen overlay covers the entire viewport on init
+  // Manual native fullscreen trigger remains available on the player controller bar
   
   const startMainVideo = () => {
     if (introPlayer) {
@@ -3817,12 +4839,10 @@ window.playVideo = (id) => {
     }
     
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${url}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd2160&enablejsapi=1`;
-    }
-    mainPlayer.style.display = 'flex';
-    
-    // Auto play when transition is done
-    if (!isYouTube) {
+      mainPlayer.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1&fs=0&disablekb=1`;
+      mainPlayer.style.display = 'block';
+    } else {
+      mainPlayer.style.display = 'block';
       const pPromise = mainPlayer.play();
       if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
     }
@@ -3832,15 +4852,6 @@ window.playVideo = (id) => {
   if (introPlayer) {
     introPlayer.muted = false;
     introPlayer.volume = 1.0;
-    
-    c.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-    c.style.opacity = '0';
-    c.style.transform = 'scale(0.92)';
-    
-    requestAnimationFrame(() => {
-      c.style.opacity = '1';
-      c.style.transform = 'scale(1)';
-    });
 
     if(introPlayer.play() !== undefined) {
       introPlayer.play().then(() => {
@@ -4031,23 +5042,136 @@ window.playVideo = (id) => {
         }
       }
     };
+  } else {
+    // YouTube Custom Controls Handler!
+    const videoContainer = document.getElementById('video-container');
+    const controls = document.getElementById('video-controls');
+    const clickMask = document.getElementById('video-click-mask');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const iconVolUp = document.getElementById('icon-vol-up');
+    const iconVolOff = document.getElementById('icon-vol-off');
+    const backBtn = document.getElementById('playback-back-btn');
+    if (backBtn) backBtn.style.transition = 'opacity 0.3s';
+
+    let isYtPlaying = true;
+    let isYtMuted = false;
+
+    const toggleYtPlay = () => {
+      isYtPlaying = !isYtPlaying;
+      if (mainPlayer) {
+        if (!isYtPlaying) {
+          mainPlayer.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+          if (iconPlay) iconPlay.style.display = 'block';
+          if (iconPause) iconPause.style.display = 'none';
+        } else {
+          mainPlayer.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          if (iconPlay) iconPlay.style.display = 'none';
+          if (iconPause) iconPause.style.display = 'block';
+        }
+      }
+    };
+
+    const toggleYtMute = () => {
+      isYtMuted = !isYtMuted;
+      if (mainPlayer) {
+        if (isYtMuted) {
+          mainPlayer.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+          if (iconVolUp) iconVolUp.style.display = 'none';
+          if (iconVolOff) iconVolOff.style.display = 'block';
+        } else {
+          mainPlayer.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+          if (iconVolUp) iconVolUp.style.display = 'block';
+          if (iconVolOff) iconVolOff.style.display = 'none';
+        }
+      }
+    };
+
+    if (clickMask) clickMask.onclick = toggleYtPlay;
+    if (playPauseBtn) playPauseBtn.onclick = toggleYtPlay;
+    if (muteBtn) muteBtn.onclick = toggleYtMute;
+
+    if (fullscreenBtn) {
+      fullscreenBtn.onclick = () => {
+        if (!document.fullscreenElement) {
+          videoContainer.requestFullscreen().catch(err => {
+            console.error(err);
+          });
+        } else {
+          try {
+            document.exitFullscreen().catch(err => console.error(err));
+          } catch(err) {}
+        }
+      };
+    }
+
+    let hideControlsTimeout;
+    const showControls = () => {
+      if (controls) controls.style.opacity = '1';
+      if (backBtn) backBtn.style.opacity = '1';
+      document.body.style.cursor = 'default';
+      clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = setTimeout(() => {
+        if (isYtPlaying) {
+          if (controls) controls.style.opacity = '0';
+          if (backBtn) backBtn.style.opacity = '0';
+          document.body.style.cursor = 'none';
+        }
+      }, 6000);
+    };
+
+    if (videoContainer) {
+      videoContainer.onmousemove = showControls;
+      videoContainer.onmouseleave = () => {
+        if (isYtPlaying) {
+          if (controls) controls.style.opacity = '0';
+          if (backBtn) backBtn.style.opacity = '0';
+        }
+      };
+    }
+
+    handleYtKeydown = (e) => {
+      if (document.getElementById('playbackOverlay')) {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          toggleYtPlay();
+          showControls();
+        } else if (e.key === 'm' || e.key === 'M') {
+          toggleYtMute();
+          showControls();
+        } else if (e.key === 'f' || e.key === 'F') {
+          if (fullscreenBtn) fullscreenBtn.click();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleYtKeydown);
   }
 
   // Handle closing player efficiently
   const closePlayer = (isPopState = false) => {
      window.closeActivePlayer = null;
+     if (handleYtKeydown) {
+       window.removeEventListener('keydown', handleYtKeydown);
+     }
      document.body.style.overflow = '';
-     if (mainPlayer) {
+     if (mainPlayer && typeof mainPlayer.pause === 'function') mainPlayer.pause();
+     if (introPlayer && typeof introPlayer.pause === 'function') introPlayer.pause();
+     // Temporarily bypass the immediate src wipe
+     if (false && mainPlayer) {
        mainPlayer.src = "";
        if (typeof mainPlayer.load === 'function') mainPlayer.load();
      }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
-     c.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-     c.style.transform = 'scale(1.15)';
+     c.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)';
+     c.style.transform = 'scale(0.92)';
      c.style.opacity = '0';
      setTimeout(() => {
        if (mainPlayer) {
-         mainPlayer.src = ""; // cleanup
+         mainPlayer.src = ""; if (introPlayer) introPlayer.src = ""; // cleanup sources now that visual transition finished
          if (typeof mainPlayer.load === 'function') mainPlayer.load();
        }
        c.innerHTML = ''; // fully unmount internal elements
@@ -4073,6 +5197,35 @@ window.playVideo = (id) => {
 };
 
 // Initialize
+// Automatically monitor the page for modals and lock/unlock body scroll
+const monitorModalsAndLockScroll = () => {
+  const checkModals = () => {
+    const selector = '#helpCentreModal, #settingsModal, #detailModal, #bulkManagerModal, #uploadModal, .upload-modal, .crop-modal-wrapper, .ep-modal-wrapper, #playbackOverlay';
+    const hasOpenModal = !!document.querySelector(selector);
+    if (hasOpenModal) {
+      if (!document.body.classList.contains('modal-open')) {
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+      }
+    } else {
+      if (document.body.classList.contains('modal-open')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      }
+    }
+  };
+  
+  const observer = new MutationObserver(() => {
+    checkModals();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  checkModals();
+};
+
+monitorModalsAndLockScroll();
 render();
 
 loadData().catch(e => {

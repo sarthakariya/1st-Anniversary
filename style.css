@@ -548,9 +548,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-billboard {
   position: relative;
   width: 100vw;
-  height: 88vh; /* Extended lower down to the bottom */
-  max-height: 1000px; /* Enhanced maximum limits */
-  min-height: 650px;
+  height: 80vh;
+  max-height: 900px;
+  min-height: 600px;
   background-color: #000;
   overflow: hidden;
 }
@@ -587,7 +587,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   z-index: 10;
 }
 .hero-title {
-  font-size: clamp(2.2rem, 4.5vw, 3.9rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 800;
   margin-bottom: 24px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
@@ -615,7 +615,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: transform 0.85s cubic-bezier(0.25, 1, 0.4, 1), opacity 0.85s cubic-bezier(0.25, 1, 0.4, 1);
 }
 .hero-text-roll-item.minimized .hero-title {
-  transform: scale(0.74) !important;
+  transform: scale(0.62) !important;
   transform-origin: left bottom !important;
   margin-bottom: 8px !important;
 }
@@ -754,7 +754,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   position: relative;
   z-index: 1;
 }
-.row:hover {
+.row.row-active-hover {
   z-index: 5000 !important;
 }
 .row-header {
@@ -775,9 +775,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 100px 4% 240px 4%;
-  margin-top: -100px;
-  margin-bottom: -240px;
+  padding: 40px 4% 120px 4%;
+  margin-top: -40px;
+  margin-bottom: -120px;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -824,11 +824,15 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition-delay: 0.18s; /* Intelligent intent delay - prevents flashing when passing mouse over */
 }
 .media-card img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%; height: 100%;
   object-fit: cover;
   border-radius: 4px;
   pointer-events: none;
   transition: opacity 0.3s;
+  display: block;
 }
 .hover-chassis {
   position: absolute;
@@ -999,6 +1003,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior-y: contain;
 }
 .upload-modal.open {
   opacity: 1;
@@ -1018,6 +1023,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
+  overscroll-behavior-y: contain;
 }
 .upload-modal.open .upload-modal-content {
   transform: translateX(0);
@@ -1079,7 +1085,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .playback-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: #000; z-index: 20000;
-  animation: expandFullscreen 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .playback-overlay.no-animation {
   animation: none !important;
@@ -1986,6 +1992,32 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
   border: 1px dashed rgba(255,255,255,0.3);
   pointer-events: none;
   box-sizing: border-box;
+}
+
+/* Modal Open Scroll Blocker */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Row-hover isolation focusing styles */
+.row.row-active-hover {
+  z-index: 99999 !important;
+}
+
+/* Animations for Help Centre UI */
+@keyframes statusGlow {
+  0% { box-shadow: 0 0 5px rgba(70, 211, 105, 0.4); transform: scale(0.95); }
+  100% { box-shadow: 0 0 12px rgba(70, 211, 105, 0.95); transform: scale(1.1); }
+}
+
+@keyframes scaleUpFadeIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseScale {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
 }
 
 
