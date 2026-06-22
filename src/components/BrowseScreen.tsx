@@ -91,7 +91,7 @@ function ThumbnailCard({
           : '0 20px 40px -6px rgba(0,0,0,0.85)',
       }}
       transition={{ type: 'spring', stiffness: 350, damping: 24 }}
-      className="flex-none w-[130px] sm:w-[200px] md:w-[245px] snap-center relative rounded-md bg-neutral-950 select-none z-10 hover:z-[60]"
+      className="flex-none w-[130px] sm:w-[200px] md:w-[245px] snap-center relative rounded-md bg-neutral-950 select-none z-10 hover:z-[60] hardware-accelerated"
     >
       <div className="aspect-video relative rounded-md overflow-hidden border border-transparent hover:border-white/25 transition-all duration-300">
         {/* Lightweight Static Placeholder Block */}
@@ -209,8 +209,8 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 0);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll, { passive: true } as any);
   }, []);
 
   // Filter categories based on search
@@ -549,13 +549,13 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
             {isMuted ? <VolumeX size={16} className="text-white" /> : <Volume2 size={16} className="text-white" />}
           </button>
 
-          {/* Maturity Rating Ribbon: smoothly slides open width over 0.7s */}
+          {/* Maturity Rating Ribbon: smoothly slides open width over 0.7s with zero-reflow scaleX */}
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: '135px', opacity: 0.95 }}
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 0.95 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             style={{ transformOrigin: 'right' }}
-            className="hidden md:flex items-center bg-black/65 border-l-[3.5px] border-white pl-4 py-1.5 text-white text-xs font-bold leading-none backdrop-blur-md shadow-lg overflow-hidden whitespace-nowrap h-[32px] rounded-l-sm"
+            className="hidden md:flex items-center bg-black/65 border-l-[3.5px] border-white pl-4 py-1.5 text-white text-xs font-bold leading-none backdrop-blur-md shadow-lg overflow-hidden whitespace-nowrap h-[32px] rounded-l-sm w-[135px]"
           >
             PG-13 | 16+
           </motion.div>
@@ -589,7 +589,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
               className={`flex gap-[12px] py-4 transition-all duration-300 ${
                 hoveredRowId === category.id
                   ? 'overflow-visible'
-                  : 'overflow-x-auto hide-scrollbar snap-x'
+                  : 'overflow-x-auto hide-scrollbar snap-x containment-shield offscreen-cull'
               }`}
             >
               {category.memories.map((memory) => (
@@ -675,13 +675,13 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                   </div>
                 </div>
 
-                {/* Maturity Rating Ribbon inside info dialog: slides open over 0.7s */}
+                {/* Maturity Rating Ribbon inside info dialog: slides open over 0.7s with zero-reflow scaleX */}
                 <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: '150px', opacity: 0.95 }}
+                  initial={{ scaleX: 0, opacity: 0 }}
+                  animate={{ scaleX: 1, opacity: 0.95 }}
                   transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                   style={{ transformOrigin: 'right' }}
-                  className="absolute right-0 bottom-12 z-30 hidden md:flex items-center bg-black/60 border-l-[3px] border-white pl-4 py-1.5 text-white text-[10px] uppercase font-bold backdrop-blur-md shadow-md overflow-hidden whitespace-nowrap h-[28px]"
+                  className="absolute right-0 bottom-12 z-30 hidden md:flex items-center bg-black/60 border-l-[3px] border-white pl-4 py-1.5 text-white text-[10px] uppercase font-bold backdrop-blur-md shadow-md overflow-hidden whitespace-nowrap h-[28px] w-[150px]"
                 >
                   {selectedMemory.maturityRating} | FULL QUALITY
                 </motion.div>

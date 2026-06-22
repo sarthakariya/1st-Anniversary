@@ -135,7 +135,7 @@ export default function ProfileScreen({ profiles, onSelect, isMorning }: Profile
                       : '0 20px 40px -8px rgba(0,0,0,0.9), 0 8px 16px -4px rgba(0,0,0,0.7)',
                   }}
                   transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-md overflow-hidden relative"
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-md overflow-hidden relative hardware-accelerated"
                 >
                   <img
                     src={profile.avatar}
@@ -240,7 +240,7 @@ export default function ProfileScreen({ profiles, onSelect, isMorning }: Profile
                       // 1.05x elastic scaling on registration
                       animate={isJustTyped ? { scale: [1, 1.05, 1] } : { scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 10 }}
-                      className={`w-12 h-12 rounded-lg border-2 bg-black/20 text-xl font-extrabold flex items-center justify-center transition-all duration-200 ${
+                      className={`w-12 h-12 rounded-lg border-2 bg-black/20 text-xl font-extrabold flex items-center justify-center transition-all duration-250 hardware-accelerated ${
                         isErrorFlashing
                           ? 'border-red-500 bg-red-500/10 text-red-500'
                           : digit

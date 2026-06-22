@@ -12,3 +12,26 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Zero-Jitter Hardware Architecture Utilities */
+
+/* 1. Sub-pixel anti-shimmer & composite accelerations */
+.hardware-accelerated {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+/* 2. Dynamic Layout Containment Shield */
+.containment-shield {
+  contain: layout paint;
+}
+
+/* 3. Proximity-Based Offscreen Culling */
+.offscreen-cull {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 240px; /* Estimates the vertical bounds of a carousel lane track */
+}
+
