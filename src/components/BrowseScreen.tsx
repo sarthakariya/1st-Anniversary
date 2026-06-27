@@ -1,9 +1,12 @@
-import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle, Grid } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle, Grid, PlusCircle, Trash2, Film } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES, PROFILES } from '../data';
 import { Memory, Profile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import HelpCentre from './HelpCentre';
+import AddMemoryModal from './AddMemoryModal';
+import { db } from '../firebase';
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 interface BrowseScreenProps {
   profile: Profile;
@@ -113,6 +116,7 @@ function ThumbnailCard({
               className="absolute inset-0 z-20 w-full h-full bg-black/95 pointer-events-none"
             >
               <video
+                key={memory.videoUrl || 'placeholder'}
                 src={memory.videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-romantic-couple-by-the-lake-at-sunset-42907-large.mp4'}
                 className="w-full h-full object-cover"
                 autoPlay
@@ -178,6 +182,100 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isHelpCentreOpen, setIsHelpCentreOpen] = useState(false);
 
+  // Premium Custom Toast Notifications
+  const [toast, setToast] = useState<{ message: string; type?: 'info' | 'success' | 'warn'; id: number } | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (message: string, type: 'info' | 'success' | 'warn' = 'info') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({ message, type, id: Date.now() });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  // Clean toast timer on tear down
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  // Firestore Sync & Dynamic Playlist States
+  const [firestoreMemories, setFirestoreMemories] = useState<Memory[]>([]);
+  const [shuffledTopPicks, setShuffledTopPicks] = useState<Memory[]>([]);
+  const [isAddMemoryOpen, setIsAddMemoryOpen] = useState(false);
+
+  // Real-time Firestore Listener
+  useEffect(() => {
+    try {
+      const unsubscribe = onSnapshot(collection(db, 'memories'), (snapshot) => {
+        const list: Memory[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            title: data.title || '',
+            description: data.description || data.desc || '',
+            thumbnailUrl: data.thumbnailUrl || data.thumbnail || 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=640&auto=format&fit=crop',
+            videoUrl: data.videoUrl || '',
+            matchPercentage: Number(data.matchPercentage || 98),
+            year: data.year || '2024',
+            duration: data.duration || '2h',
+            maturityRating: data.maturityRating || data.rating || 'PG-13',
+            cast: Array.isArray(data.cast) ? data.cast : ['Sia', 'Aman'],
+            tags: Array.isArray(data.tags) ? data.tags : ['Family'],
+          });
+        });
+        setFirestoreMemories(list);
+      }, (error) => {
+        console.error("Firestore listening error: ", error);
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.error("Failed to initialize Firestore listener:", e);
+    }
+  }, []);
+
+  // Shuffling Helper
+  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, []);
+
+  // Randomize Top Picks Logic
+  const randomizeTopPicks = useCallback(() => {
+    const allMemories = [
+      ...firestoreMemories,
+      ...MOVIE_CATEGORIES.flatMap(cat => cat.memories)
+    ];
+    // Remove duplicates by ID
+    const uniqueMemories = Array.from(new Map(allMemories.map(m => [m.id, m])).values());
+    const shuffled = shuffleArray(uniqueMemories);
+    setShuffledTopPicks(shuffled.slice(0, 4));
+  }, [firestoreMemories, shuffleArray]);
+
+  // Initial and reactive randomization
+  useEffect(() => {
+    randomizeTopPicks();
+  }, [firestoreMemories]);
+
+  // Window Focus (tab return) listener
+  useEffect(() => {
+    const handleFocus = () => {
+      randomizeTopPicks();
+      showToast("Refreshed Curated Top Picks!", "success");
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [randomizeTopPicks]);
+
   // Billboard playback controls
   const [isBillboardPlaying, setIsBillboardPlaying] = useState(true);
   const billboardVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -213,15 +311,36 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
     return () => window.removeEventListener('scroll', handleScroll, { passive: true } as any);
   }, []);
 
+  // Combine static and custom memories
+  const categories = useMemo(() => {
+    return MOVIE_CATEGORIES.map((cat) => {
+      if (cat.id === 'top-picks') {
+        return {
+          ...cat,
+          memories: shuffledTopPicks.length > 0 ? shuffledTopPicks : cat.memories
+        };
+      }
+      if (cat.id === 'recent-additions') {
+        return {
+          ...cat,
+          memories: [...firestoreMemories, ...cat.memories]
+        };
+      }
+      return cat;
+    });
+  }, [shuffledTopPicks, firestoreMemories]);
+
   // Filter categories based on search
-  const filteredCategories = MOVIE_CATEGORIES.map((category) => {
-    const filteredMemories = category.memories.filter(
-      (m) =>
-        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-    return { ...category, memories: filteredMemories };
-  }).filter((c) => c.memories.length > 0);
+  const filteredCategories = useMemo(() => {
+    return categories.map((category) => {
+      const filteredMemories = category.memories.filter(
+        (m) =>
+          m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          m.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      return { ...category, memories: filteredMemories };
+    }).filter((c) => c.memories.length > 0);
+  }, [categories, searchQuery]);
 
   // ==========================================
   // FRAMER MOTION TRANSITION VARIANTS
@@ -301,15 +420,25 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
               className="h-7 md:h-[40px] w-auto cursor-pointer object-contain select-none hover:scale-105 transition-transform duration-300"
             />
             <div className={`flex flex-wrap items-center gap-3 sm:gap-[20px] text-[12px] sm:text-[14px] bg-transparent ${isScrolled ? textColor : 'text-white'}`}>
-              <span className="font-bold cursor-pointer opacity-100 border-b-2 border-red-600 pb-0.5">Home</span>
-              <span className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Dates</span>
-              <span className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Categories</span>
-              <span className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">My List</span>
-              <span className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Moments</span>
+              <span onClick={() => { randomizeTopPicks(); showToast("Home: Curated spotlight stories randomized!", "success"); }} className="font-bold cursor-pointer opacity-100 border-b-2 border-red-600 pb-0.5">Home</span>
+              <span onClick={() => showToast("Chronological Dates Timeline loaded successfully.", "success")} className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Dates</span>
+              <span onClick={() => showToast("Scroll down to explore categorized carousel tracks.", "info")} className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Categories</span>
+              <span onClick={() => showToast(`My List bookmarks synced under: ${profile.name}`)} className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">My List</span>
+              <span onClick={() => showToast("Moments: Playback highlights generated from archives.", "success")} className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity">Moments</span>
             </div>
           </div>
 
           <div className={`flex items-center gap-[15px] sm:gap-[24px] ${isScrolled ? textColor : 'text-white'}`}>
+            {/* Add Memory Button */}
+            <button
+              id="btn-add-memory-nav"
+              onClick={() => setIsAddMemoryOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-red-600/30 hover:border-red-600 bg-red-600/10 hover:bg-red-600 text-[11px] sm:text-xs font-bold text-white transition-all cursor-pointer shadow-md select-none"
+            >
+              <PlusCircle size={14} />
+              <span>Add Memory</span>
+            </button>
+
             {/* Search Box */}
             <div className="flex items-center relative transition-all duration-300 rounded">
               <Search
@@ -428,7 +557,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                           variants={dropdownItemVariants}
                           onClick={() => {
                             setIsProfileDropdownOpen(false);
-                            alert("Bulk Manage Gallery is locked under safety permissions.");
+                            showToast("Bulk Manage Gallery: Access is restricted by parent controls.", "warn");
                           }}
                           className="w-full flex items-center px-4 py-1.5 hover:bg-neutral-800/20 text-left text-xs text-[#e5e5e5] font-semibold group cursor-pointer"
                         >
@@ -440,7 +569,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                           variants={dropdownItemVariants}
                           onClick={() => {
                             setIsProfileDropdownOpen(false);
-                            alert("Account Status: Ultra Premium. All pipeline variables fully synchronized.");
+                            showToast("Account: Ultra Premium Status active. Sync stream is online.", "success");
                           }}
                           className="w-full flex items-center px-4 py-1.5 hover:bg-neutral-800/20 text-left text-xs text-[#e5e5e5] font-semibold group cursor-pointer"
                         >
@@ -489,6 +618,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
         <div className="absolute inset-0 w-full h-full overflow-hidden">
           <video
             ref={billboardVideoRef}
+            key={MAIN_FEATURE.videoUrl}
             src={MAIN_FEATURE.videoUrl}
             className="w-full h-full object-cover select-none pointer-events-none"
             autoPlay
@@ -668,10 +798,27 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                 {/* Title & Info controls */}
                 <div className="absolute bottom-[20px] md:bottom-[40px] left-[20px] md:left-[40px]">
                   <h2 className={`text-3xl md:text-[44px] font-extrabold mb-4 select-none ${isMorning ? 'text-black' : 'text-white'}`}>{selectedMemory.title}</h2>
-                  <div className="flex gap-[12px]">
+                  <div className="flex gap-[12px] flex-wrap items-center">
                     <button className="px-6 py-2.5 rounded flex items-center gap-2 font-extrabold text-sm md:text-base bg-white text-black transition-transform hover:scale-103 cursor-pointer">
                       <Play className="w-4 h-4 fill-current" /> Play Memory
                     </button>
+                    {firestoreMemories.some(m => m.id === selectedMemory?.id) && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await deleteDoc(doc(db, 'memories', selectedMemory.id));
+                            showToast("Memory deleted from your Netflix library!", "success");
+                            setSelectedMemory(null);
+                          } catch (err) {
+                            console.error("Delete failed: ", err);
+                            showToast("Could not delete memory. Please try again.", "warn");
+                          }
+                        }}
+                        className="px-6 py-2.5 rounded flex items-center gap-2 font-extrabold text-sm md:text-base bg-red-600 hover:bg-red-750 text-white transition-transform hover:scale-103 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete Memory
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -723,6 +870,71 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
 
       {/* Help Centre Overlay */}
       {isHelpCentreOpen && <HelpCentre isMorning={isMorning} onClose={() => setIsHelpCentreOpen(false)} />}
+
+      {/* Premium Micro-Toast Notification Layer */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 35, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.9, transition: { duration: 0.22 } }}
+            className={`fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[210] w-[340px] max-w-[calc(100vw-3rem)] rounded-xl border p-4 shadow-2xl overflow-hidden backdrop-blur-md flex items-start gap-3.5 hardware-accelerated ${
+              isMorning
+                ? 'bg-white/95 border-gray-200/80 text-neutral-800'
+                : 'bg-neutral-950/95 border-neutral-800/90 text-white'
+            }`}
+          >
+            {/* Status bar left accent indicator */}
+            <div
+              className={`w-1.5 h-11 rounded-full flex-shrink-0 ${
+                toast.type === 'success'
+                  ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                  : toast.type === 'warn'
+                  ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                  : 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.4)]'
+              }`}
+            />
+
+            <div className="flex-1 min-w-0 pr-2">
+              <span className={`text-[10px] font-bold tracking-wider uppercase block ${isMorning ? 'text-gray-400' : 'text-neutral-500'}`}>
+                {toast.type === 'success' ? 'Task Completed' : toast.type === 'warn' ? 'Alert Access Denied' : 'System Sync'}
+              </span>
+              <p className="text-xs font-semibold leading-normal mt-0.5 whitespace-normal break-words select-none">{toast.message}</p>
+            </div>
+
+            <button
+              onClick={() => setToast(null)}
+              className={`text-gray-400 hover:text-white transition-colors cursor-pointer select-none -mt-1 -mr-1 p-1 rounded-md ${
+                isMorning ? 'hover:bg-neutral-100 hover:text-black' : 'hover:bg-neutral-800'
+              }`}
+            >
+              <X size={14} />
+            </button>
+
+            {/* Time-dismiss Progress Indicator Keybar */}
+            <motion.div
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 4, ease: 'linear' }}
+              style={{ transformOrigin: 'left' }}
+              className={`absolute bottom-0 left-0 right-0 h-1 ${
+                toast.type === 'success' ? 'bg-green-500/80' : toast.type === 'warn' ? 'bg-red-500/80' : 'bg-red-600/80'
+              }`}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dynamic Add Memory Overlay Form */}
+      <AddMemoryModal
+        isOpen={isAddMemoryOpen}
+        onClose={() => setIsAddMemoryOpen(false)}
+        isMorning={isMorning}
+        profileName={profile.name}
+        profileId={profile.id}
+        onSuccess={(msg) => showToast(msg, "success")}
+      />
     </motion.div>
   );
 }
