@@ -308,14 +308,9 @@ async function loadData() {
   // Real-time Firestore will populate appState.memories live without any local cache fallback!
   appState.memories = [];
 
-  // Trigger one-time automatic database purge if forced by user request
+  // Set first-time flag without executing a destructive database purge
   if (!localStorage.getItem('first_time_firebase_purge_done')) {
     localStorage.setItem('first_time_firebase_purge_done', 'true');
-    setTimeout(() => {
-      window.purgeAllFirebaseMemories().catch(err => {
-        console.error("Auto Firebase purge failed:", err);
-      });
-    }, 1500);
   }
 
   // Set up real-time listener for household user state
