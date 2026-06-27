@@ -6056,8 +6056,8 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
   }
   
   let isAutoplayActive = autoPlay;
-  // Always play the iconic Netflix intro animation when watching photos as a video!
-  const playIntroVideo = true;
+  // Disable the intro video animation if we are only viewing a single photo static (autoPlay is false)
+  const playIntroVideo = autoPlay;
 
   // Initialize Background Song (music.mp3)
   const slideshowAudio = new Audio('./music.mp3');
@@ -6396,13 +6396,17 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     updateControlsUI();
     renderCurrentSlide();
     
-    // Play the background melody after intro finishes
-    slideshowAudio.play().then(() => {
+    // Only play the background melody if autoPlay is active
+    if (autoPlay) {
+      slideshowAudio.play().then(() => {
+        updateMusicControlsUI();
+      }).catch(e => {
+        console.warn("Background audio play waiting for interaction", e);
+        updateMusicControlsUI();
+      });
+    } else {
       updateMusicControlsUI();
-    }).catch(e => {
-      console.warn("Background audio play waiting for interaction", e);
-      updateMusicControlsUI();
-    });
+    }
   };
 
   // Wire events
