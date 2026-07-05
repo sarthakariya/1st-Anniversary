@@ -812,9 +812,9 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         wrapper.style.cssText = "padding: 0 4vw 4vw 4vw; margin-top: 20px;";
         
         const headerBox = document.createElement('div');
-        headerBox.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
+        headerBox.className = "moments-header-box";
         headerBox.innerHTML = `
-          <h2 style="font-size: 1.4vw; font-weight: 700; margin: 0;">Moments</h2>
+          <h2 class="moments-header-title">Moments</h2>
           <div style="display:flex; gap:10px;">
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="startMomentsSlideshow()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
@@ -827,7 +827,7 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         wrapper.appendChild(headerBox);
         
         const grid = document.createElement('div');
-        grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;";
+        grid.className = "moments-grid";
         
         galleryItems.forEach(m => {
           const div = document.createElement('div');
@@ -1013,14 +1013,14 @@ window.showPurgePinModal = () => {
       <p style="font-size: 12.5px; color: #a9a9a9; margin: 0 0 25px 0; line-height:1.5; font-family: inherit;">Please enter the 8-digit secure administrator PIN to authorize database deletion.</p>
       
       <div class="pin-inputs" style="display:flex; gap:6px; justify-content:center; margin-bottom:15px;">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
-        <input type="text" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in-purge" style="width: 32px; height: 42px; background: #0b0b0b; border: 1px solid #333; color: white; text-align: center; font-size: 18px; font-weight: bold; border-radius: 4px; outline: none; transition: border-color 0.2s; font-family: inherit;" onfocus="this.style.borderColor='#e50914';" onblur="this.style.borderColor='#333';">
       </div>
       <div id="purge-pin-error" style="color: #e50914; margin-top: 15px; font-size: 13px; opacity: 0; transition: opacity 0.3s; font-weight: 700;">⚠️ INCORRECT PIN. AUTHORIZATION DENIED.</div>
       
@@ -2316,14 +2316,14 @@ function showPinModal(pf, pElement) {
       <h2>Profile Lock is on.</h2>
       <p>Enter your PIN to access this profile.</p>
       <div class="pin-inputs">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
-        <input type="text" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-in">
       </div>
       <div class="pin-error" style="color: #e50914; margin-top: 15px; font-size: 14px; opacity: 0; transition: opacity 0.3s;">Incorrect PIN. Please try again.</div>
       <button class="btn btn-secondary mt-4" style="margin-top: 30px;" onclick="document.querySelector('.pin-overlay').remove()">Cancel</button>
@@ -2452,6 +2452,7 @@ window.openProfileCropper = (imageDataUrl, onCropped) => {
   const m = document.createElement('div');
   m.className = 'upload-modal';
   m.id = 'profileCropperModal';
+  m.style.cssText = "display: flex !important; align-items: center !important; justify-content: center !important; overflow-y: auto !important;";
   
   m.innerHTML = `
     <div class="upload-modal-content crop-modal-wrapper">
@@ -2633,6 +2634,7 @@ window.editProfile = (pfId) => {
   const m = document.createElement('div');
   m.className = 'upload-modal';
   m.id = 'editProfileModal';
+  m.style.cssText = "display: flex !important; align-items: center !important; justify-content: center !important; overflow-y: auto !important;";
   
   m.innerHTML = `
     <div class="upload-modal-content ep-modal-wrapper">
@@ -2710,6 +2712,7 @@ function createDashboard() {
   const c = document.createElement('div');
   c.className = 'dashboard-container';
   c.appendChild(createNavbar());
+  c.appendChild(window.createBottomNavbar());
   
   if(appState.memories.length === 0) {
     const empty = document.createElement('div');
@@ -2921,6 +2924,38 @@ function createNavbar() {
     }, 100);
   return nav;
 }
+
+window.createBottomNavbar = () => {
+  const bnav = document.createElement('div');
+  bnav.className = 'bottom-navbar';
+  
+  const tabs = ['Home', 'Dates', 'Categories', 'Moments', 'My List'];
+  
+  bnav.innerHTML = tabs.map(cat => {
+    let icon = '';
+    if (cat === 'Home') {
+      icon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+    } else if (cat === 'Dates') {
+      icon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+    } else if (cat === 'Categories') {
+      icon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+    } else if (cat === 'Moments') {
+      icon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+    } else if (cat === 'My List') {
+      icon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`;
+    }
+    
+    const activeClass = appState.activeCategory === cat ? 'active' : '';
+    return `
+      <div class="bottom-nav-item ${activeClass}" onclick="setCategory('${cat}')">
+        <div class="bottom-nav-icon">${icon}</div>
+        <span class="bottom-nav-text">${cat}</span>
+      </div>
+    `;
+  }).join('');
+  
+  return bnav;
+};
 
 window.currentHeroIndex = undefined;
 window.isShufflingHero = false;
