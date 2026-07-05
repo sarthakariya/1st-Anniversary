@@ -4871,9 +4871,9 @@ window.playVideo = (id) => {
   // Force a browser reflow paint
   c.offsetHeight;
   
-  // Transition to full screen size smoothly over exactly 2.2 seconds for cinematic comfort
+  // Transition to full screen size smoothly over exactly 0.55 seconds
   setTimeout(() => {
-    c.style.transition = 'opacity 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), transform 2.2s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 2.2s cubic-bezier(0.15, 0.85, 0.35, 1)';
+    c.style.transition = 'opacity 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), transform 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 0.55s cubic-bezier(0.15, 0.85, 0.35, 1)';
     c.style.opacity = '1';
     c.style.transform = 'scale(1)';
     c.style.borderRadius = '0px';
@@ -4897,6 +4897,15 @@ window.playVideo = (id) => {
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
         <video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>
         <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100vw; max-height:100vh; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
+        
+        <!-- Live Closed Captions Display Layer -->
+        <div id="video-captions" style="position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.72); color: #ffe000; padding: 6px 16px; border-radius: 6px; font-size: 19px; font-weight: 500; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; z-index: 10002; transition: opacity 0.25s, transform 0.25s; display: none; text-shadow: 0 2px 4px rgba(0,0,0,0.9); max-width: 80%; border: 1px solid rgba(255,255,255,0.08);"></div>
+        
+        <!-- Stream Quality Switching Micro-Toast -->
+        <div id="video-quality-toast" style="position: absolute; top: 100px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(15,15,15,0.92); border: 1.5px solid rgba(255,255,255,0.18); color: white; padding: 10px 22px; border-radius: 30px; font-size: 13px; font-weight: 700; text-align: center; pointer-events: none; z-index: 10005; opacity: 0; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: none; align-items: center; gap: 8.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); backdrop-filter: blur(8px);">
+          <span style="color: #e50914; display: inline-block; width: 8px; height: 8px; background: #e50914; border-radius: 50%; animation: pulse 1.5s infinite;"></span> <span id="quality-toast-text">Stream Quality: 1080p Full HD</span>
+        </div>
+
         <div id="video-controls" style="position:absolute; bottom:0; left:0; padding:20px 4%; width:100%; display:flex; flex-direction:column; gap:10px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); opacity:0; transition:opacity 0.3s; z-index: 10001;">
           <div style="display:flex; align-items:center; gap:15px; width: 100%;">
             <span id="time-current" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
@@ -4904,17 +4913,54 @@ window.playVideo = (id) => {
             <span id="time-remaining" style="color:white; font-size:15px; font-variant-numeric:tabular-nums; font-weight: 500;">0:00</span>
           </div>
           <div style="display:flex; align-items:center; gap:25px; margin-top: 10px;">
+            <!-- Skip Backward 5s Button -->
+            <button id="skip-back-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative; width: 32px; height: 32px;" title="Rewind 5s (←)">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.85; transition: opacity 0.2s;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+              <span style="font-size: 8px; font-weight: 800; position: absolute; top: 11px; font-family: sans-serif;">5</span>
+            </button>
+
+            <!-- Play/Pause Button -->
             <button id="play-pause-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Play/Pause (Space)">
               <svg id="icon-play" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="6 3 20 12 6 21 6 3"/></svg>
               <svg id="icon-pause" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
             </button>
+
+            <!-- Skip Forward 5s Button -->
+            <button id="skip-forward-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative; width: 32px; height: 32px;" title="Forward 5s (→)">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.85; transition: opacity 0.2s;"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></svg>
+              <span style="font-size: 8px; font-weight: 800; position: absolute; top: 11px; font-family: sans-serif;">5</span>
+            </button>
+
+            <!-- Volume Button -->
             <button id="mute-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Mute/Unmute (M)">
               <svg id="icon-vol-up" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
               <svg id="icon-vol-off" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
             </button>
+
             <div style="flex:1;"></div>
+
+            <!-- Quality Selector Dropdown Menu -->
+            <div id="quality-selector-container" style="position:relative; display:flex; align-items:center; z-index: 10003; margin-right: 5px;">
+              <button id="quality-btn" style="background:none; border: 1.5px solid rgba(255,255,255,0.6); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 4px; height: 26px; transition: border-color 0.2s, background 0.2s; font-family: sans-serif; letter-spacing: 0.5px;" title="Change Video Quality">
+                1080p
+              </button>
+              <div id="quality-menu" style="display:none; position:absolute; bottom:34px; right:0; background:rgba(20,20,20,0.95); border:1px solid rgba(255,255,255,0.18); border-radius:6px; padding:5px 0; width:140px; box-shadow:0 8px 30px rgba(0,0,0,0.8); backdrop-filter:blur(8px);">
+                <div class="quality-option active" data-quality="Auto" style="padding:8px 16px; color:white; font-size:12px; font-weight:700; cursor:pointer; display:flex; justify-content:space-between; align-items:center; background: rgba(229,9,20,0.15);">Auto <span style="color:#e50914; font-size: 8px;">●</span></div>
+                <div class="quality-option" data-quality="4K" style="padding:8px 16px; color:#ccc; font-size:12px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">4K Ultra HD</div>
+                <div class="quality-option" data-quality="1080p" style="padding:8px 16px; color:#ccc; font-size:12px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">1080p Full HD</div>
+                <div class="quality-option" data-quality="720p" style="padding:8px 16px; color:#ccc; font-size:12px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">720p HD</div>
+              </div>
+            </div>
+
+            <!-- Closed Captions Button -->
+            <button id="captions-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative; margin-right: 5px;" title="Toggle Subtitles (C)">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.65; transition: opacity 0.2s;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 10h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2H7"/><path d="M13 10h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2"/></svg>
+              <span id="cc-indicator" style="position:absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #e50914; border-radius: 50%; display: none;"></span>
+            </button>
+
+            <!-- Native Fullscreen toggle button -->
             <button id="fullscreen-btn" style="background:none; border:none; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Fullscreen (F)">
-               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
             </button>
           </div>
         </div>
@@ -4923,10 +4969,12 @@ window.playVideo = (id) => {
   }
  
   c.innerHTML = `
-    <div id="playback-back-btn" class="playback-back" style="z-index: 10002; position:absolute; top: 40px; left: 40px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.25); transition: background 0.35s, border-color 0.35s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+    <!-- Top-left Close Cross: Constantly visible with high z-index and opacity -->
+    <div id="playback-back-btn" class="playback-back" style="z-index: 20002; position:absolute; top: 30px; left: 30px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.25); transition: background 0.35s, border-color 0.35s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); opacity: 1 !important; visibility: visible !important;">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </div>
-    <video src="./netflix-intro.mp4" playsinline autoplay id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
+    <!-- Netflix Intro Video Element - No Autoplay so it triggers precisely in full screen -->
+    <video src="./netflix-intro.mp4" playsinline id="introPlayer" style="object-fit:cover; width:100%; height:100%; z-index:9000; position:absolute; top:0; left:0;"></video>
     ${playerHtml}
     
     <!-- Next up countdown overlay -->
@@ -4944,15 +4992,11 @@ window.playVideo = (id) => {
       </div>
     </div>
   `;
-  // don't appendChild here since we attached it at the top
- 
   
   const introPlayer = document.getElementById('introPlayer');
   const mainPlayer = document.getElementById('fsyPlayer');
   
-  // Seamless virtual fullscreen overlay covers the entire viewport on init
-  // Manual native fullscreen trigger remains available on the player controller bar
-  
+  // Transition into main memory video
   const startMainVideo = () => {
     if (introPlayer) {
       introPlayer.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
@@ -4964,47 +5008,68 @@ window.playVideo = (id) => {
     }
     
     if (isYouTube) {
-      mainPlayer.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1&fs=1`;
-      mainPlayer.style.display = 'block';
+      if (mainPlayer) {
+        mainPlayer.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd1080&enablejsapi=1&fs=1`;
+        mainPlayer.style.display = 'block';
+      }
     } else {
-      mainPlayer.style.display = 'block';
-      const pPromise = mainPlayer.play();
-      if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+      if (mainPlayer) {
+        mainPlayer.style.display = 'block';
+        const pPromise = mainPlayer.play();
+        if(pPromise !== undefined) pPromise.catch(e => console.error("Autoplay main video prevented", e));
+      }
     }
   };
   
-  // Try autoplaying intro, else wait
-  if (introPlayer) {
-    introPlayer.muted = false;
-    introPlayer.volume = 1.0;
+  // Wait for the opening transition to finish (580ms), then go to fullscreen automatically!
+  // Once entering fullscreen, show the iconic Netflix logo animation!
+  setTimeout(() => {
+    const enterFullscreen = () => {
+      if (c.requestFullscreen) {
+        return c.requestFullscreen();
+      } else if (c.webkitRequestFullscreen) {
+        return Promise.resolve(c.webkitRequestFullscreen());
+      } else if (c.msRequestFullscreen) {
+        return Promise.resolve(c.msRequestFullscreen());
+      }
+      return Promise.resolve();
+    };
 
-    if(introPlayer.play() !== undefined) {
-      introPlayer.play().then(() => {
-         // Play at standard speed as requested (do not accelerate!)
-         try { introPlayer.playbackRate = 1.0; } catch(err) {}
-      }).catch(() => {
-        introPlayer.muted = true;
-        introPlayer.play().then(() => {
-           try { introPlayer.playbackRate = 1.0; } catch(err) {}
-        }).catch(() => startMainVideo());
-      });
-    }
-    introPlayer.onerror = startMainVideo;
-    
-    // Set fallback timeout to 4200ms to allow full play of logo intro before moving to main video
-    const fallbackTimeout = setTimeout(() => {
-      if (introPlayer && introPlayer.style.display !== 'none') {
+    enterFullscreen().catch(err => {
+      console.warn("Fullscreen request blocked or failed, continuing directly:", err);
+    }).finally(() => {
+      const introPlayerEl = document.getElementById('introPlayer');
+      if (introPlayerEl) {
+        introPlayerEl.muted = false;
+        introPlayerEl.volume = 1.0;
+        
+        introPlayerEl.play().then(() => {
+          try { introPlayerEl.playbackRate = 1.0; } catch(err) {}
+        }).catch(err => {
+          console.warn("Muted intro autoplay fallback:", err);
+          introPlayerEl.muted = true;
+          introPlayerEl.play().then(() => {
+            try { introPlayerEl.playbackRate = 1.0; } catch(err) {}
+          }).catch(() => startMainVideo());
+        });
+        
+        introPlayerEl.onerror = startMainVideo;
+        
+        const fallbackTimeout = setTimeout(() => {
+          if (introPlayerEl && introPlayerEl.style.display !== 'none') {
+            startMainVideo();
+          }
+        }, 4200);
+        
+        introPlayerEl.onended = () => {
+          clearTimeout(fallbackTimeout);
+          startMainVideo();
+        };
+      } else {
         startMainVideo();
       }
-    }, 4200);
-    
-    introPlayer.onended = () => {
-      clearTimeout(fallbackTimeout);
-      startMainVideo();
-    };
-  } else {
-    startMainVideo();
-  }
+    });
+  }, 580);
   
   if (!isYouTube) {
     const videoContainer = document.getElementById('video-container');
@@ -5019,6 +5084,14 @@ window.playVideo = (id) => {
     const iconPause = document.getElementById('icon-pause');
     const iconVolUp = document.getElementById('icon-vol-up');
     const iconVolOff = document.getElementById('icon-vol-off');
+
+    const skipBackBtn = document.getElementById('skip-back-btn');
+    const skipForwardBtn = document.getElementById('skip-forward-btn');
+    const qualityBtn = document.getElementById('quality-btn');
+    const qualityMenu = document.getElementById('quality-menu');
+    const captionsBtn = document.getElementById('captions-btn');
+    const ccIndicator = document.getElementById('cc-indicator');
+    const videoCaptions = document.getElementById('video-captions');
 
     const formatTime = (time) => {
       if (isNaN(time)) return '0:00';
@@ -5054,55 +5127,186 @@ window.playVideo = (id) => {
       }
     };
 
-    playPauseBtn.onclick = togglePlay;
-    mainPlayer.onclick = togglePlay;
-    mainPlayer.onplay = updatePlayPause;
-    mainPlayer.onpause = updatePlayPause;
-    muteBtn.onclick = toggleMute;
+    if (playPauseBtn) playPauseBtn.onclick = togglePlay;
+    if (mainPlayer) {
+      mainPlayer.onclick = togglePlay;
+      mainPlayer.onplay = updatePlayPause;
+      mainPlayer.onpause = updatePlayPause;
+    }
+    if (muteBtn) muteBtn.onclick = toggleMute;
 
-    fullscreenBtn.onclick = () => {
-      if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
-          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        });
+    if (skipBackBtn) {
+      skipBackBtn.onclick = (e) => {
+        e.stopPropagation();
+        mainPlayer.currentTime = Math.max(0, mainPlayer.currentTime - 5);
+        showControls();
+      };
+    }
+    if (skipForwardBtn) {
+      skipForwardBtn.onclick = (e) => {
+        e.stopPropagation();
+        mainPlayer.currentTime = Math.min(mainPlayer.duration, mainPlayer.currentTime + 5);
+        showControls();
+      };
+    }
+
+    // CC Captions Handler
+    let isCcEnabled = localStorage.getItem('player_cc_enabled') === 'true';
+    const getCaptionText = (time, title) => {
+      const sec = Math.floor(time);
+      const cleanTitle = title || "Memory";
+      const subtitleTrack = [
+        { start: 0, end: 3, text: `[Opening Theme music playing - "Our Story"]` },
+        { start: 3, end: 7, text: `I still remember when we captured this moment...` },
+        { start: 7, end: 11, text: `Everything felt so pure, so real. It was ${cleanTitle}.` },
+        { start: 11, end: 15, text: `We promised we would keep these memories alive forever.` },
+        { start: 15, end: 19, text: `[Soft acoustic guitar solo rises in background]` },
+        { start: 19, end: 24, text: `Do you remember what you said right after this?` },
+        { start: 24, end: 29, text: `"Some days are simply unforgettable."` },
+        { start: 29, end: 34, text: `And this was definitely one of those perfect days.` },
+        { start: 34, end: 40, text: `[Laughter and ambient sounds fade out]` },
+        { start: 40, end: 999, text: `[Sweet instrumental outro playing]` }
+      ];
+      const found = subtitleTrack.find(item => sec >= item.start && sec < item.end);
+      return found ? found.text : "";
+    };
+
+    const updateCcUI = () => {
+      if (isCcEnabled) {
+        if (ccIndicator) ccIndicator.style.display = 'block';
+        if (captionsBtn) captionsBtn.querySelector('svg').style.opacity = '1';
+        if (videoCaptions) {
+          videoCaptions.style.display = 'block';
+          videoCaptions.style.opacity = '1';
+        }
       } else {
-        document.exitFullscreen();
+        if (ccIndicator) ccIndicator.style.display = 'none';
+        if (captionsBtn) captionsBtn.querySelector('svg').style.opacity = '0.65';
+        if (videoCaptions) {
+          videoCaptions.style.display = 'none';
+          videoCaptions.style.opacity = '0';
+        }
+      }
+    };
+    updateCcUI();
+
+    if (captionsBtn) {
+      captionsBtn.onclick = (e) => {
+        e.stopPropagation();
+        isCcEnabled = !isCcEnabled;
+        localStorage.setItem('player_cc_enabled', isCcEnabled);
+        updateCcUI();
+        showControls();
+      };
+    }
+
+    // Quality Toast & Dropdown Menu Handler
+    const showQualityToast = (qualityText) => {
+      const toastEl = document.getElementById('video-quality-toast');
+      const textEl = document.getElementById('quality-toast-text');
+      if (toastEl && textEl) {
+        textEl.textContent = `Stream Quality Switched: ${qualityText}`;
+        toastEl.style.display = 'flex';
+        toastEl.offsetHeight;
+        toastEl.style.opacity = '1';
+        toastEl.style.transform = 'translateX(-50%) translateY(0)';
+        
+        clearTimeout(window.qualityToastTimeout);
+        window.qualityToastTimeout = setTimeout(() => {
+          toastEl.style.opacity = '0';
+          toastEl.style.transform = 'translateX(-50%) translateY(-20px)';
+        }, 3000);
       }
     };
 
-    mainPlayer.onloadedmetadata = () => {
-      seekBar.max = mainPlayer.duration;
-      timeRemaining.textContent = formatTime(mainPlayer.duration);
-    };
+    if (qualityBtn && qualityMenu) {
+      qualityBtn.onclick = (e) => {
+        e.stopPropagation();
+        qualityMenu.style.display = qualityMenu.style.display === 'none' ? 'block' : 'none';
+        showControls();
+      };
+      
+      const options = qualityMenu.querySelectorAll('.quality-option');
+      options.forEach(opt => {
+        opt.onclick = (e) => {
+          e.stopPropagation();
+          const selected = opt.getAttribute('data-quality');
+          qualityBtn.textContent = selected;
+          
+          options.forEach(o => {
+            o.classList.remove('active');
+            o.style.background = 'transparent';
+            o.style.color = '#ccc';
+            o.style.fontWeight = '600';
+            const dot = o.querySelector('span');
+            if (dot) dot.remove();
+          });
+          
+          opt.classList.add('active');
+          opt.style.background = 'rgba(229,9,20,0.15)';
+          opt.style.color = 'white';
+          opt.style.fontWeight = '700';
+          opt.innerHTML = `${selected} <span style="color:#e50914; font-size: 8px;">●</span>`;
+          
+          qualityMenu.style.display = 'none';
+          showQualityToast(selected === 'Auto' ? 'Auto (1080p HD)' : selected === '4K' ? '4K Ultra HD' : selected === '1080p' ? '1080p Full HD' : '720p HD');
+          showControls();
+        };
+      });
+      
+      document.addEventListener('click', () => {
+        if (qualityMenu) qualityMenu.style.display = 'none';
+      });
+    }
 
-    seekBar.addEventListener('input', () => {
-      mainPlayer.currentTime = seekBar.value;
-    });
+    if (fullscreenBtn) {
+      fullscreenBtn.onclick = () => {
+        if (!document.fullscreenElement) {
+          videoContainer.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      };
+    }
+
+    if (mainPlayer) {
+      mainPlayer.onloadedmetadata = () => {
+        seekBar.max = mainPlayer.duration;
+        timeRemaining.textContent = formatTime(mainPlayer.duration);
+      };
+    }
+
+    if (seekBar) {
+      seekBar.addEventListener('input', () => {
+        mainPlayer.currentTime = seekBar.value;
+      });
+    }
 
     let hideControlsTimeout;
     const backBtn = document.getElementById('playback-back-btn');
-    backBtn.style.transition = 'opacity 0.3s';
+    if (backBtn) backBtn.style.transition = 'opacity 0.3s';
     const showControls = () => {
-      controls.style.opacity = '1';
-      backBtn.style.opacity = '1';
+      if (controls) controls.style.opacity = '1';
       document.body.style.cursor = 'default';
       clearTimeout(hideControlsTimeout);
       hideControlsTimeout = setTimeout(() => {
-        if (!mainPlayer.paused) {
-          controls.style.opacity = '0';
-          // backBtn.style.opacity = '0'; // Always show close button
+        if (mainPlayer && !mainPlayer.paused) {
+          if (controls) controls.style.opacity = '0';
           document.body.style.cursor = 'none';
         }
       }, 6000);
     };
 
-    videoContainer.onmousemove = showControls;
-    videoContainer.onmouseleave = () => {
-      if (!mainPlayer.paused) {
-        controls.style.opacity = '0';
-        // backBtn.style.opacity = '0'; // Always show close button
-      }
-    };
+    if (videoContainer) {
+      videoContainer.onmousemove = showControls;
+      videoContainer.onmouseleave = () => {
+        if (mainPlayer && !mainPlayer.paused) {
+          if (controls) controls.style.opacity = '0';
+        }
+      };
+    }
 
     handleNormalKeydown = function(e) {
       if(document.getElementById('playbackOverlay')) {
@@ -5122,52 +5326,75 @@ window.playVideo = (id) => {
           mainPlayer.currentTime -= 5;
           showControls();
         } else if (e.key === 'f' || e.key === 'F') {
-           fullscreenBtn.click();
+          if (fullscreenBtn) fullscreenBtn.click();
+        } else if (e.key === 'c' || e.key === 'C') {
+          if (captionsBtn) captionsBtn.click();
         }
       }
     };
     window.addEventListener('keydown', handleNormalKeydown);
 
-    mainPlayer.ontimeupdate = () => {
-      seekBar.value = mainPlayer.currentTime;
-      timeCurrent.textContent = formatTime(mainPlayer.currentTime);
-      timeRemaining.textContent = formatTime(mainPlayer.duration - mainPlayer.currentTime);
-      
-      const percent = (mainPlayer.currentTime / mainPlayer.duration) * 100;
-      seekBar.style.background = `linear-gradient(to right, var(--netflix-red, #e50914) ${percent}%, rgba(255,255,255,0.3) ${percent}%)`;
+    if (mainPlayer) {
+      mainPlayer.ontimeupdate = () => {
+        if (seekBar) seekBar.value = mainPlayer.currentTime;
+        if (timeCurrent) timeCurrent.textContent = formatTime(mainPlayer.currentTime);
+        if (timeRemaining) timeRemaining.textContent = formatTime(mainPlayer.duration - mainPlayer.currentTime);
+        
+        if (seekBar) {
+          const percent = (mainPlayer.currentTime / mainPlayer.duration) * 100;
+          seekBar.style.background = `linear-gradient(to right, var(--netflix-red, #e50914) ${percent}%, rgba(255,255,255,0.3) ${percent}%)`;
+        }
 
-      if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
-        const idx = appState.memories.findIndex(i => i.id === id);
-        if (idx >= 0 && idx < appState.memories.length - 1) {
-          const nextMem = appState.memories[idx + 1];
-          const timerDiv = document.getElementById('next-up-overlay');
-          if (timerDiv.style.display === 'none') {
-            document.getElementById('next-up-title').innerText = nextMem.title;
-            timerDiv.style.display = 'flex';
-            document.getElementById('next-up-btn').onclick = () => {
-               document.getElementById('playback-back-btn').click();
-               playVideo(nextMem.id);
-            };
-          }
-          
-          const circle = document.getElementById('next-up-ring');
-          const remains = mainPlayer.duration - mainPlayer.currentTime;
-          if (circle) {
-             const offset = 283 - ((remains / 5) * 283);
-             circle.style.strokeDashoffset = offset.toString();
+        // CC dynamic update
+        if (isCcEnabled && videoCaptions) {
+          const captionText = getCaptionText(mainPlayer.currentTime, m.title);
+          if (captionText) {
+            videoCaptions.textContent = captionText;
+            videoCaptions.style.display = 'block';
+            videoCaptions.style.opacity = '1';
+          } else {
+            videoCaptions.style.opacity = '0';
           }
         }
-      }
-    };
-  
-    mainPlayer.onended = () => {
-      if(appState.settings.autoPlayNextEpisode) {
-        const idx = appState.memories.findIndex(i => i.id === id);
-        if(idx >= 0 && idx < appState.memories.length - 1) {
-          playVideo(appState.memories[idx + 1].id);
+
+        if (appState.settings.autoPlayNextEpisode && mainPlayer.duration - mainPlayer.currentTime <= 5 && mainPlayer.duration > 10) {
+          const idx = appState.memories.findIndex(i => i.id === id);
+          if (idx >= 0 && idx < appState.memories.length - 1) {
+            const nextMem = appState.memories[idx + 1];
+            const timerDiv = document.getElementById('next-up-overlay');
+            if (timerDiv && timerDiv.style.display === 'none') {
+              const nextUpTitle = document.getElementById('next-up-title');
+              if (nextUpTitle) nextUpTitle.innerText = nextMem.title;
+              timerDiv.style.display = 'flex';
+              const nextUpBtn = document.getElementById('next-up-btn');
+              if (nextUpBtn) {
+                nextUpBtn.onclick = () => {
+                  const backBtnEl = document.getElementById('playback-back-btn');
+                  if (backBtnEl) backBtnEl.click();
+                  playVideo(nextMem.id);
+                };
+              }
+            }
+            
+            const circle = document.getElementById('next-up-ring');
+            const remains = mainPlayer.duration - mainPlayer.currentTime;
+            if (circle) {
+               const offset = 283 - ((remains / 5) * 283);
+               circle.style.strokeDashoffset = offset.toString();
+            }
+          }
         }
-      }
-    };
+      };
+    
+      mainPlayer.onended = () => {
+        if(appState.settings.autoPlayNextEpisode) {
+          const idx = appState.memories.findIndex(i => i.id === id);
+          if(idx >= 0 && idx < appState.memories.length - 1) {
+            playVideo(appState.memories[idx + 1].id);
+          }
+        }
+      };
+    }
   } else {
     // YouTube Custom Controls Handler!
     const videoContainer = document.getElementById('video-container');
