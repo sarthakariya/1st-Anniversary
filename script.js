@@ -2831,7 +2831,7 @@ function createNavbar() {
     
     nav.innerHTML = `
       <div class="nav-logo" onclick="setCategory('Home')">
-        <img id="nav-logo-img" style="height: 85px; width: 180px; object-fit: contain; cursor: pointer;" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
+        <img id="nav-logo-img" src="./Netflix-Logo-Streaming-Platform-765.png" alt="Netflix">
       </div>
       <ul class="nav-links" style="position:relative; font-weight: 500;">
         <div class="nav-line" id="navLine"></div>
@@ -2875,7 +2875,7 @@ function createNavbar() {
         </button>
         <div class="profile-dropdown">
           <div style="display: flex; align-items: center; cursor: pointer; gap: 4px;">
-            <img src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
+            <img class="nav-profile-img" src="${currAvatar}" width="32" height="32" style="border-radius:4px; margin-left:15px; border: 1px solid transparent; transition: border 0.3s; object-fit: cover; display: block;" onmouseenter="this.style.borderColor='#fff';" onmouseleave="this.style.borderColor='transparent';">
             <span style="font-size: 0; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid white; margin-left: 4px;"></span>
           </div>
           <div class="dropdown-menu">
@@ -4896,6 +4896,20 @@ window.playVideo = (id) => {
     document.body.appendChild(c);
   }
   
+  // High-precision dynamic orientation track and simulated landscape rotation
+  const handleOrientation = () => {
+    const isPortraitMobile = window.matchMedia("(max-width: 900px) and (orientation: portrait)").matches;
+    if (isPortraitMobile) {
+      c.classList.add('simulated-landscape');
+    } else {
+      c.classList.remove('simulated-landscape');
+    }
+  };
+  
+  handleOrientation();
+  window.addEventListener('resize', handleOrientation);
+  window.addEventListener('orientationchange', handleOrientation);
+  
   // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
   c.style.display = 'block';
   c.style.transition = 'none';
@@ -4929,9 +4943,17 @@ window.playVideo = (id) => {
       </div>
     `;
   } else {
+    const isMobileOrTablet = window.innerWidth < 1024;
+    let bgLayerHtml = '';
+    if (!isMobileOrTablet) {
+      bgLayerHtml = `<video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>`;
+    } else {
+      bgLayerHtml = `<div id="fsyBgPlaceholder" style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:url('${m.thumbnail || m.imageUrl}'); background-size:cover; background-position:center; filter:blur(30px) brightness(25%); transform:scale(1.1); z-index:0; pointer-events:none; opacity: 0.65;"></div>`;
+    }
+
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
-        <video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>
+        ${bgLayerHtml}
         <video src="${url}" id="fsyPlayer" fetchpriority="high" preload="metadata" style="position:relative; width:100%; max-width:100vw; max-height:100vh; object-fit:contain; cursor:pointer; will-change: transform; z-index:1;"></video>
         
         <!-- Live Closed Captions Display Layer -->
@@ -5061,6 +5083,10 @@ window.playVideo = (id) => {
   // Once entering fullscreen, show the iconic Netflix logo animation!
   setTimeout(() => {
     const enterFullscreen = () => {
+      // Lock screen orientation to landscape as requested
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
       if (c.requestFullscreen) {
         return c.requestFullscreen();
       } else if (c.webkitRequestFullscreen) {
@@ -5577,6 +5603,14 @@ window.playVideo = (id) => {
   const closePlayer = (isPopState = false) => {
      document.body.style.cursor = 'default'; // Restore cursor when player is closed
      window.closeActivePlayer = null;
+     
+     // Remove orientation tracking listeners
+     window.removeEventListener('resize', handleOrientation);
+     window.removeEventListener('orientationchange', handleOrientation);
+     if (screen.orientation && screen.orientation.unlock) {
+       try { screen.orientation.unlock(); } catch(e) {}
+     }
+
      if (handleYtKeydown) {
        window.removeEventListener('keydown', handleYtKeydown);
      }
