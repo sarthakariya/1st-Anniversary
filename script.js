@@ -4359,8 +4359,7 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${detailTitleRender}</div>
-          <input type="text" id="dm-title-edit" class="edit-input hidden" value="${m.title}" style="font-size:36px; font-weight:bold; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:5px; margin-bottom:10px; width:100%; border-radius:4px; font-family:inherit;">
-          <div style="display:flex; gap:10px; align-items:center;">
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
             ${!m.videoUrl ? `
               <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 20px; font-size: 15px;">
                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
@@ -4376,7 +4375,7 @@ window.openDetailModal = (id, e, editMode = false) => {
             <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 20px; font-size: 16px;">
                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
             </button>
-            <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black;">
+            <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black; font-weight:bold;">
                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
             </button>
             
@@ -4397,62 +4396,102 @@ window.openDetailModal = (id, e, editMode = false) => {
       </div>
       <div class="detail-body">
         <div class="detail-left">
-          <div class="detail-meta">
-            <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
-          </div>
-          <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
-              <span style="font-size: 6px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
-              <span style="font-size: 11px; font-weight: 950;">10</span>
+          <!-- VIEW MODE CONTAINER -->
+          <div id="dm-view-content">
+            <div class="detail-meta">
+              <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
             </div>
-            <span style="font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">#1 in Memories Today</span>
-          </div>
-          <div class="detail-desc" id="dm-desc">${m.desc || 'A beautiful memory worth reliving.'}</div>
-          <textarea id="dm-desc-edit" class="edit-input hidden" style="width:100%; height:100px; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; resize:vertical; font-size:16px;">${m.desc || ''}</textarea>
-          
-          <div id="dm-cat-edit-container" class="hidden" style="margin-top:15px;">
-            <div style="font-size:14px; color:#aaa; margin-bottom:8px;">Category</div>
-            <select id="dm-cat-edit" style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:11px; border-radius:4px; font-family:inherit; font-size:14px; outline:none;">
-              <option value="Celebration Parties" ${window.getNormalizedCategory(m.category) === 'Celebration Parties' ? 'selected' : ''} style="background:#141414;">Celebration Parties</option>
-              <option value="Our Romantic Scenes" ${window.getNormalizedCategory(m.category) === 'Our Romantic Scenes' ? 'selected' : ''} style="background:#141414;">Our Romantic Scenes</option>
-              <option value="Our Special Event" ${window.getNormalizedCategory(m.category) === 'Our Special Event' ? 'selected' : ''} style="background:#141414;">Our Special Event</option>
-            </select>
-          </div>
-          
-          <div id="dm-thumb-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
-            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Thumbnail Image URL</div>
-            <input type="text" id="dm-thumb-url-input" value="${m.thumbnail || ''}" placeholder="Paste Thumbnail Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;">
-            <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s; margin-bottom:12px;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-thumb-input').click()">📁 Select Image File</button>
-            <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
-            
-            <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s; margin-bottom:12px;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateThumbnailPromptWithAI()">
-              ✨ Generate Thumbnail Prompt with AI
-            </button>
+            <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
+                <span style="font-size: 6px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
+                <span style="font-size: 11px; font-weight: 950;">10</span>
+              </div>
+              <span style="font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">#1 in Memories Today</span>
+            </div>
+            <div class="detail-desc" id="dm-desc" style="font-size: 16px; color: #e5e5e5; line-height: 1.7; margin-bottom: 12px;">${m.desc || 'A beautiful memory worth reliving.'}</div>
           </div>
 
-          <div id="dm-title-image-edit" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
-            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Stylized Title Logo Image (Optional)</div>
-            <input type="text" id="dm-title-img-url-input" value="${m.titleImage || ''}" placeholder="Paste transparent PNG Title Image URL here..." style="width:100%; background:rgba(0,0,0,0.6); color:white; border:1px solid #333; padding:10px; border-radius:4px; font-family:inherit; font-size:14px; margin-bottom:12px; outline:none;" oninput="const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
-            
-            <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
-            
-            <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s; margin-bottom:12px;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-title-img-file-input').click()">📁 Select Title Logo Image File</button>
-            <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
-            
-            <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s; margin-bottom:12px;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateTitleLogoPromptWithAI()">
-              ✨ Generate Title Logo Prompt with AI
-            </button>
-            
-            <div style="text-align:center; margin-top:10px;">
-              <img id="dm-title-img-preview-el" src="${m.titleImage || ''}" style="max-height:80px; max-width:80%; margin:0 auto; display:${m.titleImage ? 'block' : 'none'}; object-fit:contain; border-radius:4px; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+          <!-- EDIT FORM WRAPPER (Cinematic Form) -->
+          <div id="dm-edit-form" class="hidden" style="margin-top: 10px;">
+            <div class="edit-tabs-nav" style="display: flex; gap: 4px; border-bottom: 2px solid rgba(255,255,255,0.08); margin-bottom: 20px;">
+              <button type="button" id="tab-btn-story" class="edit-tab-btn active" onclick="window.switchDmEditTab('story')" style="background:none; border:none; color:#e50914; border-bottom: 3px solid #e50914; font-size: 13px; font-weight: 800; padding: 10px 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;">Story & Info</button>
+              <button type="button" id="tab-btn-artwork" class="edit-tab-btn" onclick="window.switchDmEditTab('artwork')" style="background:none; border:none; color:#aaa; font-size: 13px; font-weight: 800; padding: 10px 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: color 0.2s;">Cover Art & AI</button>
+            </div>
+
+            <!-- Tab 1: Story Details -->
+            <div id="dm-tab-content-story" class="edit-tab-content active">
+              <div class="netflix-form-group">
+                <label class="netflix-form-label" for="dm-title-edit">Memory Title</label>
+                <input type="text" id="dm-title-edit" class="netflix-form-input edit-input" value="${m.title}">
+              </div>
+              
+              <div id="dm-cat-edit-container" class="netflix-form-group hidden">
+                <label class="netflix-form-label" for="dm-cat-edit">Category Row</label>
+                <select id="dm-cat-edit" class="netflix-form-select">
+                  <option value="Celebration Parties" ${window.getNormalizedCategory(m.category) === 'Celebration Parties' ? 'selected' : ''} style="background:#141414; color: white;">Celebration Parties</option>
+                  <option value="Our Romantic Scenes" ${window.getNormalizedCategory(m.category) === 'Our Romantic Scenes' ? 'selected' : ''} style="background:#141414; color: white;">Our Romantic Scenes</option>
+                  <option value="Our Special Event" ${window.getNormalizedCategory(m.category) === 'Our Special Event' ? 'selected' : ''} style="background:#141414; color: white;">Our Special Event</option>
+                </select>
+              </div>
+              
+              <div class="netflix-form-group">
+                <label class="netflix-form-label" for="dm-desc-edit">Synopsis / Description</label>
+                <textarea id="dm-desc-edit" class="netflix-form-textarea edit-input" placeholder="Describe this beautiful memory...">${m.desc || ''}</textarea>
+              </div>
+            </div>
+
+            <!-- Tab 2: Artwork & AI Tools -->
+            <div id="dm-tab-content-artwork" class="edit-tab-content" style="display: none;">
+              <!-- Thumbnail cover card -->
+              <div id="dm-thumb-edit" class="edit-sub-card hidden" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+                <h4 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #e50914; margin: 0 0 12px 0; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;"><span style="display:inline-block; width:6px; height:6px; background:#e50914; border-radius:50%;"></span> Thumbnail Cover</h4>
+                
+                <div class="netflix-form-group" style="margin-bottom: 12px;">
+                  <label class="netflix-form-label" for="dm-thumb-url-input">Thumbnail Image URL</label>
+                  <input type="text" id="dm-thumb-url-input" class="netflix-form-input" value="${m.thumbnail || ''}" placeholder="Paste Image URL here...">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-thumb-input').click()">
+                    📁 Select File
+                  </button>
+                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
+                    ✨ AI Generator
+                  </button>
+                </div>
+                <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
+              </div>
+
+              <!-- Title image card -->
+              <div id="dm-title-image-edit" class="edit-sub-card hidden" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 16px;">
+                <h4 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #e50914; margin: 0 0 12px 0; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;"><span style="display:inline-block; width:6px; height:6px; background:#e50914; border-radius:50%;"></span> Title Logo Artwork (PNG)</h4>
+                
+                <div class="netflix-form-group" style="margin-bottom: 12px;">
+                  <label class="netflix-form-label" for="dm-title-img-url-input">Logo Image URL</label>
+                  <input type="text" id="dm-title-img-url-input" class="netflix-form-input" value="${m.titleImage || ''}" placeholder="Paste URL here..." oninput="const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
+                    📁 Select File
+                  </button>
+                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+                    ✨ AI Generator
+                  </button>
+                </div>
+                <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+                
+                <div style="text-align:center; margin-top:10px;">
+                  <img id="dm-title-img-preview-el" src="${m.titleImage || ''}" style="max-height:80px; max-width:80%; margin:0 auto; display:${m.titleImage ? 'block' : 'none'}; object-fit:contain; border-radius:4px; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
-          <div><span style="color:#777;">Cast:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Sarthak</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Reechita</span></div>
-          <div style="margin-top:10px;"><span style="color:#777;">Genres:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Romance</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Emotional</span></div>
-          <div style="margin-top:10px;"><span style="color:#777;">This Show Is:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Heartfelt</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Intimate</span></div>
+        <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); border-left: 1px solid rgba(255,255,255,0.08); padding-left: 24px;">
+          <div><span style="color:#777; font-weight:bold;">Cast:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Sarthak</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Reechita</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">Genres:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Romance</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Emotional</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">This Show Is:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Heartfelt</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Intimate</span></div>
         </div>
       </div>
     </div>
@@ -4548,6 +4587,40 @@ window.openDetailModal = (id, e, editMode = false) => {
   setTimeout(() => modal.classList.add('open'), 10);
 }
 
+window.switchDmEditTab = (tabName) => {
+  const btnStory = document.getElementById('tab-btn-story');
+  const btnArtwork = document.getElementById('tab-btn-artwork');
+  const contentStory = document.getElementById('dm-tab-content-story');
+  const contentArtwork = document.getElementById('dm-tab-content-artwork');
+  
+  if (!btnStory || !btnArtwork || !contentStory || !contentArtwork) return;
+  
+  if (tabName === 'story') {
+    btnStory.style.color = '#e50914';
+    btnStory.style.borderBottom = '3px solid #e50914';
+    btnArtwork.style.color = '#aaa';
+    btnArtwork.style.borderBottom = 'none';
+    
+    contentStory.classList.remove('hidden');
+    contentArtwork.style.display = 'none';
+  } else {
+    btnArtwork.style.color = '#e50914';
+    btnArtwork.style.borderBottom = '3px solid #e50914';
+    btnStory.style.color = '#aaa';
+    btnStory.style.borderBottom = 'none';
+    
+    contentArtwork.style.display = 'block';
+    contentArtwork.classList.remove('hidden');
+    contentStory.classList.add('hidden');
+    
+    // Also make sure the individual cards are visible inside the tab
+    const thumbEdit = document.getElementById('dm-thumb-edit');
+    const titleImgEdit = document.getElementById('dm-title-image-edit');
+    if (thumbEdit) thumbEdit.classList.remove('hidden');
+    if (titleImgEdit) titleImgEdit.classList.remove('hidden');
+  }
+};
+
 window.toggleDetailEdit = () => {
   const title = document.getElementById('dm-title');
   const titleEdit = document.getElementById('dm-title-edit');
@@ -4560,28 +4633,38 @@ window.toggleDetailEdit = () => {
   const titleImgEdit = document.getElementById('dm-title-image-edit');
   const catEdit = document.getElementById('dm-cat-edit-container');
   
+  const viewContent = document.getElementById('dm-view-content');
+  const editForm = document.getElementById('dm-edit-form');
+  
   if(title.classList.contains('hidden')) {
     title.classList.remove('hidden');
-    desc.classList.remove('hidden');
-    playBtn.classList.remove('hidden');
+    if (desc) desc.classList.remove('hidden');
+    if (playBtn) playBtn.classList.remove('hidden');
     editBtn.classList.remove('hidden');
     titleEdit.classList.add('hidden');
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
-    thumbEdit.classList.add('hidden');
+    if (thumbEdit) thumbEdit.classList.add('hidden');
     if(titleImgEdit) titleImgEdit.classList.add('hidden');
     if(catEdit) catEdit.classList.add('hidden');
+    
+    if (viewContent) viewContent.classList.remove('hidden');
+    if (editForm) editForm.classList.add('hidden');
   } else {
     title.classList.add('hidden');
-    desc.classList.add('hidden');
-    playBtn.classList.add('hidden');
+    if (desc) desc.classList.add('hidden');
+    if (playBtn) playBtn.classList.add('hidden');
     editBtn.classList.add('hidden');
     titleEdit.classList.remove('hidden');
     descEdit.classList.remove('hidden');
     saveBtn.classList.remove('hidden');
-    thumbEdit.classList.remove('hidden');
+    if (thumbEdit) thumbEdit.classList.remove('hidden');
     if(titleImgEdit) titleImgEdit.classList.remove('hidden');
     if(catEdit) catEdit.classList.remove('hidden');
+    
+    if (viewContent) viewContent.classList.add('hidden');
+    if (editForm) editForm.classList.remove('hidden');
+    window.switchDmEditTab('story');
     titleEdit.focus();
   }
 };
@@ -4633,10 +4716,12 @@ window.saveDetailEdit = async (id) => {
       m.title;
       
     document.getElementById('dm-title').innerHTML = detailTitleRender;
-    document.getElementById('dm-desc').innerText = m.desc;
+    if (document.getElementById('dm-desc')) {
+      document.getElementById('dm-desc').innerText = m.desc;
+    }
     
     // update thumbnail visually
-    const previewImg = document.getElementById('detailModal').querySelector('.detail-hero img');
+    const previewImg = document.getElementById('detailModal').querySelector('.detail-header img');
     if (previewImg) previewImg.src = m.thumbnail;
 
     render();
@@ -4908,10 +4993,38 @@ window.playVideo = (id) => {
   let c = document.getElementById('playbackOverlay');
   if (!c) {
     c = document.createElement('div');
-    c.className = 'playback-overlay';
+    c.className = 'playback-overlay landscape-forced';
     c.id = 'playbackOverlay';
     document.body.appendChild(c);
+  } else {
+    c.className = 'playback-overlay landscape-forced';
   }
+  
+  // IMMEDIATELY request fullscreen and orientation lock under direct click context!
+  const enterFullscreenAndLandscapeImmediately = () => {
+    try {
+      if (c.requestFullscreen) {
+        c.requestFullscreen().catch(err => console.warn("Fullscreen failed", err));
+      } else if (c.webkitRequestFullscreen) {
+        c.webkitRequestFullscreen();
+      } else if (c.msRequestFullscreen) {
+        c.msRequestFullscreen();
+      }
+    } catch(err) {
+      console.warn("Fullscreen error", err);
+    }
+    
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(err => console.warn("Orientation lock failed", err));
+      } else if (screen.lockOrientation) {
+        screen.lockOrientation('landscape');
+      }
+    } catch(err) {
+      console.warn("Orientation lock error", err);
+    }
+  };
+  enterFullscreenAndLandscapeImmediately();
   
   // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
   c.style.display = 'block';
@@ -5076,58 +5189,38 @@ window.playVideo = (id) => {
     }
   };
   
-  // Wait for the opening transition to finish (580ms), then go to fullscreen automatically!
-  // Once entering fullscreen, show the iconic Netflix logo animation!
+  // Wait for the opening transition to finish (580ms), then play the iconic Netflix logo animation!
   setTimeout(() => {
-    const enterFullscreen = () => {
-      // Lock screen orientation to landscape as requested
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
-      if (c.requestFullscreen) {
-        return c.requestFullscreen();
-      } else if (c.webkitRequestFullscreen) {
-        return Promise.resolve(c.webkitRequestFullscreen());
-      } else if (c.msRequestFullscreen) {
-        return Promise.resolve(c.msRequestFullscreen());
-      }
-      return Promise.resolve();
-    };
-
-    enterFullscreen().catch(err => {
-      console.warn("Fullscreen request blocked or failed, continuing directly:", err);
-    }).finally(() => {
-      const introPlayerEl = document.getElementById('introPlayer');
-      if (introPlayerEl) {
-        introPlayerEl.muted = false;
-        introPlayerEl.volume = 1.0;
-        
+    const introPlayerEl = document.getElementById('introPlayer');
+    if (introPlayerEl) {
+      introPlayerEl.muted = false;
+      introPlayerEl.volume = 1.0;
+      
+      introPlayerEl.play().then(() => {
+        try { introPlayerEl.playbackRate = 1.0; } catch(err) {}
+      }).catch(err => {
+        console.warn("Muted intro autoplay fallback:", err);
+        introPlayerEl.muted = true;
         introPlayerEl.play().then(() => {
           try { introPlayerEl.playbackRate = 1.0; } catch(err) {}
-        }).catch(err => {
-          console.warn("Muted intro autoplay fallback:", err);
-          introPlayerEl.muted = true;
-          introPlayerEl.play().then(() => {
-            try { introPlayerEl.playbackRate = 1.0; } catch(err) {}
-          }).catch(() => startMainVideo());
-        });
-        
-        introPlayerEl.onerror = startMainVideo;
-        
-        const fallbackTimeout = setTimeout(() => {
-          if (introPlayerEl && introPlayerEl.style.display !== 'none') {
-            startMainVideo();
-          }
-        }, 4200);
-        
-        introPlayerEl.onended = () => {
-          clearTimeout(fallbackTimeout);
+        }).catch(() => startMainVideo());
+      });
+      
+      introPlayerEl.onerror = startMainVideo;
+      
+      const fallbackTimeout = setTimeout(() => {
+        if (introPlayerEl && introPlayerEl.style.display !== 'none') {
           startMainVideo();
-        };
-      } else {
+        }
+      }, 4200);
+      
+      introPlayerEl.onended = () => {
+        clearTimeout(fallbackTimeout);
         startMainVideo();
-      }
-    });
+      };
+    } else {
+      startMainVideo();
+    }
   }, 580);
   
   if (!isYouTube) {

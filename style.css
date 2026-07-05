@@ -1230,6 +1230,94 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .detail-right span.white { color: #fff; }
 
+/* Cinematic Form Tab Switcher Styling */
+.edit-tab-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.25s ease;
+  border-bottom: 3px solid transparent;
+}
+.edit-tab-btn:hover {
+  color: #fff;
+}
+.edit-tab-btn.active {
+  color: #e50914;
+  border-bottom: 3px solid #e50914;
+}
+.edit-tab-content {
+  animation: fadeInDmTab 0.3s ease-out forwards;
+}
+@keyframes fadeInDmTab {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Netflix-style Form Elements */
+.netflix-form-group {
+  background: rgba(30, 30, 30, 0.6) !important;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.25s ease;
+}
+.netflix-form-group:focus-within {
+  background: rgba(45, 45, 45, 0.8) !important;
+  border-color: #e50914;
+  box-shadow: 0 0 12px rgba(229, 9, 20, 0.25);
+}
+.netflix-form-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #8c8c8c;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.netflix-form-input, .netflix-form-textarea, .netflix-form-select {
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none !important;
+  font-family: inherit;
+  padding: 0;
+}
+.netflix-form-textarea {
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.5;
+}
+.netflix-form-select option {
+  background: #141414 !important;
+  color: #fff !important;
+}
+
+/* Landscape Forced CSS Rotation Fallback for Portrait Mobile Screen Locking */
+@media (orientation: portrait) {
+  .playback-overlay.landscape-forced {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 100vh !important;
+    height: 100vw !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+    transform-origin: center center !important;
+    z-index: 21000 !important;
+    border-radius: 0px !important;
+  }
+}
+
 .modal-controls {
   position: absolute; top: 15px; right: 15px;
   display: flex; gap: 10px; z-index: 10;
