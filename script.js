@@ -61,6 +61,16 @@ function handleFirestoreError(error, operationType, path) {
   throw new Error(JSON.stringify(errInfo));
 }
 
+window.triggerVibration = (pattern = 20) => {
+  if (navigator && typeof navigator.vibrate === 'function') {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {
+      console.warn('Vibration API blocked or not supported:', e);
+    }
+  }
+};
+
 function transitionView(v) { 
   if (appState.view === v) return;
   if (!document.startViewTransition) {
@@ -1078,6 +1088,7 @@ window.showPurgePinModal = () => {
 };
 
 window.switchProfileDirectly = (profileId) => {
+  window.triggerVibration(25);
   const targetPf = appState.profiles.find(p => p.id === profileId);
   if (!targetPf) return;
   
@@ -2217,6 +2228,7 @@ function createProfileSelection() {
     `;
     
     p.onclick = () => {
+      window.triggerVibration(25);
       if(isManageMode) {
         window.editProfile(pf.id);
       } else {
@@ -2984,7 +2996,7 @@ window.shuffleHero = () => {
     rows.forEach(row => {
       const header = row.querySelector('.row-header');
       if (header && (header.textContent.includes("Today's Topics") || header.textContent.includes("Topics for You") || header.textContent.includes("Today's Top Picks") || header.textContent.includes("Picks for You"))) {
-        const cardsContainer = row.querySelector('.row-cards');
+        const cardsContainer = row.querySelector('.row-content');
         if (cardsContainer) {
           const card = Array.from(cardsContainer.querySelectorAll('.media-card')).find(c => {
             const clickAttr = c.getAttribute('onclick') || '';
@@ -3323,6 +3335,7 @@ function createHero() {
       </div>
     </div>
     <div class="hero-overlay" style="z-index: 5;"></div>
+    <div class="hero-overlay-blood" style="z-index: 4.5;"></div>
     <div class="hero-overlay-bottom" style="z-index: 5;"></div>
     <div class="hero-info" style="z-index: 5; transition: transform 0.4s ease;">
       <div class="hero-text-roll-container">
@@ -3523,7 +3536,7 @@ function createRow(title, memories, index = 0) {
     });
   });
 
-  // Touch passive listeners
+  // Touch passive listeners - only register on non-touch (desktop) fallback if needed, otherwise let mobile native handle it
   const touchStartHandler = (e) => {
     isDown = true;
     startX = e.touches[0].pageX - rc.offsetLeft;
@@ -3536,9 +3549,12 @@ function createRow(title, memories, index = 0) {
     rc.scrollLeft = scrollLeft - walk;
   };
 
-  rc.addEventListener('touchstart', touchStartHandler, { passive: true });
-  rc.addEventListener('touchmove', touchMoveHandler, { passive: true });
-  rc.addEventListener('touchend', () => { isDown = false; }, { passive: true });
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (!isTouchDevice) {
+    rc.addEventListener('touchstart', touchStartHandler, { passive: true });
+    rc.addEventListener('touchmove', touchMoveHandler, { passive: true });
+    rc.addEventListener('touchend', () => { isDown = false; }, { passive: true });
+  }
   
   // Initialize Image IntersectionObserver to dynamically load/unload images
   if (!appState.imgObserver) {
@@ -4842,6 +4858,7 @@ window.downloadVideo = () => {
 
 // === FULLSCREEN PLAYBACK ===
 window.playVideo = (id) => {
+  window.triggerVibration(25);
   let handleYtKeydown = null;
   let handleNormalKeydown = null;
   let handleYtMessage = null;
@@ -5154,6 +5171,7 @@ window.playVideo = (id) => {
     };
 
     const togglePlay = () => {
+      window.triggerVibration(20);
       if (mainPlayer.paused) mainPlayer.play();
       else mainPlayer.pause();
     };
@@ -5475,6 +5493,7 @@ window.playVideo = (id) => {
     }, 1000);
 
     const toggleYtPlay = () => {
+      window.triggerVibration(20);
       isYtPlaying = !isYtPlaying;
       if (mainPlayer) {
         if (!isYtPlaying) {
@@ -6658,6 +6677,7 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
   };
 
   const togglePlayback = () => {
+    window.triggerVibration(20);
     isAutoplayActive = !isAutoplayActive;
     updateControlsUI();
     if (isAutoplayActive) {
@@ -6742,6 +6762,7 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
   if (audioPPBtn) {
     audioPPBtn.onclick = (e) => {
       e.stopPropagation();
+      window.triggerVibration(20);
       if (slideshowAudio.paused) {
         slideshowAudio.play().then(updateMusicControlsUI).catch(e => console.warn(e));
       } else {
