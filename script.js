@@ -124,6 +124,34 @@ let appState = {
   offlineMode: false
 };
 
+window.todaysTopics = [];
+window.initializeTodaysTopics = (force = false) => {
+  if (!appState.memories || appState.memories.length === 0) {
+    window.todaysTopics = [];
+    return;
+  }
+  
+  let vids = [...appState.memories].filter(m => {
+    const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
+    return !isMoment && m.videoUrl;
+  });
+  
+  if (vids.length === 0) {
+    vids = [...appState.memories].filter(m => window.getNormalizedCategory(m.category) !== 'Moments');
+  }
+  
+  if (force || !window.todaysTopics || window.todaysTopics.length === 0 || window.todaysTopics.length !== vids.length) {
+    // Fully randomize order so it lists each and every video in a fully randomized sequence
+    window.todaysTopics = [...vids].sort(() => Math.random() - 0.5);
+    // On full initialization or size mismatch, also randomize currentHeroIndex to start with a random preview
+    if (window.todaysTopics.length > 0) {
+      window.currentHeroIndex = Math.floor(Math.random() * window.todaysTopics.length);
+    } else {
+      window.currentHeroIndex = undefined;
+    }
+  }
+};
+
 window.addEventListener('storage', (e) => {
   if (e.key === 'netflix_state' || e.key === 'netflix_memories') {
     appState.memories = JSON.parse(sessionStorage.getItem('netflix_memories') || 'null');
@@ -638,17 +666,8 @@ window.setCategory = (cat) => {
   appState.searchQuery = '';
   
   if (cat === 'Home') {
-    let vids = appState.memories.filter(m => {
-      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-      const isCw = appState.continueWatching.includes(m.id);
-      return !isMoment && m.videoUrl && !isCw;
-    });
-    if (vids.length === 0) {
-      vids = appState.memories.filter(m => {
-        const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-        return !isMoment && m.videoUrl;
-      });
-    }
+    window.initializeTodaysTopics();
+    const vids = window.todaysTopics || [];
     if (vids.length > 0) {
       window.currentHeroIndex = Math.floor(Math.random() * vids.length);
     }
@@ -866,13 +885,11 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     } else {
       // For Home
       if (appState.activeCategory === 'Home') {
-        // 1. Today's Top Picks for You (randomized order every reload as requested)
-        const topPicksMems = [...appState.memories]
-          .filter(m => window.getNormalizedCategory(m.category) !== 'Moments')
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 8);
+        // 1. Today's Topics for You (fully randomized with each and every video listed)
+        window.initializeTodaysTopics();
+        const topPicksMems = window.todaysTopics || [];
         if (topPicksMems.length) {
-          rc.appendChild(createRow("Today's Top Picks for You", topPicksMems, rowIndex++));
+          rc.appendChild(createRow("Today's Topics for You", topPicksMems, rowIndex++));
         }
 
         // 2. Continue Watching
@@ -1065,6 +1082,7 @@ window.switchProfileDirectly = (profileId) => {
   if (!targetPf) return;
   
   window.currentHeroIndex = undefined;
+  window.initializeTodaysTopics(true);
   appState.currentProfile = targetPf.name;
   window.safeSetLocalItem('sarthak_netflix_profile', targetPf.name);
   
@@ -2218,6 +2236,7 @@ function createProfileSelection() {
 
 function loginProfile(pf, p) {
   window.currentHeroIndex = undefined;
+  window.initializeTodaysTopics(true);
   appState.currentProfile = pf.name;
   window.safeSetLocalItem('sarthak_netflix_profile', pf.name);
   
@@ -2908,26 +2927,18 @@ window.isShufflingHero = false;
 window.shuffleHero = () => {
   if (window.isShufflingHero) return;
   
-  let vids = appState.memories.filter(m => {
-    const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-    const isCw = appState.continueWatching.includes(m.id);
-    return !isMoment && m.videoUrl && !isCw;
-  });
-  
-  if (vids.length === 0) {
-    vids = appState.memories.filter(m => {
-      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-      return !isMoment && m.videoUrl;
-    });
-  }
+  window.initializeTodaysTopics();
+  const vids = window.todaysTopics || [];
   
   if (vids.length === 0) return;
   
   window.isShufflingHero = true;
   
-  let nextIndex = Math.floor(Math.random() * vids.length);
-  if (vids.length > 1 && window.currentHeroIndex !== undefined && nextIndex === window.currentHeroIndex % vids.length) {
-    nextIndex = (nextIndex + 1) % vids.length;
+  let nextIndex = 0;
+  if (window.currentHeroIndex !== undefined) {
+    nextIndex = (window.currentHeroIndex + 1) % vids.length;
+  } else {
+    nextIndex = 0;
   }
   window.currentHeroIndex = nextIndex;
 
@@ -2937,7 +2948,7 @@ window.shuffleHero = () => {
     const rows = document.querySelectorAll('.row');
     rows.forEach(row => {
       const header = row.querySelector('.row-header');
-      if (header && (header.textContent.includes("Today's Top Picks") || header.textContent.includes("Picks for You"))) {
+      if (header && (header.textContent.includes("Today's Topics") || header.textContent.includes("Topics for You") || header.textContent.includes("Today's Top Picks") || header.textContent.includes("Picks for You"))) {
         const cardsContainer = row.querySelector('.row-cards');
         if (cardsContainer) {
           const card = Array.from(cardsContainer.querySelectorAll('.media-card')).find(c => {
@@ -3003,7 +3014,7 @@ window.shuffleHero = () => {
       newTextItem.innerHTML = `
         <div class="hero-text-lockup" style="width: 100%;">
           <div class="${titleClass}">
-            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
+            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 250px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
             <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                 <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -3233,20 +3244,10 @@ function createHero() {
     return c;
   }
 
-  let vids = appState.memories.filter(m => {
-    const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-    const isCw = appState.continueWatching.includes(m.id);
-    return !isMoment && m.videoUrl && !isCw;
-  });
+  window.initializeTodaysTopics();
+  let vids = window.todaysTopics || [];
   
-  if (vids.length === 0) {
-    vids = appState.memories.filter(m => {
-      const isMoment = window.getNormalizedCategory(m.category) === 'Moments';
-      return !isMoment && m.videoUrl;
-    });
-  }
-  
-  if(vids.length === 0) return c;
+  if (vids.length === 0) return c;
   
   if (window.currentHeroIndex === undefined) {
     window.currentHeroIndex = Math.floor(Math.random() * vids.length);
@@ -3293,7 +3294,7 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 200px; max-width: min(500px, 85%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 250px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
               <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -3988,7 +3989,7 @@ window.openUploadModal = () => {
               <span>Generate Prompt</span>
             </button>
           </div>
-          <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+          <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
           
           <div style="text-align:center; padding-top: 4px;">
              <img id="up-title-img-preview" src="" style="max-height:50px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
@@ -4386,7 +4387,7 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div style="text-align:center; margin-bottom:12px; font-size:12px; color:#555; text-transform:uppercase; letter-spacing:1px;">- OR -</div>
             
             <button style="background: rgba(255,255,255,0.1); border:none; color:white; padding: 10px 15px; border-radius:4px; font-size:13px; cursor:pointer; width:100%; transition: background 0.2s; margin-bottom:12px;" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'" onclick="document.getElementById('dm-title-img-file-input').click()">📁 Select Title Logo Image File</button>
-            <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+            <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
             
             <button type="button" class="btn" style="width:100%; justify-content:center; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.3s; margin-bottom:12px;" onmouseenter="this.style.boxShadow='0 0 15px rgba(229,9,20,0.6)'; this.style.transform='scale(1.02)';" onmouseleave="this.style.boxShadow='none'; this.style.transform='scale(1)';" onclick="window.generateTitleLogoPromptWithAI()">
               ✨ Generate Title Logo Prompt with AI
@@ -5644,11 +5645,15 @@ document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}
 
 // Helper to compress images on the client side before uploading to Firestore to stay safely within 1MB quota and upload super fast
 window.compressPhotoFile = compressPhotoFile;
-function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.82) {
+function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.82, preserveAlpha = false) {
   return new Promise((resolve) => {
     const isPng = file && (
       file.type === 'image/png' || 
-      file.name?.toLowerCase().endsWith('.png')
+      file.name?.toLowerCase().endsWith('.png') ||
+      file.type === 'image/svg+xml' ||
+      file.name?.toLowerCase().endsWith('.svg') ||
+      file.type === 'image/webp' ||
+      file.name?.toLowerCase().endsWith('.webp')
     );
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -5665,7 +5670,7 @@ function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.
             ctx.drawImage(img, 0, 0, w, h);
             
             // Convert to JPEG for large images to save 10x space while preserving facial clarity
-            const mimeType = forceJpeg || (img.width * img.height > 200000) ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
+            const mimeType = (forceJpeg && !preserveAlpha) || (img.width * img.height > 200000 && !preserveAlpha) ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
             return canvas.toDataURL(mimeType, mimeType === 'image/png' ? undefined : q);
           };
 
@@ -5685,7 +5690,7 @@ function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.
           }
 
           let currentQuality = quality;
-          let forceJpeg = (currentWidth * currentHeight > 250000);
+          let forceJpeg = !preserveAlpha && (currentWidth * currentHeight > 250000);
           let res = runCompression(currentWidth, currentHeight, currentQuality, forceJpeg);
           
           // Let's target less than 450,000 characters to make sure we stay perfectly safe!
@@ -5695,7 +5700,7 @@ function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.
             if (attempts === 1) {
               // Reduce quality first, keeping resolution high
               currentQuality = 0.72;
-              forceJpeg = true;
+              forceJpeg = !preserveAlpha;
             } else if (attempts === 2) {
               currentQuality = 0.65;
             } else {
@@ -5704,7 +5709,7 @@ function compressPhotoFile(file, maxWidth = 1600, maxHeight = 1600, quality = 0.
               currentHeight = Math.round(currentHeight * 0.85);
               currentQuality = 0.68;
             }
-            res = runCompression(currentWidth, currentHeight, currentQuality, true);
+            res = runCompression(currentWidth, currentHeight, currentQuality, !preserveAlpha);
           }
           
           resolve(res);
@@ -7058,7 +7063,7 @@ window.updateBulkToolbar = () => {
             AI Prompt
           </button>
         </div>
-        <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
+        <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
         
         <div style="text-align:center;">
            <img id="bulk-title-img-preview" src="" style="max-height:40px; max-width:80%; margin:0 auto; display:none; object-fit:contain; border-radius:4px;">

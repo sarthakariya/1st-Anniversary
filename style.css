@@ -1350,14 +1350,14 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* CSS 1: Hero title size - fluid clamp style */
 .hero-title {
-  font-size: clamp(28px, 4.5vw, 60px) !important;
+  font-size: clamp(34px, 5.5vw, 75px) !important;
   line-height: 1.1 !important;
 }
 .hero-title.title-long {
-  font-size: clamp(22px, 3.2vw, 42px) !important;
+  font-size: clamp(28px, 4.2vw, 55px) !important;
 }
 .hero-title.title-very-long {
-  font-size: clamp(18px, 2.5vw, 32px) !important;
+  font-size: clamp(22px, 3.2vw, 42px) !important;
 }
 
 /* CSS 3: Nav links container - flexible and auto-wrapping */
