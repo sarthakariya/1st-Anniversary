@@ -2190,19 +2190,6 @@ body.modal-open {
   }
 }
 
-/* Simulated Landscape (Rotate 90 degrees on mobile portrait screens) */
-.playback-overlay.simulated-landscape {
-  width: 100vh !important;
-  height: 100vw !important;
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) rotate(90deg) !important;
-  transform-origin: center center !important;
-  z-index: 20000 !important;
-  overflow: hidden !important;
-}
-
 /* Precise main player object-fit rule: uncropped, elegant landscape aspect ratio */
 .playback-overlay video#fsyPlayer, 
 .playback-overlay iframe#fsyPlayer,

@@ -4896,20 +4896,6 @@ window.playVideo = (id) => {
     document.body.appendChild(c);
   }
   
-  // High-precision dynamic orientation track and simulated landscape rotation
-  const handleOrientation = () => {
-    const isPortraitMobile = window.matchMedia("(max-width: 900px) and (orientation: portrait)").matches;
-    if (isPortraitMobile) {
-      c.classList.add('simulated-landscape');
-    } else {
-      c.classList.remove('simulated-landscape');
-    }
-  };
-  
-  handleOrientation();
-  window.addEventListener('resize', handleOrientation);
-  window.addEventListener('orientationchange', handleOrientation);
-  
   // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
   c.style.display = 'block';
   c.style.transition = 'none';
@@ -4943,13 +4929,7 @@ window.playVideo = (id) => {
       </div>
     `;
   } else {
-    const isMobileOrTablet = window.innerWidth < 1024;
-    let bgLayerHtml = '';
-    if (!isMobileOrTablet) {
-      bgLayerHtml = `<video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>`;
-    } else {
-      bgLayerHtml = `<div id="fsyBgPlaceholder" style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:url('${m.thumbnail || m.imageUrl}'); background-size:cover; background-position:center; filter:blur(30px) brightness(25%); transform:scale(1.1); z-index:0; pointer-events:none; opacity: 0.65;"></div>`;
-    }
+    let bgLayerHtml = `<video id="fsyBgPlayer" src="${url}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>`;
 
     playerHtml = `
       <div id="video-container" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:black; contain: content; overflow: hidden;">
@@ -5604,9 +5584,6 @@ window.playVideo = (id) => {
      document.body.style.cursor = 'default'; // Restore cursor when player is closed
      window.closeActivePlayer = null;
      
-     // Remove orientation tracking listeners
-     window.removeEventListener('resize', handleOrientation);
-     window.removeEventListener('orientationchange', handleOrientation);
      if (screen.orientation && screen.orientation.unlock) {
        try { screen.orientation.unlock(); } catch(e) {}
      }
@@ -6618,16 +6595,18 @@ window.startMomentsSlideshow = (startId, autoPlay = true) => {
     let slideHtml = '';
     if (currentMem.videoUrl) {
       slideHtml = `
-        <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1);"></video>
+        <video src="${currentMem.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:translate(-50%,-50%) scale(1.05); z-index:0; pointer-events:none;"></video>
+        <video id="ss-video" src="${currentMem.videoUrl}" autoplay playsinline style="position:relative; width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1); z-index:1;"></video>
       `;
     } else {
       slideHtml = `
-        <img id="ss-image" src="${currentMem.thumbnail}" style="width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1);">
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:url('${currentMem.thumbnail}'); background-size:cover; background-position:center; filter:blur(40px) brightness(30%); transform:scale(1.05); z-index:0; pointer-events:none;"></div>
+        <img id="ss-image" src="${currentMem.thumbnail}" style="position:relative; width:100%; height:100%; object-fit:contain; border-radius:0; filter:none; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1); z-index:1;">
       `;
     }
     
     container.innerHTML = `
-      <div class="ss-slide-wrapper ${transitionClass}">
+      <div class="ss-slide-wrapper ${transitionClass}" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; background:black;">
         ${slideHtml}
       </div>
     `;
