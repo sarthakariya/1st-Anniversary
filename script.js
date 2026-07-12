@@ -1,5 +1,5 @@
 import { db, auth } from './src/firebase.js';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc, writeBatch, getDocFromServer } from 'firebase/firestore';
 import { animate, stagger } from 'motion';
 
 const OperationType = {
@@ -60,6 +60,17 @@ function handleFirestoreError(error, operationType, path) {
   // Fallback throw if not reads or writes
   throw new Error(JSON.stringify(errInfo));
 }
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
+testConnection();
 
 window.triggerVibration = (pattern = 20) => {
   if (navigator && typeof navigator.vibrate === 'function') {
@@ -205,7 +216,8 @@ window.addEventListener('error', (event) => {
   `;
 });
 window.addEventListener('unhandledrejection', (event) => {
-  console.error("Unhandled Rejection:", event.reason);
+  event.preventDefault();
+  console.warn("Unhandled Rejection:", event.reason);
   // Unhandled rejections don't always crash the UI, but we log them.
 });
 
@@ -482,26 +494,26 @@ async function ensureMemoryDataSize(mem) {
 }
 
 async function saveMemoryToDB(memory) {
-  if(!memory.id) memory.id = "m_" + Date.now();
-  await ensureMemoryDataSize(memory);
   try {
+    if(!memory.id) memory.id = "m_" + Date.now();
+    await ensureMemoryDataSize(memory);
     await setDoc(doc(db, 'memories', memory.id), memory);
   } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id}`);
+    handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id || 'new'}`);
     throw err;
   }
 }
 
 async function saveStateList(key, data) {
-  appState[key] = data;
-  window.safeSetSessionItem('netflix_state', JSON.stringify({
-    myList: appState.myList,
-    continueWatching: appState.continueWatching,
-    likedMemories: appState.likedMemories || [],
-    settings: appState.settings,
-    profiles: appState.profiles
-  }));
   try {
+    appState[key] = data;
+    window.safeSetSessionItem('netflix_state', JSON.stringify({
+      myList: appState.myList,
+      continueWatching: appState.continueWatching,
+      likedMemories: appState.likedMemories || [],
+      settings: appState.settings,
+      profiles: appState.profiles
+    }));
     await setDoc(doc(db, 'user_state', 'household'), {
       [key]: data
     }, { merge: true });
@@ -3633,21 +3645,21 @@ function createRow(title, memories, index = 0) {
     const getCardGenres = (catVal) => {
       const cat = (catVal || '').toLowerCase();
       if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span>';
+        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love Story</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Cinematic</span>';
       } else if (cat.includes('party') || cat.includes('celebration')) {
-        return '<span>Parties</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span>';
+        return '<span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Upbeat</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Togetherness</span>';
       } else if (cat.includes('special') || cat.includes('event')) {
-        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span>';
+        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Legacy</span>';
       } else if (cat.includes('comedy')) {
-        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
+        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Lighthearted</span>';
       } else if (cat.includes('intimate')) {
-        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span>';
+        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span>';
       } else if (cat.includes('anniversary')) {
-        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
+        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
       } else if (cat.includes('travel') || cat.includes('adventure')) {
-        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span>';
+        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Scenic</span>';
       } else {
-        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span>';
+        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span>';
       }
     };
 
@@ -4250,11 +4262,15 @@ window.openUploadModal = () => {
     extractedVideoId = videoId;
     document.getElementById('up-fetch').innerText = "Fetching...";
     
+    let fetchedTitle = '';
     try {
       const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
       if (oembedRes.ok) {
         const data = await oembedRes.json();
-        if (data.title) document.getElementById('up-title').value = data.title;
+        if (data.title) {
+          fetchedTitle = data.title;
+          document.getElementById('up-title').value = fetchedTitle;
+        }
         // Always prefer maxresdefault for crystal clear thumbnails
         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
       } else {
@@ -4270,6 +4286,11 @@ window.openUploadModal = () => {
     if (autoThumbCard && autoThumbImg) {
       autoThumbImg.src = currentThumbData;
       autoThumbCard.style.display = 'flex';
+    }
+
+    // Automatically trigger description generation using Gemini AI based on fetched video metadata
+    if (fetchedTitle) {
+      window.generateDescriptionWithGeminiAPI(link, fetchedTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
     }
 
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
@@ -4374,26 +4395,33 @@ window.openDetailModal = (id, e, editMode = false) => {
     `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
     m.title;
 
-  const getHashtagsForMemory = (memObj) => {
+  const getSleekGenresForMemory = (memObj) => {
     const cat = (memObj.category || '').toLowerCase();
-    const hashtags = [];
+    let genres = [];
     if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-      hashtags.push('#LoveStory', '#RomanticMoments', '#TogetherForever', '#Soulmates', '#CouplesGoals');
+      genres = ['Romance', 'Heartfelt', 'Emotional', 'Love Story', 'Cinematic', 'Milestone'];
     } else if (cat.includes('party') || cat.includes('celebration')) {
-      hashtags.push('#Celebration', '#PartyTime', '#GoodVibes', '#CheersToLife', '#UnforgettableNight');
+      genres = ['Festive', 'Upbeat', 'Fun', 'Togetherness', 'Milestone', 'Joyful'];
     } else if (cat.includes('special') || cat.includes('event')) {
-      hashtags.push('#SpecialEvent', '#Milestone', '#MemorableDay', '#OnceInALifetime', '#PreciousMoments');
+      genres = ['Milestone', 'Timeless', 'Emotional', 'Heartfelt', 'Legacy', 'Cinematic'];
+    } else if (cat.includes('comedy')) {
+      genres = ['Cute', 'Hilarious', 'Lighthearted', 'Fun', 'Romance', 'Heartfelt'];
+    } else if (cat.includes('intimate')) {
+      genres = ['Warm', 'Sweet', 'Close', 'Romantic', 'Heartfelt', 'Togetherness'];
+    } else if (cat.includes('anniversary')) {
+      genres = ['Fine Dining', 'Classy', 'Together', 'Romantic', 'Milestone', 'Legacy'];
+    } else if (cat.includes('travel') || cat.includes('adventure')) {
+      genres = ['Journey', 'Exploring', 'Adventures', 'Scenic', 'Cinematic', 'Documentary'];
     } else {
-      hashtags.push('#BeautifulMemories', '#ReliveTheMoment', '#Nostalgia', '#CherishedTimes', '#Cinematic');
+      genres = ['Emotional', 'Heartfelt', 'Timeless', 'Personal Legacy', 'Cinematic', 'Memory'];
     }
-    const shuffled = [...hashtags].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3).join(' ');
+    return genres.map(g => `<span style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #e5e5e5; font-weight: 500; display: inline-block; letter-spacing: 0.3px;">${g}</span>`).join(' ');
   };
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.classList.remove('open'); setTimeout(() => { dm.remove(); }, 300);">&times;</button>
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.remove(); }, 350);">&times;</button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
@@ -4450,8 +4478,8 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div class="detail-meta">
               <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
             </div>
-            <div class="hashtags-container" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: #ff4d5a; display: flex; gap: 8px;">
-              ${getHashtagsForMemory(m)}
+            <div class="genres-container" style="margin-top: 12px; margin-bottom: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+              ${getSleekGenresForMemory(m)}
             </div>
             <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
@@ -4663,7 +4691,9 @@ window.switchDmEditTab = (tabName) => {
     btnArtwork.style.borderBottom = 'none';
     
     contentStory.classList.remove('hidden');
+    contentStory.classList.add('netflix-tab-fade');
     contentArtwork.style.display = 'none';
+    contentArtwork.classList.remove('netflix-tab-fade');
   } else {
     btnArtwork.style.color = '#e50914';
     btnArtwork.style.borderBottom = '3px solid #e50914';
@@ -4672,13 +4702,15 @@ window.switchDmEditTab = (tabName) => {
     
     contentArtwork.style.display = 'block';
     contentArtwork.classList.remove('hidden');
+    contentArtwork.classList.add('netflix-tab-fade');
     contentStory.classList.add('hidden');
+    contentStory.classList.remove('netflix-tab-fade');
     
     // Also make sure the individual cards are visible inside the tab
     const thumbEdit = document.getElementById('dm-thumb-edit');
     const titleImgEdit = document.getElementById('dm-title-image-edit');
-    if (thumbEdit) thumbEdit.classList.remove('hidden');
-    if (titleImgEdit) titleImgEdit.classList.remove('hidden');
+    if (thumbEdit) { thumbEdit.classList.remove('hidden'); thumbEdit.classList.add('netflix-tab-fade'); }
+    if (titleImgEdit) { titleImgEdit.classList.remove('hidden'); titleImgEdit.classList.add('netflix-tab-fade'); }
   }
 };
 
@@ -4701,10 +4733,12 @@ window.toggleDetailEdit = () => {
   
   if(title.classList.contains('hidden')) {
     title.classList.remove('hidden');
-    if (desc) desc.classList.remove('hidden');
-    if (playBtn) playBtn.classList.remove('hidden');
-    if (photoBtn) photoBtn.classList.remove('hidden');
+    title.classList.add('netflix-fade-in');
+    if (desc) { desc.classList.remove('hidden'); desc.classList.add('netflix-fade-in'); }
+    if (playBtn) { playBtn.classList.remove('hidden'); playBtn.classList.add('netflix-fade-in'); }
+    if (photoBtn) { photoBtn.classList.remove('hidden'); photoBtn.classList.add('netflix-fade-in'); }
     editBtn.classList.remove('hidden');
+    editBtn.classList.add('netflix-fade-in');
     if (deleteBtn) deleteBtn.classList.add('hidden');
     titleEdit.classList.add('hidden');
     descEdit.classList.add('hidden');
@@ -4713,24 +4747,35 @@ window.toggleDetailEdit = () => {
     if(titleImgEdit) titleImgEdit.classList.add('hidden');
     if(catEdit) catEdit.classList.add('hidden');
     
-    if (viewContent) viewContent.classList.remove('hidden');
+    if (viewContent) {
+      viewContent.classList.remove('hidden');
+      viewContent.classList.add('netflix-fade-in');
+    }
     if (editForm) editForm.classList.add('hidden');
   } else {
     title.classList.add('hidden');
-    if (desc) desc.classList.add('hidden');
-    if (playBtn) playBtn.classList.add('hidden');
-    if (photoBtn) photoBtn.classList.add('hidden');
+    title.classList.remove('netflix-fade-in');
+    if (desc) { desc.classList.add('hidden'); desc.classList.remove('netflix-fade-in'); }
+    if (playBtn) { playBtn.classList.add('hidden'); playBtn.classList.remove('netflix-fade-in'); }
+    if (photoBtn) { photoBtn.classList.add('hidden'); photoBtn.classList.remove('netflix-fade-in'); }
     editBtn.classList.add('hidden');
-    if (deleteBtn) deleteBtn.classList.remove('hidden');
+    editBtn.classList.remove('netflix-fade-in');
+    if (deleteBtn) { deleteBtn.classList.remove('hidden'); deleteBtn.classList.add('netflix-fade-in'); }
     titleEdit.classList.remove('hidden');
+    titleEdit.classList.add('netflix-fade-in');
     descEdit.classList.remove('hidden');
+    descEdit.classList.add('netflix-fade-in');
     saveBtn.classList.remove('hidden');
-    if (thumbEdit) thumbEdit.classList.remove('hidden');
-    if(titleImgEdit) titleImgEdit.classList.remove('hidden');
-    if(catEdit) catEdit.classList.remove('hidden');
+    saveBtn.classList.add('netflix-fade-in');
+    if (thumbEdit) { thumbEdit.classList.remove('hidden'); thumbEdit.classList.add('netflix-fade-in'); }
+    if(titleImgEdit) { titleImgEdit.classList.remove('hidden'); titleImgEdit.classList.add('netflix-fade-in'); }
+    if(catEdit) { catEdit.classList.remove('hidden'); catEdit.classList.add('netflix-fade-in'); }
     
     if (viewContent) viewContent.classList.add('hidden');
-    if (editForm) editForm.classList.remove('hidden');
+    if (editForm) {
+      editForm.classList.remove('hidden');
+      editForm.classList.add('netflix-fade-in');
+    }
     window.switchDmEditTab('story');
     titleEdit.focus();
   }
@@ -4957,36 +5002,30 @@ window.downloadVideo = async (id) => {
   }
   
   const isYt = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
+  const finalLink = isYt ? `https://www.youtube.com/watch?v=${m.videoUrl}` : m.videoUrl;
   
-  if (isYt) {
-    const ytUrl = `https://www.youtube.com/watch?v=${m.videoUrl}`;
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(ytUrl);
-        window.showToast('YouTube link copied to clipboard! Opening downloader...');
-      } else {
-        window.showToast('Opening downloader tool...');
-      }
-    } catch (err) {
-      window.showToast('Opening downloader tool...');
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(finalLink);
+      window.showToast('Video link copied to clipboard! Opening downloader...');
+    } else {
+      // Fallback copy method for iframe and non-secure environments
+      const textarea = document.createElement('textarea');
+      textarea.value = finalLink;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      window.showToast('Video link copied to clipboard! Opening downloader...');
     }
-    
-    // Open downloader website
-    window.open('https://vidssave.com/youtube-video-downloader-6fu', '_blank');
-  } else {
-    // Native video download
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(m.videoUrl);
-      }
-    } catch(e){}
-    window.showToast('Starting local video download...');
-    
-    const a = document.createElement('a');
-    a.href = m.videoUrl;
-    a.download = (m.title || 'video') + '.mp4';
-    a.click();
+  } catch (err) {
+    window.showToast('Opening downloader tool...');
   }
+  
+  // Open the exact downloader URL requested by the user
+  window.open('https://vidssave.com/youtube-video-downloader-7gt', '_blank');
 };
 
 window.shareVideo = (id) => {
@@ -5771,16 +5810,27 @@ window.playVideo = (id) => {
        clearInterval(ytTimer);
      }
      document.body.style.overflow = '';
-     if (mainPlayer && typeof mainPlayer.pause === 'function') mainPlayer.pause();
-     if (introPlayer && typeof introPlayer.pause === 'function') introPlayer.pause();
-     // Temporarily bypass the immediate src wipe
-     if (false && mainPlayer) {
-       mainPlayer.src = "";
-       if (typeof mainPlayer.load === 'function') mainPlayer.load();
+     if (mainPlayer) {
+       mainPlayer.muted = true;
+       if (typeof mainPlayer.pause === 'function') {
+         try { mainPlayer.pause(); } catch(e) {}
+       }
+     }
+     if (introPlayer) {
+       introPlayer.muted = true;
+       if (typeof introPlayer.pause === 'function') {
+         try { introPlayer.pause(); } catch(e) {}
+       }
+     }
+     if (mainPlayer && mainPlayer.tagName === 'IFRAME' && mainPlayer.contentWindow) {
+       try {
+         mainPlayer.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+         mainPlayer.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+       } catch(e) {}
      }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
-     c.style.transition = 'transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1)';
-     c.style.transform = 'scale(0.92)';
+     c.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+     c.style.transform = 'scale(0.95)';
      c.style.opacity = '0';
      setTimeout(() => {
        if (mainPlayer) {
@@ -5789,7 +5839,7 @@ window.playVideo = (id) => {
        }
        c.innerHTML = ''; // fully unmount internal elements
        c.remove();
-     }, 1000);
+     }, 300);
 
      if (!isPopState) {
        if (history.state && history.state.playerOpen) {
@@ -7163,10 +7213,6 @@ window.openBulkManagerModal = () => {
             <div style="display: flex; gap: 8px;">
               <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(true)">✓ Select All</button>
               <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(false)">✗ Clear All</button>
-              <button class="btn" style="background: rgba(229,9,20,0.1); color: #ff4d5a; border: 1px solid rgba(229,9,20,0.25); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.color='white';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.color='#ff4d5a';" onclick="window.bulkDeleteAllMemories()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                🗑 Delete All
-              </button>
             </div>
           </div>
 
@@ -7707,3 +7753,65 @@ window.applyBulkDelete = async (skipConfirm = false) => {
     });
   }
 };
+
+// Global Premium Multi-Layer Liquid Click-Ripple System
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('.btn, .circ-play-btn, .media-card, .hc-btn, .circ-btn, button, .modal-close-btn');
+  if (!target) return;
+  
+  // Get click coordinates relative to the element
+  const rect = target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Create ripple container
+  let container = target.querySelector('.liquid-ripple-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'liquid-ripple-container';
+    // Ensure target is relative positioned
+    const style = window.getComputedStyle(target);
+    if (style.position === 'static') {
+      target.style.position = 'relative';
+    }
+    target.appendChild(container);
+  }
+  
+  // Create the three layers of the premium liquid ripple
+  const size = Math.max(rect.width, rect.height) * 2;
+  
+  const glow = document.createElement('div');
+  glow.className = 'liquid-ripple-wave liquid-ripple-wave-glow';
+  glow.style.width = size + 'px';
+  glow.style.height = size + 'px';
+  glow.style.left = (x - size / 2) + 'px';
+  glow.style.top = (y - size / 2) + 'px';
+  
+  const primary = document.createElement('div');
+  primary.className = 'liquid-ripple-wave liquid-ripple-wave-primary';
+  primary.style.width = size + 'px';
+  primary.style.height = size + 'px';
+  primary.style.left = (x - size / 2) + 'px';
+  primary.style.top = (y - size / 2) + 'px';
+  
+  const secondary = document.createElement('div');
+  secondary.className = 'liquid-ripple-wave liquid-ripple-wave-secondary';
+  secondary.style.width = (size * 0.8) + 'px';
+  secondary.style.height = (size * 0.8) + 'px';
+  secondary.style.left = (x - size * 0.8 / 2) + 'px';
+  secondary.style.top = (y - size * 0.8 / 2) + 'px';
+  
+  container.appendChild(glow);
+  container.appendChild(primary);
+  container.appendChild(secondary);
+  
+  // Cleanup wave elements
+  setTimeout(() => {
+    glow.remove();
+    primary.remove();
+    secondary.remove();
+    if (container.children.length === 0) {
+      container.remove();
+    }
+  }, 850);
+});
