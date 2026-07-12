@@ -4054,6 +4054,20 @@ window.openUploadModal = () => {
           <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">Title</label>
         </div>
 
+        <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
+        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
+          <textarea id="up-desc" rows="3" style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
+          
+          <!-- SPARKLE UTILITY STRIP -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+            <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              <span>Generate with Gemini AI</span>
+            </div>
+          </div>
+        </div>
+
         <!-- POLISHED LOGO SUB-BOX CARD (OPTIONAL) -->
         <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
@@ -4133,20 +4147,6 @@ window.openUploadModal = () => {
           </div>
         </div>
 
-        <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
-          <textarea id="up-desc" rows="3" required style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
-          
-          <!-- SPARKLE UTILITY STRIP -->
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-            <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-              <span>Generate with Gemini AI</span>
-            </div>
-          </div>
-        </div>
-
         <!-- COMPACT METADATA STRIP -->
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <!-- CATEGORY -->
@@ -4214,10 +4214,53 @@ window.openUploadModal = () => {
     }
   };
 
-  window.generateUploadDescriptionWithAI = () => {
+  window.generateUploadDescriptionWithAI = async () => {
     const link = document.getElementById('up-yt-link').value.trim();
     const uTitle = document.getElementById('up-title').value.trim();
-    window.generateDescriptionWithGeminiAPI(link, uTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
+    const descField = document.getElementById('up-desc');
+    const descSparkleBtn = document.getElementById('desc-sparkle-btn');
+    
+    if (!uTitle) {
+      return window.netflixAlert("Please enter a Title first so Gemini has context to generate a matching description.");
+    }
+
+    if (descField) {
+      descField.placeholder = "Generating a cinematic description with Gemini AI...";
+      if (descSparkleBtn) {
+        descSparkleBtn.innerHTML = `<svg class="spin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Generating...</span>`;
+        descSparkleBtn.style.pointerEvents = 'none';
+      }
+      try {
+        const genRes = await fetch('/api/gemini/generate-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: uTitle, youtubeUrl: link })
+        });
+        if (genRes.ok) {
+          const genData = await genRes.json();
+          if (genData.description) {
+            descField.value = genData.description;
+            window.showToast("✨ Beautiful cinematic description generated!");
+          } else {
+            throw new Error("No description returned");
+          }
+        } else {
+          throw new Error("API call failed");
+        }
+      } catch (err) {
+        console.error("AI generation failed, falling back to clipboard prompt method:", err);
+        window.generateDescriptionWithGeminiAPI(link, uTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
+      } finally {
+        descField.placeholder = "";
+        if (descSparkleBtn) {
+          descSparkleBtn.style.pointerEvents = 'auto';
+          descSparkleBtn.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <span>Generate with Gemini AI</span>
+          `;
+        }
+      }
+    }
   };
   
   document.body.appendChild(modal);
@@ -4284,7 +4327,39 @@ window.openUploadModal = () => {
       autoThumbCard.style.display = 'flex';
     }
 
-    // Let user explicitly click the Sparkle button to copy prompt and open Gemini
+    // Automatic description generation on fetch
+    const descField = document.getElementById('up-desc');
+    const descSparkleBtn = document.getElementById('desc-sparkle-btn');
+    if (descField) {
+      descField.placeholder = "Generating a cinematic description with Gemini AI...";
+      if (descSparkleBtn) {
+        descSparkleBtn.innerHTML = `<svg class="spin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Generating description...</span>`;
+      }
+      try {
+        const genRes = await fetch('/api/gemini/generate-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: fetchedTitle || "Our Special Moment", youtubeUrl: link })
+        });
+        if (genRes.ok) {
+          const genData = await genRes.json();
+          if (genData.description) {
+            descField.value = genData.description;
+            window.showToast("✨ Description auto-generated by Gemini!");
+          }
+        }
+      } catch (err) {
+        console.error("Auto-generation on fetch failed:", err);
+      } finally {
+        descField.placeholder = "";
+        if (descSparkleBtn) {
+          descSparkleBtn.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <span>Generate with Gemini AI</span>
+          `;
+        }
+      }
+    }
 
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
@@ -6322,6 +6397,20 @@ window.openBulkUploadModal = () => {
       </div>
       <input type="file" id="bulk-upload-input" multiple accept="image/*" style="display:none;">
       
+      <!-- BATCH DESCRIPTION (OPTIONAL) -->
+      <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 110px; margin-bottom: 20px;" id="bulk-desc-container">
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color: #777; font-weight:700; padding:8px 12px 0 12px; position:absolute; top:2px; left:0; z-index:2; pointer-events:none;">Description</div>
+        <textarea id="bulk-upload-desc" rows="2" style="width:100%; border:none; padding:24px 12px 34px 12px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: none; height: 100%;" placeholder="Describe these photos..." onfocus="document.getElementById('bulk-desc-container').style.background='#383838'; document.getElementById('bulk-desc-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('bulk-desc-container').style.background='#2b2b2b'; document.getElementById('bulk-desc-container').style.borderColor='transparent';"></textarea>
+        
+        <!-- SPARKLE UTILITY STRIP -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+          <div id="bulk-desc-sparkle-btn" onclick="window.generateBulkUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <span>Generate with Gemini AI</span>
+          </div>
+        </div>
+      </div>
+      
       <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
         <button style="background:transparent; border:1px solid rgba(255,255,255,0.25); color:#e5e5e5; padding:12px 24px; font-size:14px; font-weight:500; border-radius:4px; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.4)';" onmouseleave="this.style.background='transparent'; this.style.color='#e5e5e5'; this.style.borderColor='rgba(255,255,255,0.25)';" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(()=>dm.remove(),300)">Cancel</button>
         <button id="bulk-upload-save" style="background:#e50914; border:none; color:white; padding:12px 30px; font-size:14px; font-weight:700; border-radius:4px; cursor:not-allowed; transition:all 0.2s; opacity:0.4;" onmouseenter="if(!this.disabled) { this.style.background='#ff0f22'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 0 20px rgba(229,9,20,0.5)'; }" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)'; this.style.boxShadow='none';" disabled>Upload Photos</button>
@@ -6338,6 +6427,27 @@ window.openBulkUploadModal = () => {
   const countDisp = m.querySelector('#file-count');
   
   let currentBatchFiles = [];
+
+  window.generateBulkUploadDescriptionWithAI = () => {
+    if (currentBatchFiles.length === 0) {
+      window.netflixAlert('Please select or drag some photos first to generate a customized description.');
+      return;
+    }
+    const filesList = currentBatchFiles.map(f => f.name.split('.')[0]).join(', ') || 'photos';
+    const prompt = `Write a spectacular, captivating, and emotionally-resonant movie/series synopsis/description (around 2 to 3 sentences, maximum 40 words) for a gallery batch of beautiful personal memory photos of ours. 
+The items being uploaded represent these themes or subjects: \${filesList}.
+
+The tone should be deeply heartwarming, elegant, and cinematic, written in the style of official Netflix series summaries. It must draw the reader in and make them feel the warmth, love, and joy of these beautiful milestones. Make it extremely premium, concise, and captivating. Just output the description itself, no quotes, no extra conversational preamble or introduction.`;
+
+    navigator.clipboard.writeText(prompt).then(() => {
+      window.netflixAlert('Professional Netflix description prompt copied to clipboard!\\n\\nGemini is opening in a new tab. Paste the prompt (Ctrl+V or Cmd+V) to get your cinematic description, then paste the result here!');
+      setTimeout(() => {
+        window.open('https://gemini.google.com/app', '_blank');
+      }, 1000);
+    }).catch(() => {
+      window.netflixAlert('Could not copy prompt automatically. Please manually type your description or visit gemini.google.com!');
+    });
+  };
   
   const handleFiles = (files) => {
     if(files && files.length > 0) {
@@ -6469,6 +6579,8 @@ window.openBulkUploadModal = () => {
     // Toggle bulk transaction to pause snapshot logic and prevent rendering collisions
     appState.bulkTransactionActive = true;
     
+    const batchDesc = (document.getElementById('bulk-upload-desc')?.value || '').trim();
+
     for(let file of toUpload) {
       const idx = done + failed;
       progressText.innerText = `Compressing & Uploading: ${file.name} (${idx + 1}/${total})`;
@@ -6482,7 +6594,7 @@ window.openBulkUploadModal = () => {
       const newMem = {
         id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
         title: file.name.split('.')[0] || 'Photo',
-        desc: '',
+        desc: batchDesc,
         category: 'Moments',
         year: new Date().getFullYear().toString(),
         rating: 'PG-13',
