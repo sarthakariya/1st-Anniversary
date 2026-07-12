@@ -627,11 +627,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .hero-desc {
   display: block;
-  font-size: clamp(0.85rem, 1.2vw, 1.2rem);
+  font-size: clamp(1rem, 1.35vw, 1.25rem);
   color: #fff;
   text-shadow: 1px 1.5px 3px rgba(0,0,0,0.9);
-  margin-top: 15px;
-  line-height: 1.4;
+  margin-top: 18px;
+  line-height: 1.5;
   opacity: 1;
   max-height: 200px;
   overflow: hidden;
@@ -1358,9 +1358,19 @@ input:checked + .slider:before { transform: translateX(20px); }
   display: flex; gap: 10px; z-index: 10;
 }
 .modal-close-btn {
-  width: 36px; height: 36px; border-radius: 50%; background: #181818;
-  color: white; border: none; cursor: pointer; font-size: 18px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(24, 24, 24, 0.55) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white; border: 1px solid rgba(255,255,255,0.15) !important;
+  cursor: pointer; font-size: 18px;
   display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s ease;
+}
+.modal-close-btn:hover {
+  background: rgba(24, 24, 24, 0.9) !important;
+  transform: scale(1.05);
+  border-color: rgba(255,255,255,0.3) !important;
 }
 
 @media (max-width: 768px) {
@@ -1548,7 +1558,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* CSS 11: Hero description width - fluid bound */
 .hero-desc {
-  max-width: 500px !important;
+  max-width: 680px !important;
   width: 90% !important;
 }
 

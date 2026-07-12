@@ -250,7 +250,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event', 'Romantic Comedy', 'Intimate Moments', 'Anniversary Dinners', 'Travel Adventures'];
 
 window.formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return '';
@@ -643,7 +643,7 @@ window.logoutProfile = () => {
   }
   setTimeout(() => {
     localStorage.removeItem('sarthak_netflix_profile');
-    sessionStorage.removeItem('sarthak_netflix_code'); // Require profile lock PIN when logging back in
+    localStorage.removeItem('sarthak_netflix_code'); // Require profile lock PIN when logging back in
     appState.currentProfile = null;
     transitionView('profiles');
   }, 500);
@@ -2155,7 +2155,7 @@ function createStartupScreen() {
       overlay.style.display = 'none';
       vid.play().catch(e => {
         vid.muted = true;
-        vid.play();
+        vid.play().catch(err => console.warn("Muted play failed too", err));
       });
       // Force exactly 4 seconds
       setTimeout(vid.onended, 4000);
@@ -2232,7 +2232,7 @@ function createProfileSelection() {
       if(isManageMode) {
         window.editProfile(pf.id);
       } else {
-        const secretCode = sessionStorage.getItem('sarthak_netflix_code');
+        const secretCode = localStorage.getItem('sarthak_netflix_code');
         if (secretCode !== '25072025') {
           showPinModal(pf, p);
           return;
@@ -2363,7 +2363,7 @@ function showPinModal(pf, pElement) {
       const val = Array.from(inputs).map(i => i.dataset.val || '').join('');
       if (val.length === 8) {
         if (val === '25072025') {
-          window.safeSetSessionItem('sarthak_netflix_code', '25072025');
+          localStorage.setItem('sarthak_netflix_code', '25072025');
           overlay.remove();
           loginProfile(pf, pElement);
         } else {
@@ -3630,6 +3630,27 @@ function createRow(title, memories, index = 0) {
           </div>
     `;
 
+    const getCardGenres = (catVal) => {
+      const cat = (catVal || '').toLowerCase();
+      if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
+        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span>';
+      } else if (cat.includes('party') || cat.includes('celebration')) {
+        return '<span>Parties</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span>';
+      } else if (cat.includes('special') || cat.includes('event')) {
+        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span>';
+      } else if (cat.includes('comedy')) {
+        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
+      } else if (cat.includes('intimate')) {
+        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span>';
+      } else if (cat.includes('anniversary')) {
+        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
+      } else if (cat.includes('travel') || cat.includes('adventure')) {
+        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span>';
+      } else {
+        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span>';
+      }
+    };
+
     card.innerHTML = `
       <div class="media-card-img-wrapper" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; border-radius:4px; z-index:1;">
         <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low" style="width:100%; height:100%; object-fit:cover; transition: opacity 0.3s; display: block;">
@@ -3642,12 +3663,12 @@ function createRow(title, memories, index = 0) {
         </div>
         <div class="hc-title" style="font-size: 11px; font-weight: 700; color: #ffffff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: uppercase; letter-spacing: 0.2px;" title="${m.title}">${m.title}</div>
         <div class="hc-meta" style="font-size: 10px; margin-bottom: 5px;">
-          <span class="hc-match" style="font-size: 10px;">98% Match</span>
-          <span class="hc-rating" style="font-size: 9px; padding: 0 2px;">${m.rating || 'TV-14'}</span>
-          <span class="hc-badge" style="font-size: 8px; padding: 0 2px;">HD</span>
+          <span class="hc-match" style="font-size: 10px;">${95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6)}% Match</span>
+          <span class="hc-rating" style="font-size: 9px; padding: 0 2px;">${m.rating || 'U'}</span>
+          <span class="hc-badge" style="font-size: 8px; padding: 0 2px;">4K</span>
         </div>
         <div class="hc-genres" style="font-size: 9px;">
-          <span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romance</span>
+          ${getCardGenres(m.category)}
         </div>
       </div>
     `;
@@ -3772,7 +3793,11 @@ window.openModernDatePicker = (inputEl) => {
   if (inputEl.value) {
     const parts = inputEl.value.split('-');
     if (parts.length === 3) {
-      currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      if (parts[0].length === 4) {
+        currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        currentDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      }
     }
   }
 
@@ -3892,7 +3917,7 @@ window.openModernDatePicker = (inputEl) => {
       const today = new Date();
       activeYear = today.getFullYear();
       activeMonth = today.getMonth();
-      const currentValStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const currentValStr = `${String(today.getDate()).padStart(2, '0')}-${String(activeMonth + 1).padStart(2, '0')}-${activeYear}`;
       inputEl.value = currentValStr;
       closePicker();
     };
@@ -3959,7 +3984,7 @@ window.openModernDatePicker = (inputEl) => {
       };
 
       cell.onclick = () => {
-        const valStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const valStr = `${String(d).padStart(2, '0')}-${String(activeMonth + 1).padStart(2, '0')}-${activeYear}`;
         inputEl.value = valStr;
         closePicker();
       };
@@ -4119,9 +4144,7 @@ window.openUploadModal = () => {
           <!-- CATEGORY -->
           <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
             <select id="up-cat" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
-              <option value="Celebration Parties" style="background:#141414;">Celebration Parties</option>
-              <option value="Our Romantic Scenes" style="background:#141414;">Our Romantic Scenes</option>
-              <option value="Our Special Event" style="background:#141414;">Our Special Event</option>
+              ${subCategories.map(cat => `<option value="${cat}" style="background:#141414;">${cat}</option>`).join('')}
             </select>
             <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Category</label>
             <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
@@ -4132,7 +4155,7 @@ window.openUploadModal = () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <!-- MODERN DATE TRIGGER -->
             <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
-              <input type="text" id="up-date" readonly style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; cursor: pointer; transition: all 0.3s;" value="${new Date().toISOString().split('T')[0]}" onclick="window.openModernDatePicker(this)">
+              <input type="text" id="up-date" readonly style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; cursor: pointer; transition: all 0.3s;" value="${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}" onclick="window.openModernDatePicker(this)">
               <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Date</label>
               <div style="position: absolute; right: 16px; top: 18px; color: #e50914; pointer-events: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -4142,11 +4165,11 @@ window.openUploadModal = () => {
             <!-- MATURITY RATING -->
             <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
               <select id="up-rating" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
+                <option value="U" style="background:#141414;">U</option>
                 <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
                 <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
                 <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
                 <option value="U/A 18+" selected style="background:#141414;">U/A 18+</option>
-                <option value="A" style="background:#141414;">A</option>
               </select>
               <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Maturity</label>
               <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
@@ -4283,15 +4306,22 @@ window.openUploadModal = () => {
       uploadedBy: appState.currentProfile
     };
 
-    await saveMemoryToDB(mem);
-    appState.memories.unshift(mem);
-    window.justUploadedId = mem.id;
-    const modalEl = document.getElementById('uploadModal');
-    modalEl.classList.remove('open');
-    setTimeout(() => {
-      modalEl.remove();
-      render();
-    }, 600);
+    try {
+      await saveMemoryToDB(mem);
+      appState.memories.unshift(mem);
+      window.justUploadedId = mem.id;
+      const modalEl = document.getElementById('uploadModal');
+      modalEl.classList.remove('open');
+      setTimeout(() => {
+        modalEl.remove();
+        render();
+      }, 600);
+    } catch (err) {
+      console.error("Failed to save memory to DB:", err);
+      window.netflixAlert("Failed to save memory to DB. Please check your network connection or Firestore quota limits.");
+      e.target.innerText = "Publish Memory";
+      e.target.disabled = false;
+    }
   };
 };
 
@@ -4344,6 +4374,22 @@ window.openDetailModal = (id, e, editMode = false) => {
     `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
     m.title;
 
+  const getHashtagsForMemory = (memObj) => {
+    const cat = (memObj.category || '').toLowerCase();
+    const hashtags = [];
+    if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
+      hashtags.push('#LoveStory', '#RomanticMoments', '#TogetherForever', '#Soulmates', '#CouplesGoals');
+    } else if (cat.includes('party') || cat.includes('celebration')) {
+      hashtags.push('#Celebration', '#PartyTime', '#GoodVibes', '#CheersToLife', '#UnforgettableNight');
+    } else if (cat.includes('special') || cat.includes('event')) {
+      hashtags.push('#SpecialEvent', '#Milestone', '#MemorableDay', '#OnceInALifetime', '#PreciousMoments');
+    } else {
+      hashtags.push('#BeautifulMemories', '#ReliveTheMoment', '#Nostalgia', '#CherishedTimes', '#Cinematic');
+    }
+    const shuffled = [...hashtags].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3).join(' ');
+  };
+
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
@@ -4355,8 +4401,8 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${detailTitleRender}</div>
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:16px; width:100%;">
-            <!-- Left Side Actions -->
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+            <!-- Left Side Actions (Play, View, Add to List, Like, Download) -->
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap: wrap;">
               ${!m.videoUrl ? `
                 <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 24px; font-size: 15px; font-weight:700;">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play Slideshow
@@ -4369,16 +4415,8 @@ window.openDetailModal = (id, e, editMode = false) => {
                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
                 </button>
               `}
-              <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 18px; font-size: 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; font-weight:600;">
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
-              </button>
-              <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 28px; font-size: 15px; background:#46d369; color:black; font-weight:800; border:none; border-radius:4px; box-shadow: 0 4px 12px rgba(70,211,105,0.3);">
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
-              </button>
-            </div>
-            
-            <!-- Right Side Circular Actions -->
-            <div style="display:flex; gap:10px; align-items:center;">
+              
+              <!-- Inline Action Buttons next to Play -->
               <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
               </div>
@@ -4388,6 +4426,16 @@ window.openDetailModal = (id, e, editMode = false) => {
               <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               </div>
+            </div>
+            
+            <!-- Right Side Circular Actions (Edit Pen Icon, Save Button, Delete Button) -->
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="circ-play-btn" id="dm-edit-btn" onclick="toggleDetailEdit()" title="Edit Info" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </div>
+              <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 24px; font-size: 14px; background:#46d369; color:black; font-weight:800; border:none; border-radius:4px; box-shadow: 0 4px 12px rgba(70,211,105,0.3); display: flex; align-items: center; gap: 6px;">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save
+              </button>
               <div class="circ-play-btn hidden" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #ff3b47; color: #ff3b47; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='#ff3b47'; this.style.color='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.background='transparent'; this.style.color='#ff3b47'; this.style.transform='scale(1)';">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </div>
@@ -4400,7 +4448,10 @@ window.openDetailModal = (id, e, editMode = false) => {
           <!-- VIEW MODE CONTAINER -->
           <div id="dm-view-content">
             <div class="detail-meta">
-              <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
+              <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
+            </div>
+            <div class="hashtags-container" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: #ff4d5a; display: flex; gap: 8px;">
+              ${getHashtagsForMemory(m)}
             </div>
             <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
@@ -4429,9 +4480,7 @@ window.openDetailModal = (id, e, editMode = false) => {
               <div id="dm-cat-edit-container" class="netflix-form-group hidden">
                 <label class="netflix-form-label" for="dm-cat-edit">Category Row</label>
                 <select id="dm-cat-edit" class="netflix-form-select">
-                  <option value="Celebration Parties" ${window.getNormalizedCategory(m.category) === 'Celebration Parties' ? 'selected' : ''} style="background:#141414; color: white;">Celebration Parties</option>
-                  <option value="Our Romantic Scenes" ${window.getNormalizedCategory(m.category) === 'Our Romantic Scenes' ? 'selected' : ''} style="background:#141414; color: white;">Our Romantic Scenes</option>
-                  <option value="Our Special Event" ${window.getNormalizedCategory(m.category) === 'Our Special Event' ? 'selected' : ''} style="background:#141414; color: white;">Our Special Event</option>
+                  ${subCategories.map(cat => `<option value="${cat}" ${window.getNormalizedCategory(m.category) === cat ? 'selected' : ''} style="background:#141414; color: white;">${cat}</option>`).join('')}
                 </select>
               </div>
               
@@ -4466,10 +4515,6 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <button type="button" class="btn" style="flex: 1.2; min-width: 100px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
                     ✨ AI Poster
                   </button>
-                  <a href="https://www.remove.bg" target="_blank" style="flex: 1; min-width: 90px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
-                    Remove.bg
-                  </a>
                 </div>
                 <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
               </div>
@@ -5278,7 +5323,7 @@ window.playVideo = (id) => {
 
     const togglePlay = () => {
       window.triggerVibration(20);
-      if (mainPlayer.paused) mainPlayer.play();
+      if (mainPlayer.paused) mainPlayer.play().catch(e => console.warn("Play interrupted or blocked:", e));
       else mainPlayer.pause();
     };
 
@@ -7320,9 +7365,6 @@ window.updateBulkToolbar = () => {
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             AI Poster
           </button>
-          <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:80px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
-            Remove.bg
-          </a>
         </div>
         <input type="file" id="bulk-thumb-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('bulk-thumbnail-override').value = 'Local File: ' + this.files[0].name; window.bulkThumbBase64 = b64; const preview = document.getElementById('bulk-thumb-preview'); if(preview) { preview.src = b64; document.getElementById('bulk-preview-container').style.display = 'block'; } }); }">
         
@@ -7363,13 +7405,11 @@ window.updateBulkToolbar = () => {
             <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #777; font-weight: 700;">Maturity Gating</span>
             <select id="bulk-rating-override" class="bm-select-input" style="width:100%; border-radius: 6px; background:#1c1c1c; border-color:rgba(255,255,255,0.08); font-size:12px; padding:6px 10px;">
               <option value="">-- No Change --</option>
-              <option value="G">G</option>
-              <option value="PG">PG</option>
-              <option value="PG-13">PG-13</option>
-              <option value="R">R</option>
-              <option value="TV-PG">TV-PG</option>
-              <option value="TV-14">TV-14</option>
-              <option value="TV-MA">TV-MA</option>
+              <option value="U">U</option>
+              <option value="U/A 7+">U/A 7+</option>
+              <option value="U/A 13+">U/A 13+</option>
+              <option value="U/A 16+">U/A 16+</option>
+              <option value="U/A 18+">U/A 18+</option>
             </select>
           </div>
           
@@ -7381,11 +7421,13 @@ window.updateBulkToolbar = () => {
       </div>
 
       <!-- Action Buttons -->
-      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top:10px;">
-        <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:10px; font-size:12px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:5px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.5)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none';" onclick="window.applyBulkEdit()">
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top:16px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:12px; font-size:13px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.45)'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none'; this.style.transform='translateY(0)';" onclick="window.applyBulkEdit()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
           Apply Bulk Upgrades
         </button>
-        <button class="btn" style="width:100%; background:transparent; color:#999; font-weight:600; padding: 8px; font-size: 11px; border-radius: 6px; border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.4)'; this.style.color='#ff3b47';" onmouseleave="this.style.background='transparent'; this.style.borderColor='rgba(255,255,255,0.06)'; this.style.color='#999';" onclick="window.applyBulkDelete()">
+        <button class="btn" style="width:100%; background: rgba(229, 9, 20, 0.15); color: #ff4d5a; font-weight: 700; padding: 12px; font-size: 13px; border-radius: 6px; border: 1px solid rgba(229, 9, 20, 0.35); cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'; this.style.borderColor='rgba(229, 9, 20, 0.6)'; this.style.color='#fff'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'; this.style.borderColor='rgba(229, 9, 20, 0.35)'; this.style.color='#ff4d5a'; this.style.transform='translateY(0)';" onclick="window.applyBulkDelete()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
           Permanently Eliminate Selected
         </button>
       </div>
@@ -7588,15 +7630,16 @@ window.bulkDeleteAllMemories = () => {
   
   window.netflixConfirm(`CRITICAL WARNING: Are you sure you want to permanently delete ALL ${appState.memories.length} memories? This action is irreversible!`, async () => {
     window.selectedBulkIds = appState.memories.map(m => m.id);
-    await window.applyBulkDelete();
+    await window.applyBulkDelete(true);
   });
 };
 
-window.applyBulkDelete = async () => {
+window.applyBulkDelete = async (skipConfirm = false) => {
   if (window.selectedBulkIds.length === 0) return;
   
   const count = window.selectedBulkIds.length;
-  window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
+
+  const performDelete = async () => {
     let deletedCount = 0;
     appState.bulkTransactionActive = true;
     
@@ -7654,5 +7697,13 @@ window.applyBulkDelete = async () => {
         window.refreshRowsView(null, null, true);
       }, 300);
     }
-  });
+  };
+
+  if (skipConfirm) {
+    await performDelete();
+  } else {
+    window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
+      await performDelete();
+    });
+  }
 };
