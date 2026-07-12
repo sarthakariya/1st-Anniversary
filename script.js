@@ -3354,7 +3354,7 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 250px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 130px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 12px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
               <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -3645,21 +3645,21 @@ function createRow(title, memories, index = 0) {
     const getCardGenres = (catVal) => {
       const cat = (catVal || '').toLowerCase();
       if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love Story</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Cinematic</span>';
+        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love Story</span>';
       } else if (cat.includes('party') || cat.includes('celebration')) {
-        return '<span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Upbeat</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Togetherness</span>';
+        return '<span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Upbeat</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span>';
       } else if (cat.includes('special') || cat.includes('event')) {
-        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Legacy</span>';
+        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span>';
       } else if (cat.includes('comedy')) {
-        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Lighthearted</span>';
+        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
       } else if (cat.includes('intimate')) {
-        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span>';
+        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span>';
       } else if (cat.includes('anniversary')) {
-        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
+        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
       } else if (cat.includes('travel') || cat.includes('adventure')) {
-        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Scenic</span>';
+        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span>';
       } else {
-        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span>';
+        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span>';
       }
     };
 
@@ -4284,10 +4284,7 @@ window.openUploadModal = () => {
       autoThumbCard.style.display = 'flex';
     }
 
-    // Automatically trigger description generation using Gemini AI based on fetched video metadata
-    if (fetchedTitle) {
-      window.generateDescriptionWithGeminiAPI(link, fetchedTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
-    }
+    // Let user explicitly click the Sparkle button to copy prompt and open Gemini
 
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
   };
@@ -6103,55 +6100,27 @@ window.handleAddMemoryClick = () => {
   }
 };
 
-// Real-time server-side description generation using Gemini API
+// Copy professional Netflix-style description prompt and open Google Gemini
 window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, titleInputId, descInputId, buttonId) => {
-  const btn = document.getElementById(buttonId);
-  const titleInput = document.getElementById(titleInputId);
-  const descInput = document.getElementById(descInputId);
+  const titleVal = currentTitle || (document.getElementById(titleInputId) ? document.getElementById(titleInputId).value.trim() : '') || 'Our Special Moment';
+  const ytLink = youtubeUrl || '';
   
-  if (!btn) return;
-  const originalHtml = btn.innerHTML;
-  
-  try {
-    btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"></path></svg> Generating...</span>`;
-    btn.style.pointerEvents = 'none';
-    btn.style.opacity = '0.7';
-    
-    const response = await fetch('/api/generate-description', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        youtubeUrl: youtubeUrl || '',
-        title: currentTitle || ''
-      })
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to generate content');
-    }
-    
-    if (titleInput && data.title) {
-      titleInput.value = data.title;
-      titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    if (descInput && data.description) {
-      descInput.value = data.description;
-      descInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    
-    window.showToast("✨ Gemini AI generated story successfully!");
-    
-  } catch(err) {
-    console.error(err);
-    window.netflixAlert("AI Generation failed: " + err.message);
-  } finally {
-    btn.innerHTML = originalHtml;
-    btn.style.pointerEvents = 'auto';
-    btn.style.opacity = '1';
-  }
+  const prompt = `Write a spectacular, captivating, and emotionally-resonant movie/series synopsis/description (around 2 to 3 sentences, maximum 40 words) for a beautiful romantic or celebratory personal memory of ours.
+   
+Title: "${titleVal}"
+${ytLink ? `YouTube Link: ${ytLink}\n(Note: If you have access, you can use the video transcript/details to make it more precise!)` : ''}
+
+The tone should be deeply heartwarming, elegant, and cinematic, written in the style of official Netflix series summaries. It must draw the reader in and make them feel the warmth, love, and joy of this beautiful milestone. Make it extremely premium, concise, and captivating. Just output the description itself, no quotes, no extra conversational preamble or introduction.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("✨ Description prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  }).catch((err) => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
 };
 
 // Copy YouTube descriptive prompts and open Google Gemini (fallback)

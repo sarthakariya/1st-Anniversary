@@ -607,7 +607,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hero-info {
   position: absolute;
   left: 4%;
-  bottom: clamp(110px, 15%, 170px);
+  bottom: clamp(45px, 6vh, 90px) !important;
   width: 90%;
   max-width: 650px;
   z-index: 10;
@@ -900,7 +900,22 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hc-match { color: #46d369; font-weight: bold; }
 .hc-badge { border: 1px solid rgba(255,255,255,0.4); padding: 0 3px; border-radius: 2px; font-size: 10px; color: #ccc; }
 
-.hc-genres { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #fff; }
+.hc-genres {
+  display: flex !important;
+  gap: 4px !important;
+  align-items: center !important;
+  font-size: 8.5px !important;
+  font-weight: 500 !important;
+  color: #aaa !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  flex-wrap: nowrap !important;
+}
+.hc-genres span {
+  white-space: nowrap !important;
+}
 .hc-dot { color: #555; }
 
 
@@ -1577,7 +1592,8 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* CSS 16-20: Category and row title headers in dashboard - clean adaptive text size */
 .slider-container .row-header {
-  padding-left: 0px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   font-family: inherit !important;
   font-weight: 700 !important;
   font-size: clamp(16px, 2vw, 22px) !important;
