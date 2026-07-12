@@ -4072,14 +4072,10 @@ window.openUploadModal = () => {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               Local File
             </button>
-            <button type="button" style="flex:1.2; min-width:110px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 10px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.3s; text-align:center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+            <button type="button" style="flex:2; min-width:180px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 10px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.3s; text-align:center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <span>Generate Prompt</span>
+              <span>✨ Generate Logo & Remove BG</span>
             </button>
-            <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:90px; text-decoration:none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 8px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
-              Remove.bg
-            </a>
           </div>
           <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
           
@@ -4418,6 +4414,35 @@ window.openDetailModal = (id, e, editMode = false) => {
     return genres.map(g => `<span style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #e5e5e5; font-weight: 500; display: inline-block; letter-spacing: 0.3px;">${g}</span>`).join(' ');
   };
 
+  let genresRight = 'Romance, Emotional';
+  let vibeRight = 'Heartfelt, Intimate';
+  const catLow = (m.category || '').toLowerCase();
+  if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
+    genresRight = 'Romance, Emotional';
+    vibeRight = 'Heartfelt, Intimate';
+  } else if (catLow.includes('party') || catLow.includes('celebration')) {
+    genresRight = 'Festive, Upbeat';
+    vibeRight = 'Fun, Togetherness';
+  } else if (catLow.includes('special') || catLow.includes('event')) {
+    genresRight = 'Milestones, Timeless';
+    vibeRight = 'Special, Legacy';
+  } else if (catLow.includes('comedy')) {
+    genresRight = 'Cute, Funny';
+    vibeRight = 'Romantic, Lighthearted';
+  } else if (catLow.includes('intimate')) {
+    genresRight = 'Warm, Sweet';
+    vibeRight = 'Close, Heartfelt';
+  } else if (catLow.includes('anniversary')) {
+    genresRight = 'Fine Dining, Classy';
+    vibeRight = 'Together, Romantic';
+  } else if (catLow.includes('travel') || catLow.includes('adventure')) {
+    genresRight = 'Journey, Exploring';
+    vibeRight = 'Adventures, Scenic';
+  } else {
+    genresRight = 'Emotional, Heartfelt';
+    vibeRight = 'Memory, Timeless';
+  }
+
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
@@ -4478,9 +4503,6 @@ window.openDetailModal = (id, e, editMode = false) => {
             <div class="detail-meta">
               <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
             </div>
-            <div class="genres-container" style="margin-top: 12px; margin-bottom: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-              ${getSleekGenresForMemory(m)}
-            </div>
             <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
                 <span style="font-size: 6px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -4523,6 +4545,26 @@ window.openDetailModal = (id, e, editMode = false) => {
                   </button>
                 </div>
               </div>
+
+              <!-- Maturity Rating and Match Rate -->
+              <div style="display: flex; gap: 12px; margin-top: 14px;">
+                <div class="netflix-form-group" style="flex: 1; margin-bottom: 0;">
+                  <label class="netflix-form-label" for="dm-rating-edit">Maturity Rating</label>
+                  <select id="dm-rating-edit" class="netflix-form-select" style="background:#141414; color:white; border: 1px solid rgba(255,255,255,0.15); border-radius:4px; padding: 10px; font-size:12px; width:100%;">
+                    <option value="G" ${m.rating === 'G' ? 'selected' : ''}>G (General)</option>
+                    <option value="PG" ${m.rating === 'PG' ? 'selected' : ''}>PG (Parental Guidance)</option>
+                    <option value="PG-13" ${m.rating === 'PG-13' ? 'selected' : ''}>PG-13 (Parents Strongly Cautioned)</option>
+                    <option value="TV-14" ${m.rating === 'TV-14' ? 'selected' : ''}>TV-14 (Parents Strongly Cautioned)</option>
+                    <option value="R" ${m.rating === 'R' ? 'selected' : ''}>R (Restricted)</option>
+                    <option value="NC-17" ${m.rating === 'NC-17' ? 'selected' : ''}>NC-17 (Adults Only)</option>
+                    <option value="18+" ${m.rating === '18+' ? 'selected' : ''}>18+ (Adults Only)</option>
+                  </select>
+                </div>
+                <div class="netflix-form-group" style="flex: 1; margin-bottom: 0;">
+                  <label class="netflix-form-label" for="dm-match-edit">Match Rate (%)</label>
+                  <input type="number" id="dm-match-edit" class="netflix-form-input edit-input" value="${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}" min="0" max="100" style="padding: 10px; font-size:12px;">
+                </div>
+              </div>
             </div>
 
             <!-- Tab 2: Artwork & AI Tools -->
@@ -4560,13 +4602,10 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <button type="button" style="flex: 1; min-width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
                     📁 Select File
                   </button>
-                  <button type="button" class="btn" style="flex: 1.2; min-width: 100px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
-                    ✨ AI Logo
+                  <button type="button" class="btn" style="flex: 2; min-width: 180px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>✨ Generate Logo & Remove BG</span>
                   </button>
-                  <a href="https://www.remove.bg" target="_blank" style="flex: 1; min-width: 90px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
-                    Remove.bg
-                  </a>
                 </div>
                 <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
                 
@@ -4579,8 +4618,8 @@ window.openDetailModal = (id, e, editMode = false) => {
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); border-left: 1px solid rgba(255,255,255,0.08); padding-left: 24px;">
           <div><span style="color:#777; font-weight:bold;">Cast:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Sarthak</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Reechita</span></div>
-          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">Genres:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Romance</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Emotional</span></div>
-          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">This Show Is:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Heartfelt</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Intimate</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">Genres:</span> <span class="dr-genres" style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">${genresRight}</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">This Show Is:</span> <span class="dr-vibe" style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">${vibeRight}</span></div>
         </div>
       </div>
     </div>
@@ -4792,6 +4831,16 @@ window.saveDetailEdit = async (id) => {
       m.category = catSelect.value;
     }
 
+    const ratingSelect = document.getElementById('dm-rating-edit');
+    if (ratingSelect) {
+      m.rating = ratingSelect.value;
+    }
+
+    const matchInput = document.getElementById('dm-match-edit');
+    if (matchInput) {
+      m.matchRate = parseInt(matchInput.value, 10) || 98;
+    }
+
     const fileInput = document.getElementById('dm-thumb-input');
     const urlInput = document.getElementById('dm-thumb-url-input');
 
@@ -4832,6 +4881,48 @@ window.saveDetailEdit = async (id) => {
       document.getElementById('dm-desc').innerText = m.desc;
     }
     
+    // update metadata visually
+    const metaContainer = document.querySelector('#detailModal .detail-meta');
+    if (metaContainer) {
+      metaContainer.innerHTML = `<span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 98}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>`;
+    }
+
+    // update right-side genres visually
+    const drGenres = document.querySelector('#detailModal .dr-genres');
+    const drVibe = document.querySelector('#detailModal .dr-vibe');
+    if (drGenres && drVibe) {
+      let genresRight = 'Romance, Emotional';
+      let vibeRight = 'Heartfelt, Intimate';
+      const catLow = (m.category || '').toLowerCase();
+      if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
+        genresRight = 'Romance, Emotional';
+        vibeRight = 'Heartfelt, Intimate';
+      } else if (catLow.includes('party') || catLow.includes('celebration')) {
+        genresRight = 'Festive, Upbeat';
+        vibeRight = 'Fun, Togetherness';
+      } else if (catLow.includes('special') || catLow.includes('event')) {
+        genresRight = 'Milestones, Timeless';
+        vibeRight = 'Special, Legacy';
+      } else if (catLow.includes('comedy')) {
+        genresRight = 'Cute, Funny';
+        vibeRight = 'Romantic, Lighthearted';
+      } else if (catLow.includes('intimate')) {
+        genresRight = 'Warm, Sweet';
+        vibeRight = 'Close, Heartfelt';
+      } else if (catLow.includes('anniversary')) {
+        genresRight = 'Fine Dining, Classy';
+        vibeRight = 'Together, Romantic';
+      } else if (catLow.includes('travel') || catLow.includes('adventure')) {
+        genresRight = 'Journey, Exploring';
+        vibeRight = 'Adventures, Scenic';
+      } else {
+        genresRight = 'Emotional, Heartfelt';
+        vibeRight = 'Memory, Timeless';
+      }
+      drGenres.innerText = genresRight;
+      drVibe.innerText = vibeRight;
+    }
+
     // update thumbnail visually
     const previewImg = document.getElementById('detailModal').querySelector('.detail-header img');
     if (previewImg) previewImg.src = m.thumbnail;
@@ -6130,6 +6221,72 @@ Background Color: The background MUST be a completely solid, plain, pure pitch-b
   });
 };
 
+window.generateTitleLogoPromptWithAIAndOpenBoth = () => {
+  const upTitleInput = document.getElementById('up-title');
+  const dmTitleInput = document.getElementById('dm-title-edit');
+  const title = (upTitleInput ? upTitleInput.value.trim() : '') || (dmTitleInput ? dmTitleInput.value.trim() : '') || 'Our Love Story';
+  
+  const upCat = document.getElementById('up-cat');
+  const dmCat = document.getElementById('dm-cat-edit');
+  const category = (upCat ? upCat.value : '') || (dmCat ? dmCat.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
+  }
+  
+  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
+Text must read EXACTLY: "${title}"
+The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
+Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Branded Title logo prompt copied! Opening Gemini & Remove.bg...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+      window.open('https://www.remove.bg', '_blank');
+    }, 1000);
+  }).catch(() => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+    window.open('https://www.remove.bg', '_blank');
+  });
+};
+
+window.generateBulkTitleLogoPromptWithAIAndOpenBoth = () => {
+  const titleInput = document.getElementById('bulk-title-override');
+  const title = (titleInput ? titleInput.value.trim() : '') || 'Our Love Story';
+  
+  const catSelect = document.getElementById('bulk-category-override');
+  const category = (catSelect ? catSelect.value : '') || 'Our Romantic Scenes';
+  
+  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
+  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
+     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
+  } else if (category.toLowerCase().includes('special event')) {
+     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
+  }
+  
+  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
+Text must read EXACTLY: "${title}"
+The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
+Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Branded Title logo prompt copied! Opening Gemini & Remove.bg...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+      window.open('https://www.remove.bg', '_blank');
+    }, 1000);
+  }).catch(() => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+    window.open('https://www.remove.bg', '_blank');
+  });
+};
+
 // Copy detailed cinematic movie thumbnail prompt and load Gemini
 window.generateThumbnailPromptWithAI = () => {
   const upTitleInput = document.getElementById('up-title');
@@ -7379,13 +7536,10 @@ window.updateBulkToolbar = () => {
           <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
             Local File
           </button>
-          <button type="button" style="flex:1; min-width:80px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAI()">
+          <button type="button" style="flex:2; min-width:140px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAIAndOpenBoth()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            AI Logo
+            <span>✨ Generate Logo & Remove BG</span>
           </button>
-          <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:80px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
-            Remove.bg
-          </a>
         </div>
         <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
         

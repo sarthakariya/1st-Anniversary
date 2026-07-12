@@ -1585,8 +1585,8 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* CSS 5: All Rows Outer Container Slider Wrapper (CSS Selector 5) - responsive spacing to partially peak cards above the bottom fold of the screen dynamically */
 .slider-container {
-  padding-left: clamp(15px, 4%, 50px) !important;
-  padding-right: clamp(15px, 4%, 50px) !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
   margin-top: -12.5vh !important;
   padding-bottom: 20px !important;
   max-width: 100vw !important;
@@ -1626,8 +1626,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth
 .slider-container .row-content {
   margin-top: -100px !important;
   margin-bottom: -240px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   padding-top: 100px !important;
   padding-bottom: 240px !important;
   height: auto !important;
