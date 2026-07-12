@@ -195,7 +195,7 @@ const initialMemories = [
   {
     id: 'm_mock1',
     title: 'Our First Memory',
-    description: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
+    desc: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
     thumbnail: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMjc1IiBmaWxsPSIjMjIyIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI3NSIvPjwvc3ZnPg==',
     videoUrl: 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4',
     category: 'Celebrations',
@@ -262,7 +262,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event', 'Romantic Comedy', 'Intimate Moments', 'Anniversary Dinners', 'Travel Adventures'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event', 'Intimate Moments', 'Travel Adventures'];
 
 window.formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return '';
@@ -3082,7 +3082,7 @@ window.shuffleHero = () => {
               <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
             </div>
           </div>
-          <div class="hero-desc">${nextHeroMem.desc}</div>
+          <div class="hero-desc">${nextHeroMem.desc || nextHeroMem.description || ''}</div>
         </div>
       `;
       
@@ -3363,7 +3363,7 @@ function createHero() {
                 <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
               </div>
             </div>
-            <div class="hero-desc">${heroMem.desc}</div>
+            <div class="hero-desc">${heroMem.desc || heroMem.description || ''}</div>
           </div>
         </div>
       </div>
@@ -4055,9 +4055,9 @@ window.openUploadModal = () => {
         </div>
 
         <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
+        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s; height: 142px;" id="desc-box-container">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
-          <textarea id="up-desc" rows="3" style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
+          <textarea id="up-desc" rows="3" placeholder="Describe this memory here... (Type manually or generate with Gemini)" style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='rgba(255,255,255,0.08)';"></textarea>
           
           <!-- SPARKLE UTILITY STRIP -->
           <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
@@ -4251,7 +4251,7 @@ window.openUploadModal = () => {
         console.error("AI generation failed, falling back to clipboard prompt method:", err);
         window.generateDescriptionWithGeminiAPI(link, uTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
       } finally {
-        descField.placeholder = "";
+        descField.placeholder = "Describe this memory here... (Type manually or generate with Gemini)";
         if (descSparkleBtn) {
           descSparkleBtn.style.pointerEvents = 'auto';
           descSparkleBtn.innerHTML = `
@@ -4351,7 +4351,7 @@ window.openUploadModal = () => {
       } catch (err) {
         console.error("Auto-generation on fetch failed:", err);
       } finally {
-        descField.placeholder = "";
+        descField.placeholder = "Describe this memory here... (Type manually or generate with Gemini)";
         if (descSparkleBtn) {
           descSparkleBtn.innerHTML = `
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -4582,7 +4582,7 @@ window.openDetailModal = (id, e, editMode = false) => {
               </div>
               <span style="font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">#1 in Memories Today</span>
             </div>
-            <div class="detail-desc" id="dm-desc" style="font-size: 16px; color: #e5e5e5; line-height: 1.7; margin-bottom: 12px;">${m.desc || 'A beautiful memory worth reliving.'}</div>
+            <div class="detail-desc" id="dm-desc" style="font-size: 16px; color: #e5e5e5; line-height: 1.7; margin-bottom: 12px;">${m.desc || m.description || 'A beautiful memory worth reliving.'}</div>
           </div>
 
           <!-- EDIT FORM WRAPPER (Cinematic Form) -->
