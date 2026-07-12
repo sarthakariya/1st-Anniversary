@@ -1303,6 +1303,24 @@ input:checked + .slider:before { transform: translateX(20px); }
   color: #fff !important;
 }
 
+/* Hardware-Accelerated Zoom-In Cinematic Entry Animations */
+.playback-overlay.entering {
+  animation: overlayEnter 0.55s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes overlayEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    border-radius: 24px;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    border-radius: 0px;
+  }
+}
+
 /* Landscape Forced CSS Rotation Fallback for Portrait Mobile Screen Locking */
 @media (orientation: portrait) {
   .playback-overlay.landscape-forced {
@@ -1315,6 +1333,23 @@ input:checked + .slider:before { transform: translateX(20px); }
     transform-origin: center center !important;
     z-index: 21000 !important;
     border-radius: 0px !important;
+  }
+
+  .playback-overlay.landscape-forced.entering {
+    animation: overlayEnterPortrait 0.55s cubic-bezier(0.15, 0.85, 0.35, 1) forwards !important;
+  }
+}
+
+@keyframes overlayEnterPortrait {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(90deg) scale(0.8);
+    border-radius: 24px;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(90deg) scale(1);
+    border-radius: 0px;
   }
 }
 

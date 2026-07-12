@@ -4030,15 +4030,19 @@ window.openUploadModal = () => {
             <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Title Logo Image URL</label>
           </div>
           
-          <div style="display:flex; gap:10px;">
-            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <div style="display:flex; gap:6px; flex-wrap: wrap;">
+            <button type="button" style="flex:1; min-width:80px; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 10px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               Local File
             </button>
-            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <button type="button" style="flex:1.2; min-width:110px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 10px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.3s; text-align:center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
               <span>Generate Prompt</span>
             </button>
+            <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:90px; text-decoration:none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 8px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
+              Remove.bg
+            </a>
           </div>
           <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
           
@@ -4180,18 +4184,9 @@ window.openUploadModal = () => {
   };
 
   window.generateUploadDescriptionWithAI = () => {
-    const badge = document.getElementById('desc-sparkle-btn');
+    const link = document.getElementById('up-yt-link').value.trim();
     const uTitle = document.getElementById('up-title').value.trim();
-    if (!uTitle) return window.netflixAlert("Please enter a Title first, so Gemini can generate a matching description.");
-    if (badge) {
-      badge.innerHTML = '<span>⚙ Copying Prompt...</span>';
-    }
-    window.generateDescriptionWithAI();
-    setTimeout(() => {
-      if (badge) {
-        badge.innerHTML = '<span>✨ Generate with Gemini AI</span>';
-      }
-    }, 1500);
+    window.generateDescriptionWithGeminiAPI(link, uTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
   };
   
   document.body.appendChild(modal);
@@ -4359,37 +4354,43 @@ window.openDetailModal = (id, e, editMode = false) => {
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${detailTitleRender}</div>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
-            ${!m.videoUrl ? `
-              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 20px; font-size: 15px;">
-                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:16px; width:100%;">
+            <!-- Left Side Actions -->
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+              ${!m.videoUrl ? `
+                <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 24px; font-size: 15px; font-weight:700;">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play Slideshow
+                </button>
+                <button class="btn btn-secondary" id="dm-view-photo-btn" onclick="window.viewPhotoStatic('${m.id}')" style="padding: 10px 18px; font-size: 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; font-weight:600;">
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Photo
+                </button>
+              ` : `
+                <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 32px; font-size: 16px; font-weight:700;">
+                   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
+                </button>
+              `}
+              <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 18px; font-size: 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; font-weight:600;">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
               </button>
-              <button class="btn btn-secondary" id="dm-view-photo-btn" onclick="window.viewPhotoStatic('${m.id}')" style="padding: 10px 15px; font-size: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: white;">
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Photo
+              <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 28px; font-size: 15px; background:#46d369; color:black; font-weight:800; border:none; border-radius:4px; box-shadow: 0 4px 12px rgba(70,211,105,0.3);">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
               </button>
-            ` : `
-              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
-                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
-              </button>
-            `}
-            <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 20px; font-size: 16px;">
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
-            </button>
-            <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black; font-weight:bold;">
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
-            </button>
+            </div>
             
-            <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
-            </div>
-            <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', this)" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-            </div>
-            <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            </div>
-            <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <!-- Right Side Circular Actions -->
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
+              </div>
+              <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', this)" title="${isLiked ? 'Unlike' : 'Like'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid ${isLiked ? '#e50914' : 'rgba(255,255,255,0.3)'}; color: ${isLiked ? '#e50914' : '#fff'}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='${isLiked ? '#e50914' : 'rgba(255,255,255,0.3)'}'; this.style.transform='scale(1)';">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+              </div>
+              <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              </div>
+              <div class="circ-play-btn hidden" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #ff3b47; color: #ff3b47; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='#ff3b47'; this.style.color='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.background='transparent'; this.style.color='#ff3b47'; this.style.transform='scale(1)';">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </div>
             </div>
           </div>
         </div>
@@ -4437,6 +4438,13 @@ window.openDetailModal = (id, e, editMode = false) => {
               <div class="netflix-form-group">
                 <label class="netflix-form-label" for="dm-desc-edit">Synopsis / Description</label>
                 <textarea id="dm-desc-edit" class="netflix-form-textarea edit-input" placeholder="Describe this beautiful memory...">${m.desc || ''}</textarea>
+                
+                <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                  <button type="button" id="dm-sparkle-btn" onclick="window.generateDescriptionWithGeminiAPI('${m.videoUrl || ''}', document.getElementById('dm-title-edit').value.trim(), 'dm-title-edit', 'dm-desc-edit', 'dm-sparkle-btn')" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    <span>Generate with Gemini AI</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -4451,13 +4459,17 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <input type="text" id="dm-thumb-url-input" class="netflix-form-input" value="${m.thumbnail || ''}" placeholder="Paste Image URL here...">
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-thumb-input').click()">
+                <div style="display: flex; gap: 6px; margin-bottom: 5px; flex-wrap: wrap;">
+                  <button type="button" style="flex: 1; min-width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-thumb-input').click()">
                     📁 Select File
                   </button>
-                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
-                    ✨ AI Generator
+                  <button type="button" class="btn" style="flex: 1.2; min-width: 100px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
+                    ✨ AI Poster
                   </button>
+                  <a href="https://www.remove.bg" target="_blank" style="flex: 1; min-width: 90px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
+                    Remove.bg
+                  </a>
                 </div>
                 <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
               </div>
@@ -4471,13 +4483,17 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <input type="text" id="dm-title-img-url-input" class="netflix-form-input" value="${m.titleImage || ''}" placeholder="Paste URL here..." oninput="const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
+                <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+                  <button type="button" style="flex: 1; min-width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
                     📁 Select File
                   </button>
-                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
-                    ✨ AI Generator
+                  <button type="button" class="btn" style="flex: 1.2; min-width: 100px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+                    ✨ AI Logo
                   </button>
+                  <a href="https://www.remove.bg" target="_blank" style="flex: 1; min-width: 90px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
+                    Remove.bg
+                  </a>
                 </div>
                 <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
                 
@@ -4632,6 +4648,8 @@ window.toggleDetailEdit = () => {
   const thumbEdit = document.getElementById('dm-thumb-edit');
   const titleImgEdit = document.getElementById('dm-title-image-edit');
   const catEdit = document.getElementById('dm-cat-edit-container');
+  const deleteBtn = document.getElementById('dm-delete-btn');
+  const photoBtn = document.getElementById('dm-view-photo-btn');
   
   const viewContent = document.getElementById('dm-view-content');
   const editForm = document.getElementById('dm-edit-form');
@@ -4640,7 +4658,9 @@ window.toggleDetailEdit = () => {
     title.classList.remove('hidden');
     if (desc) desc.classList.remove('hidden');
     if (playBtn) playBtn.classList.remove('hidden');
+    if (photoBtn) photoBtn.classList.remove('hidden');
     editBtn.classList.remove('hidden');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
     titleEdit.classList.add('hidden');
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
@@ -4654,7 +4674,9 @@ window.toggleDetailEdit = () => {
     title.classList.add('hidden');
     if (desc) desc.classList.add('hidden');
     if (playBtn) playBtn.classList.add('hidden');
+    if (photoBtn) photoBtn.classList.add('hidden');
     editBtn.classList.add('hidden');
+    if (deleteBtn) deleteBtn.classList.remove('hidden');
     titleEdit.classList.remove('hidden');
     descEdit.classList.remove('hidden');
     saveBtn.classList.remove('hidden');
@@ -5026,24 +5048,15 @@ window.playVideo = (id) => {
   };
   enterFullscreenAndLandscapeImmediately();
   
-  // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
+  // Apply starting state and trigger hardware-accelerated CSS animations
   c.style.display = 'block';
-  c.style.transition = 'none';
-  c.style.opacity = '0';
-  c.style.transform = 'scale(0.8)';
-  c.style.borderRadius = '24px';
+  c.className = 'playback-overlay landscape-forced entering';
   c.style.overflow = 'hidden';
   
-  // Force a browser reflow paint
-  c.offsetHeight;
-  
-  // Transition to full screen size smoothly over exactly 0.55 seconds
+  // After animation finishes, clean up the entering class
   setTimeout(() => {
-    c.style.transition = 'opacity 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), transform 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 0.55s cubic-bezier(0.15, 0.85, 0.35, 1)';
-    c.style.opacity = '1';
-    c.style.transform = 'scale(1)';
-    c.style.borderRadius = '0px';
-  }, 30);
+    c.classList.remove('entering');
+  }, 600);
   
   // Play Netflix initial animation before playing video
   const ytId = window.extractYouTubeId(url);
@@ -5904,7 +5917,58 @@ window.handleAddMemoryClick = () => {
   }
 };
 
-// Copy YouTube descriptive prompts and open Google Gemini
+// Real-time server-side description generation using Gemini API
+window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, titleInputId, descInputId, buttonId) => {
+  const btn = document.getElementById(buttonId);
+  const titleInput = document.getElementById(titleInputId);
+  const descInput = document.getElementById(descInputId);
+  
+  if (!btn) return;
+  const originalHtml = btn.innerHTML;
+  
+  try {
+    btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"></path></svg> Generating...</span>`;
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.7';
+    
+    const response = await fetch('/api/generate-description', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        youtubeUrl: youtubeUrl || '',
+        title: currentTitle || ''
+      })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to generate content');
+    }
+    
+    if (titleInput && data.title) {
+      titleInput.value = data.title;
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (descInput && data.description) {
+      descInput.value = data.description;
+      descInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    window.showToast("✨ Gemini AI generated story successfully!");
+    
+  } catch(err) {
+    console.error(err);
+    window.netflixAlert("AI Generation failed: " + err.message);
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.style.pointerEvents = 'auto';
+    btn.style.opacity = '1';
+  }
+};
+
+// Copy YouTube descriptive prompts and open Google Gemini (fallback)
 window.generateDescriptionWithAI = () => {
   const link = document.getElementById('up-yt-link').value.trim();
   
@@ -7054,6 +7118,10 @@ window.openBulkManagerModal = () => {
             <div style="display: flex; gap: 8px;">
               <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(true)">✓ Select All</button>
               <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(false)">✗ Clear All</button>
+              <button class="btn" style="background: rgba(229,9,20,0.1); color: #ff4d5a; border: 1px solid rgba(229,9,20,0.25); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.color='white';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.color='#ff4d5a';" onclick="window.bulkDeleteAllMemories()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                🗑 Delete All
+              </button>
             </div>
           </div>
 
@@ -7216,14 +7284,17 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Title Logo Image URL</label>
         </div>
         
-        <div style="display:flex; gap:6px;">
-          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
+        <div style="display:flex; gap:6px; flex-wrap: wrap;">
+          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
             Local File
           </button>
-          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAI()">
+          <button type="button" style="flex:1; min-width:80px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAI()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            AI Prompt
+            AI Logo
           </button>
+          <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:80px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
+            Remove.bg
+          </a>
         </div>
         <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
         
@@ -7241,14 +7312,17 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Custom Backdrop URL</label>
         </div>
         
-        <div style="display:flex; gap:6px;">
-          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
+        <div style="display:flex; gap:6px; flex-wrap: wrap;">
+          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
             Local Photo
           </button>
-          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
+          <button type="button" style="flex:1; min-width:80px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             AI Poster
           </button>
+          <a href="https://www.remove.bg" target="_blank" style="flex:1; min-width:80px; text-decoration: none; background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3); color:#00b4d8; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(0,180,216,0.3)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(0,180,216,0.15)'; this.style.color='#00b4d8';">
+            Remove.bg
+          </a>
         </div>
         <input type="file" id="bulk-thumb-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0]).then(b64 => { document.getElementById('bulk-thumbnail-override').value = 'Local File: ' + this.files[0].name; window.bulkThumbBase64 = b64; const preview = document.getElementById('bulk-thumb-preview'); if(preview) { preview.src = b64; document.getElementById('bulk-preview-container').style.display = 'block'; } }); }">
         
@@ -7264,7 +7338,7 @@ window.updateBulkToolbar = () => {
         
         <!-- Sparkle option inside textarea footer -->
         <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-          <div onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
+          <div id="bulk-desc-sparkle" onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             <span>Gemini AI Desc</span>
           </div>
@@ -7410,16 +7484,10 @@ window.generateBulkDescriptionWithAI = () => {
   const titleInput = document.getElementById('bulk-title-override');
   const title = titleInput ? titleInput.value.trim() : '';
   if (!title) {
-    window.showToast('Please enter a Title first, so Gemini can generate a matching description.');
+    window.netflixAlert('Please enter a Title first, so Gemini can generate a matching description.');
     return;
   }
-  const prompt = `Generate an engaging, short, dramatic Netflix-style tagline synopsis description (under 25 words) for a memory titled: "${title}". Make it emotional, romantic, energetic or documentary-style depending on memory title. Keep it clean and impactful.`;
-  navigator.clipboard.writeText(prompt).then(() => {
-    window.showToast("Gemini description request prompt copied! Opening Gemini...");
-    setTimeout(() => {
-      window.open('https://gemini.google.com/app', '_blank');
-    }, 1000);
-  });
+  window.generateDescriptionWithGeminiAPI('', title, 'bulk-title-override', 'bulk-desc-override', 'bulk-desc-sparkle');
 };
 
 window.applyBulkEdit = async () => {
@@ -7510,6 +7578,18 @@ window.applyBulkEdit = async () => {
       window.refreshRowsView(null, null, true);
     }, 300);
   }
+};
+
+window.bulkDeleteAllMemories = () => {
+  if (!appState.memories || appState.memories.length === 0) {
+    window.netflixAlert("There are no memories to delete.");
+    return;
+  }
+  
+  window.netflixConfirm(`CRITICAL WARNING: Are you sure you want to permanently delete ALL ${appState.memories.length} memories? This action is irreversible!`, async () => {
+    window.selectedBulkIds = appState.memories.map(m => m.id);
+    await window.applyBulkDelete();
+  });
 };
 
 window.applyBulkDelete = async () => {
