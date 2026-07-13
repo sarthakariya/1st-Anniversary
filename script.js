@@ -1,5 +1,5 @@
 import { db, auth } from './src/firebase.js';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc, writeBatch, getDocFromServer } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, deleteDoc, writeBatch } from 'firebase/firestore';
 import { animate, stagger } from 'motion';
 
 const OperationType = {
@@ -60,17 +60,6 @@ function handleFirestoreError(error, operationType, path) {
   // Fallback throw if not reads or writes
   throw new Error(JSON.stringify(errInfo));
 }
-
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
-}
-testConnection();
 
 window.triggerVibration = (pattern = 20) => {
   if (navigator && typeof navigator.vibrate === 'function') {
@@ -195,7 +184,7 @@ const initialMemories = [
   {
     id: 'm_mock1',
     title: 'Our First Memory',
-    desc: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
+    description: 'This is a sample memory. Click "+ Add Memory" to start building your own gallery!',
     thumbnail: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMjc1IiBmaWxsPSIjMjIyIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI3NSIvPjwvc3ZnPg==',
     videoUrl: 'https://assets.nflxext.com/us/ffe/siteui/common/audio/ta_dum.mp4',
     category: 'Celebrations',
@@ -216,8 +205,7 @@ window.addEventListener('error', (event) => {
   `;
 });
 window.addEventListener('unhandledrejection', (event) => {
-  event.preventDefault();
-  console.warn("Unhandled Rejection:", event.reason);
+  console.error("Unhandled Rejection:", event.reason);
   // Unhandled rejections don't always crash the UI, but we log them.
 });
 
@@ -262,7 +250,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event', 'Intimate Moments', 'Travel Adventures'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event'];
 
 window.formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return '';
@@ -494,26 +482,26 @@ async function ensureMemoryDataSize(mem) {
 }
 
 async function saveMemoryToDB(memory) {
+  if(!memory.id) memory.id = "m_" + Date.now();
+  await ensureMemoryDataSize(memory);
   try {
-    if(!memory.id) memory.id = "m_" + Date.now();
-    await ensureMemoryDataSize(memory);
     await setDoc(doc(db, 'memories', memory.id), memory);
   } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id || 'new'}`);
+    handleFirestoreError(err, OperationType.WRITE, `memories/${memory.id}`);
     throw err;
   }
 }
 
 async function saveStateList(key, data) {
+  appState[key] = data;
+  window.safeSetSessionItem('netflix_state', JSON.stringify({
+    myList: appState.myList,
+    continueWatching: appState.continueWatching,
+    likedMemories: appState.likedMemories || [],
+    settings: appState.settings,
+    profiles: appState.profiles
+  }));
   try {
-    appState[key] = data;
-    window.safeSetSessionItem('netflix_state', JSON.stringify({
-      myList: appState.myList,
-      continueWatching: appState.continueWatching,
-      likedMemories: appState.likedMemories || [],
-      settings: appState.settings,
-      profiles: appState.profiles
-    }));
     await setDoc(doc(db, 'user_state', 'household'), {
       [key]: data
     }, { merge: true });
@@ -655,7 +643,7 @@ window.logoutProfile = () => {
   }
   setTimeout(() => {
     localStorage.removeItem('sarthak_netflix_profile');
-    localStorage.removeItem('sarthak_netflix_code'); // Require profile lock PIN when logging back in
+    sessionStorage.removeItem('sarthak_netflix_code'); // Require profile lock PIN when logging back in
     appState.currentProfile = null;
     transitionView('profiles');
   }, 500);
@@ -2167,7 +2155,7 @@ function createStartupScreen() {
       overlay.style.display = 'none';
       vid.play().catch(e => {
         vid.muted = true;
-        vid.play().catch(err => console.warn("Muted play failed too", err));
+        vid.play();
       });
       // Force exactly 4 seconds
       setTimeout(vid.onended, 4000);
@@ -2244,7 +2232,7 @@ function createProfileSelection() {
       if(isManageMode) {
         window.editProfile(pf.id);
       } else {
-        const secretCode = localStorage.getItem('sarthak_netflix_code');
+        const secretCode = sessionStorage.getItem('sarthak_netflix_code');
         if (secretCode !== '25072025') {
           showPinModal(pf, p);
           return;
@@ -2375,7 +2363,7 @@ function showPinModal(pf, pElement) {
       const val = Array.from(inputs).map(i => i.dataset.val || '').join('');
       if (val.length === 8) {
         if (val === '25072025') {
-          localStorage.setItem('sarthak_netflix_code', '25072025');
+          window.safeSetSessionItem('sarthak_netflix_code', '25072025');
           overlay.remove();
           loginProfile(pf, pElement);
         } else {
@@ -3082,7 +3070,7 @@ window.shuffleHero = () => {
               <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
             </div>
           </div>
-          <div class="hero-desc">${nextHeroMem.desc || nextHeroMem.description || ''}</div>
+          <div class="hero-desc">${nextHeroMem.desc}</div>
         </div>
       `;
       
@@ -3354,7 +3342,7 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 130px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 12px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 250px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: 5px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
               <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -3363,7 +3351,7 @@ function createHero() {
                 <span style="font-size: clamp(12px, 1.0vw, 16px); font-weight: 700; letter-spacing: -0.2px; text-shadow: 1.5px 1.5px 4px rgba(0,0,0,0.9);">#1 in Memories Today</span>
               </div>
             </div>
-            <div class="hero-desc">${heroMem.desc || heroMem.description || ''}</div>
+            <div class="hero-desc">${heroMem.desc}</div>
           </div>
         </div>
       </div>
@@ -3642,27 +3630,6 @@ function createRow(title, memories, index = 0) {
           </div>
     `;
 
-    const getCardGenres = (catVal) => {
-      const cat = (catVal || '').toLowerCase();
-      if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love Story</span>';
-      } else if (cat.includes('party') || cat.includes('celebration')) {
-        return '<span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Upbeat</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span>';
-      } else if (cat.includes('special') || cat.includes('event')) {
-        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Special</span>';
-      } else if (cat.includes('comedy')) {
-        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Funny</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
-      } else if (cat.includes('intimate')) {
-        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Close</span>';
-      } else if (cat.includes('anniversary')) {
-        return '<span>Fine Dining</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
-      } else if (cat.includes('travel') || cat.includes('adventure')) {
-        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Exploring</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Adventures</span>';
-      } else {
-        return '<span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Memory</span>';
-      }
-    };
-
     card.innerHTML = `
       <div class="media-card-img-wrapper" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; border-radius:4px; z-index:1;">
         <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low" style="width:100%; height:100%; object-fit:cover; transition: opacity 0.3s; display: block;">
@@ -3675,12 +3642,12 @@ function createRow(title, memories, index = 0) {
         </div>
         <div class="hc-title" style="font-size: 11px; font-weight: 700; color: #ffffff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: uppercase; letter-spacing: 0.2px;" title="${m.title}">${m.title}</div>
         <div class="hc-meta" style="font-size: 10px; margin-bottom: 5px;">
-          <span class="hc-match" style="font-size: 10px;">${95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6)}% Match</span>
-          <span class="hc-rating" style="font-size: 9px; padding: 0 2px;">${m.rating || 'U'}</span>
-          <span class="hc-badge" style="font-size: 8px; padding: 0 2px;">4K</span>
+          <span class="hc-match" style="font-size: 10px;">98% Match</span>
+          <span class="hc-rating" style="font-size: 9px; padding: 0 2px;">${m.rating || 'TV-14'}</span>
+          <span class="hc-badge" style="font-size: 8px; padding: 0 2px;">HD</span>
         </div>
         <div class="hc-genres" style="font-size: 9px;">
-          ${getCardGenres(m.category)}
+          <span>Emotional</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romance</span>
         </div>
       </div>
     `;
@@ -3805,11 +3772,7 @@ window.openModernDatePicker = (inputEl) => {
   if (inputEl.value) {
     const parts = inputEl.value.split('-');
     if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      } else {
-        currentDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-      }
+      currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     }
   }
 
@@ -3929,7 +3892,7 @@ window.openModernDatePicker = (inputEl) => {
       const today = new Date();
       activeYear = today.getFullYear();
       activeMonth = today.getMonth();
-      const currentValStr = `${String(today.getDate()).padStart(2, '0')}-${String(activeMonth + 1).padStart(2, '0')}-${activeYear}`;
+      const currentValStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       inputEl.value = currentValStr;
       closePicker();
     };
@@ -3996,7 +3959,7 @@ window.openModernDatePicker = (inputEl) => {
       };
 
       cell.onclick = () => {
-        const valStr = `${String(d).padStart(2, '0')}-${String(activeMonth + 1).padStart(2, '0')}-${activeYear}`;
+        const valStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         inputEl.value = valStr;
         closePicker();
       };
@@ -4054,20 +4017,6 @@ window.openUploadModal = () => {
           <label style="position: absolute; top: 18px; left: 16px; color: #8c8c8c; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 14px;">Title</label>
         </div>
 
-        <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s; height: 142px;" id="desc-box-container">
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
-          <textarea id="up-desc" rows="3" placeholder="Describe this memory here... (Type manually or generate with Gemini)" style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='rgba(255,255,255,0.08)';"></textarea>
-          
-          <!-- SPARKLE UTILITY STRIP -->
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-            <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-              <span>Generate with Gemini AI</span>
-            </div>
-          </div>
-        </div>
-
         <!-- POLISHED LOGO SUB-BOX CARD (OPTIONAL) -->
         <div style="border: 1px solid #333; background: rgba(20,20,20,0.3); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#aaa; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
@@ -4081,14 +4030,14 @@ window.openUploadModal = () => {
             <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Title Logo Image URL</label>
           </div>
           
-          <div style="display:flex; gap:6px; flex-wrap: wrap;">
-            <button type="button" style="flex:1; min-width:80px; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 10px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <div style="display:flex; gap:10px;">
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               Local File
             </button>
-            <button type="button" style="flex:2; min-width:180px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 10px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.3s; text-align:center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <span>✨ Generate Logo & Remove BG</span>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>Generate Prompt</span>
             </button>
           </div>
           <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
@@ -4147,12 +4096,28 @@ window.openUploadModal = () => {
           </div>
         </div>
 
+        <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
+        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
+          <textarea id="up-desc" rows="3" required style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
+          
+          <!-- SPARKLE UTILITY STRIP -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+            <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              <span>Generate with Gemini AI</span>
+            </div>
+          </div>
+        </div>
+
         <!-- COMPACT METADATA STRIP -->
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <!-- CATEGORY -->
           <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
             <select id="up-cat" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
-              ${subCategories.map(cat => `<option value="${cat}" style="background:#141414;">${cat}</option>`).join('')}
+              <option value="Celebration Parties" style="background:#141414;">Celebration Parties</option>
+              <option value="Our Romantic Scenes" style="background:#141414;">Our Romantic Scenes</option>
+              <option value="Our Special Event" style="background:#141414;">Our Special Event</option>
             </select>
             <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Category</label>
             <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
@@ -4163,7 +4128,7 @@ window.openUploadModal = () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <!-- MODERN DATE TRIGGER -->
             <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
-              <input type="text" id="up-date" readonly style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; cursor: pointer; transition: all 0.3s;" value="${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}" onclick="window.openModernDatePicker(this)">
+              <input type="text" id="up-date" readonly style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; cursor: pointer; transition: all 0.3s;" value="${new Date().toISOString().split('T')[0]}" onclick="window.openModernDatePicker(this)">
               <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Date</label>
               <div style="position: absolute; right: 16px; top: 18px; color: #e50914; pointer-events: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -4173,11 +4138,11 @@ window.openUploadModal = () => {
             <!-- MATURITY RATING -->
             <div class="floating-input-group" style="position: relative; height: 56px; margin-bottom: 0;">
               <select id="up-rating" style="width:100%; height: 56px; background: #2b2b2b; border: 1px solid transparent; padding: 24px 40px 8px 16px; border-radius: 8px; color: white; outline: none; font-size: 14px; box-sizing: border-box; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s;" onfocus="this.style.background='#383838'; this.style.borderColor='rgba(220,220,220,0.7)';" onblur="this.style.background='#2b2b2b'; this.style.borderColor='transparent';">
-                <option value="U" style="background:#141414;">U</option>
                 <option value="U/A 7+" style="background:#141414;">U/A 7+</option>
                 <option value="U/A 13+" style="background:#141414;">U/A 13+</option>
                 <option value="U/A 16+" style="background:#141414;">U/A 16+</option>
                 <option value="U/A 18+" selected style="background:#141414;">U/A 18+</option>
+                <option value="A" style="background:#141414;">A</option>
               </select>
               <label style="position: absolute; top: 6px; left: 16px; color: #ccc; pointer-events: none; transform: scale(0.7); transform-origin: left top; font-size: 15px;">Maturity</label>
               <div style="position: absolute; right: 16px; top: 22px; color: #8c8c8c; pointer-events: none; display: flex; align-items: center; justify-content: center;">
@@ -4214,53 +4179,19 @@ window.openUploadModal = () => {
     }
   };
 
-  window.generateUploadDescriptionWithAI = async () => {
-    const link = document.getElementById('up-yt-link').value.trim();
+  window.generateUploadDescriptionWithAI = () => {
+    const badge = document.getElementById('desc-sparkle-btn');
     const uTitle = document.getElementById('up-title').value.trim();
-    const descField = document.getElementById('up-desc');
-    const descSparkleBtn = document.getElementById('desc-sparkle-btn');
-    
-    if (!uTitle) {
-      return window.netflixAlert("Please enter a Title first so Gemini has context to generate a matching description.");
+    if (!uTitle) return window.netflixAlert("Please enter a Title first, so Gemini can generate a matching description.");
+    if (badge) {
+      badge.innerHTML = '<span>⚙ Copying Prompt...</span>';
     }
-
-    if (descField) {
-      descField.placeholder = "Generating a cinematic description with Gemini AI...";
-      if (descSparkleBtn) {
-        descSparkleBtn.innerHTML = `<svg class="spin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Generating...</span>`;
-        descSparkleBtn.style.pointerEvents = 'none';
+    window.generateDescriptionWithAI();
+    setTimeout(() => {
+      if (badge) {
+        badge.innerHTML = '<span>✨ Generate with Gemini AI</span>';
       }
-      try {
-        const genRes = await fetch('/api/gemini/generate-description', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: uTitle, youtubeUrl: link })
-        });
-        if (genRes.ok) {
-          const genData = await genRes.json();
-          if (genData.description) {
-            descField.value = genData.description;
-            window.showToast("✨ Beautiful cinematic description generated!");
-          } else {
-            throw new Error("No description returned");
-          }
-        } else {
-          throw new Error("API call failed");
-        }
-      } catch (err) {
-        console.error("AI generation failed, falling back to clipboard prompt method:", err);
-        window.generateDescriptionWithGeminiAPI(link, uTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
-      } finally {
-        descField.placeholder = "Describe this memory here... (Type manually or generate with Gemini)";
-        if (descSparkleBtn) {
-          descSparkleBtn.style.pointerEvents = 'auto';
-          descSparkleBtn.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-            <span>Generate with Gemini AI</span>
-          `;
-        }
-      }
-    }
+    }, 1500);
   };
   
   document.body.appendChild(modal);
@@ -4301,15 +4232,11 @@ window.openUploadModal = () => {
     extractedVideoId = videoId;
     document.getElementById('up-fetch').innerText = "Fetching...";
     
-    let fetchedTitle = '';
     try {
       const oembedRes = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + videoId + '&format=json');
       if (oembedRes.ok) {
         const data = await oembedRes.json();
-        if (data.title) {
-          fetchedTitle = data.title;
-          document.getElementById('up-title').value = fetchedTitle;
-        }
+        if (data.title) document.getElementById('up-title').value = data.title;
         // Always prefer maxresdefault for crystal clear thumbnails
         currentThumbData = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
       } else {
@@ -4325,40 +4252,6 @@ window.openUploadModal = () => {
     if (autoThumbCard && autoThumbImg) {
       autoThumbImg.src = currentThumbData;
       autoThumbCard.style.display = 'flex';
-    }
-
-    // Automatic description generation on fetch
-    const descField = document.getElementById('up-desc');
-    const descSparkleBtn = document.getElementById('desc-sparkle-btn');
-    if (descField) {
-      descField.placeholder = "Generating a cinematic description with Gemini AI...";
-      if (descSparkleBtn) {
-        descSparkleBtn.innerHTML = `<svg class="spin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Generating description...</span>`;
-      }
-      try {
-        const genRes = await fetch('/api/gemini/generate-description', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: fetchedTitle || "Our Special Moment", youtubeUrl: link })
-        });
-        if (genRes.ok) {
-          const genData = await genRes.json();
-          if (genData.description) {
-            descField.value = genData.description;
-            window.showToast("✨ Description auto-generated by Gemini!");
-          }
-        }
-      } catch (err) {
-        console.error("Auto-generation on fetch failed:", err);
-      } finally {
-        descField.placeholder = "Describe this memory here... (Type manually or generate with Gemini)";
-        if (descSparkleBtn) {
-          descSparkleBtn.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-            <span>Generate with Gemini AI</span>
-          `;
-        }
-      }
     }
 
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
@@ -4395,22 +4288,15 @@ window.openUploadModal = () => {
       uploadedBy: appState.currentProfile
     };
 
-    try {
-      await saveMemoryToDB(mem);
-      appState.memories.unshift(mem);
-      window.justUploadedId = mem.id;
-      const modalEl = document.getElementById('uploadModal');
-      modalEl.classList.remove('open');
-      setTimeout(() => {
-        modalEl.remove();
-        render();
-      }, 600);
-    } catch (err) {
-      console.error("Failed to save memory to DB:", err);
-      window.netflixAlert("Failed to save memory to DB. Please check your network connection or Firestore quota limits.");
-      e.target.innerText = "Publish Memory";
-      e.target.disabled = false;
-    }
+    await saveMemoryToDB(mem);
+    appState.memories.unshift(mem);
+    window.justUploadedId = mem.id;
+    const modalEl = document.getElementById('uploadModal');
+    modalEl.classList.remove('open');
+    setTimeout(() => {
+      modalEl.remove();
+      render();
+    }, 600);
   };
 };
 
@@ -4463,107 +4349,47 @@ window.openDetailModal = (id, e, editMode = false) => {
     `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
     m.title;
 
-  const getSleekGenresForMemory = (memObj) => {
-    const cat = (memObj.category || '').toLowerCase();
-    let genres = [];
-    if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-      genres = ['Romance', 'Heartfelt', 'Emotional', 'Love Story', 'Cinematic', 'Milestone'];
-    } else if (cat.includes('party') || cat.includes('celebration')) {
-      genres = ['Festive', 'Upbeat', 'Fun', 'Togetherness', 'Milestone', 'Joyful'];
-    } else if (cat.includes('special') || cat.includes('event')) {
-      genres = ['Milestone', 'Timeless', 'Emotional', 'Heartfelt', 'Legacy', 'Cinematic'];
-    } else if (cat.includes('comedy')) {
-      genres = ['Cute', 'Hilarious', 'Lighthearted', 'Fun', 'Romance', 'Heartfelt'];
-    } else if (cat.includes('intimate')) {
-      genres = ['Warm', 'Sweet', 'Close', 'Romantic', 'Heartfelt', 'Togetherness'];
-    } else if (cat.includes('anniversary')) {
-      genres = ['Fine Dining', 'Classy', 'Together', 'Romantic', 'Milestone', 'Legacy'];
-    } else if (cat.includes('travel') || cat.includes('adventure')) {
-      genres = ['Journey', 'Exploring', 'Adventures', 'Scenic', 'Cinematic', 'Documentary'];
-    } else {
-      genres = ['Emotional', 'Heartfelt', 'Timeless', 'Personal Legacy', 'Cinematic', 'Memory'];
-    }
-    return genres.map(g => `<span style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #e5e5e5; font-weight: 500; display: inline-block; letter-spacing: 0.3px;">${g}</span>`).join(' ');
-  };
-
-  let genresRight = 'Romance, Emotional';
-  let vibeRight = 'Heartfelt, Intimate';
-  const catLow = (m.category || '').toLowerCase();
-  if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
-    genresRight = 'Romance, Emotional';
-    vibeRight = 'Heartfelt, Intimate';
-  } else if (catLow.includes('party') || catLow.includes('celebration')) {
-    genresRight = 'Festive, Upbeat';
-    vibeRight = 'Fun, Togetherness';
-  } else if (catLow.includes('special') || catLow.includes('event')) {
-    genresRight = 'Milestones, Timeless';
-    vibeRight = 'Special, Legacy';
-  } else if (catLow.includes('comedy')) {
-    genresRight = 'Cute, Funny';
-    vibeRight = 'Romantic, Lighthearted';
-  } else if (catLow.includes('intimate')) {
-    genresRight = 'Warm, Sweet';
-    vibeRight = 'Close, Heartfelt';
-  } else if (catLow.includes('anniversary')) {
-    genresRight = 'Fine Dining, Classy';
-    vibeRight = 'Together, Romantic';
-  } else if (catLow.includes('travel') || catLow.includes('adventure')) {
-    genresRight = 'Journey, Exploring';
-    vibeRight = 'Adventures, Scenic';
-  } else {
-    genresRight = 'Emotional, Heartfelt';
-    vibeRight = 'Memory, Timeless';
-  }
-
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.remove(); }, 350);">&times;</button>
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.classList.remove('open'); setTimeout(() => { dm.remove(); }, 300);">&times;</button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
         <div class="detail-gradient"></div>
         <div class="detail-title-btn">
           <div class="detail-title" id="dm-title">${detailTitleRender}</div>
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:16px; width:100%;">
-            <!-- Left Side Actions (Play, View, Add to List, Like, Download) -->
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap: wrap;">
-              ${!m.videoUrl ? `
-                <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 24px; font-size: 15px; font-weight:700;">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play Slideshow
-                </button>
-                <button class="btn btn-secondary" id="dm-view-photo-btn" onclick="window.viewPhotoStatic('${m.id}')" style="padding: 10px 18px; font-size: 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; font-weight:600;">
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Photo
-                </button>
-              ` : `
-                <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 32px; font-size: 16px; font-weight:700;">
-                   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
-                </button>
-              `}
-              
-              <!-- Inline Action Buttons next to Play -->
-              <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
-              </div>
-              <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', this)" title="${isLiked ? 'Unlike' : 'Like'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid ${isLiked ? '#e50914' : 'rgba(255,255,255,0.3)'}; color: ${isLiked ? '#e50914' : '#fff'}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='${isLiked ? '#e50914' : 'rgba(255,255,255,0.3)'}'; this.style.transform='scale(1)';">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-              </div>
-              <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              </div>
-            </div>
-            
-            <!-- Right Side Circular Actions (Edit Pen Icon, Save Button, Delete Button) -->
-            <div style="display:flex; gap:10px; align-items:center;">
-              <div class="circ-play-btn" id="dm-edit-btn" onclick="toggleDetailEdit()" title="Edit Info" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.borderColor='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.borderColor='rgba(255,255,255,0.3)'; this.style.transform='scale(1)';">
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-              </div>
-              <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 24px; font-size: 14px; background:#46d369; color:black; font-weight:800; border:none; border-radius:4px; box-shadow: 0 4px 12px rgba(70,211,105,0.3); display: flex; align-items: center; gap: 6px;">
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+            ${!m.videoUrl ? `
+              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 20px; font-size: 15px;">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play as Video
               </button>
-              <div class="circ-play-btn hidden" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #ff3b47; color: #ff3b47; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='#ff3b47'; this.style.color='#fff'; this.style.transform='scale(1.08)';" onmouseleave="this.style.background='transparent'; this.style.color='#ff3b47'; this.style.transform='scale(1)';">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              </div>
+              <button class="btn btn-secondary" id="dm-view-photo-btn" onclick="window.viewPhotoStatic('${m.id}')" style="padding: 10px 15px; font-size: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: white;">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Photo
+              </button>
+            ` : `
+              <button class="btn btn-primary" id="dm-play-btn" onclick="playVideo('${m.id}')" style="padding: 10px 30px; font-size: 16px;">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polygon points="6 3 20 12 6 21 6 3"/></svg> Play
+              </button>
+            `}
+            <button class="btn btn-secondary" id="dm-edit-btn" onclick="toggleDetailEdit()" style="padding: 10px 20px; font-size: 16px;">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Info
+            </button>
+            <button class="btn btn-primary hidden" id="dm-save-btn" onclick="saveDetailEdit('${m.id}')" style="padding: 10px 30px; font-size: 16px; background:#46d369; color:black; font-weight:bold;">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg> Save
+            </button>
+            
+            <div class="circ-play-btn" onclick="toggleMyList('${m.id}', event, this)" title="${inMyList ? 'Remove from List' : 'Add to My List'}">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${inMyList ? 'M5 12l5 5L20 7' : 'M12 5v14M5 12h14'}"/></svg>
+            </div>
+            <div class="circ-play-btn" id="dm-like-btn" onclick="likeMemory('${m.id}', this)" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            </div>
+            <div class="circ-play-btn" onclick="downloadVideo('${m.id}')" title="Download">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </div>
+            <div class="circ-play-btn" id="dm-delete-btn" onclick="deleteMemory('${m.id}')" title="Delete Memory">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
           </div>
         </div>
@@ -4573,7 +4399,7 @@ window.openDetailModal = (id, e, editMode = false) => {
           <!-- VIEW MODE CONTAINER -->
           <div id="dm-view-content">
             <div class="detail-meta">
-              <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
+              <span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 99}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>
             </div>
             <div style="display: inline-flex; align-items: center; margin: 12px 0 16px 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 2px 5px; border-radius: 2px; line-height: 1; margin-right: 8px; font-family: system-ui, -apple-system, sans-serif;">
@@ -4582,7 +4408,7 @@ window.openDetailModal = (id, e, editMode = false) => {
               </div>
               <span style="font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">#1 in Memories Today</span>
             </div>
-            <div class="detail-desc" id="dm-desc" style="font-size: 16px; color: #e5e5e5; line-height: 1.7; margin-bottom: 12px;">${m.desc || m.description || 'A beautiful memory worth reliving.'}</div>
+            <div class="detail-desc" id="dm-desc" style="font-size: 16px; color: #e5e5e5; line-height: 1.7; margin-bottom: 12px;">${m.desc || 'A beautiful memory worth reliving.'}</div>
           </div>
 
           <!-- EDIT FORM WRAPPER (Cinematic Form) -->
@@ -4602,40 +4428,15 @@ window.openDetailModal = (id, e, editMode = false) => {
               <div id="dm-cat-edit-container" class="netflix-form-group hidden">
                 <label class="netflix-form-label" for="dm-cat-edit">Category Row</label>
                 <select id="dm-cat-edit" class="netflix-form-select">
-                  ${subCategories.map(cat => `<option value="${cat}" ${window.getNormalizedCategory(m.category) === cat ? 'selected' : ''} style="background:#141414; color: white;">${cat}</option>`).join('')}
+                  <option value="Celebration Parties" ${window.getNormalizedCategory(m.category) === 'Celebration Parties' ? 'selected' : ''} style="background:#141414; color: white;">Celebration Parties</option>
+                  <option value="Our Romantic Scenes" ${window.getNormalizedCategory(m.category) === 'Our Romantic Scenes' ? 'selected' : ''} style="background:#141414; color: white;">Our Romantic Scenes</option>
+                  <option value="Our Special Event" ${window.getNormalizedCategory(m.category) === 'Our Special Event' ? 'selected' : ''} style="background:#141414; color: white;">Our Special Event</option>
                 </select>
               </div>
               
               <div class="netflix-form-group">
                 <label class="netflix-form-label" for="dm-desc-edit">Synopsis / Description</label>
                 <textarea id="dm-desc-edit" class="netflix-form-textarea edit-input" placeholder="Describe this beautiful memory...">${m.desc || ''}</textarea>
-                
-                <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                  <button type="button" id="dm-sparkle-btn" onclick="window.generateDescriptionWithGeminiAPI('${m.videoUrl || ''}', document.getElementById('dm-title-edit').value.trim(), 'dm-title-edit', 'dm-desc-edit', 'dm-sparkle-btn')" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-                    <span>Generate with Gemini AI</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Maturity Rating and Match Rate -->
-              <div style="display: flex; gap: 12px; margin-top: 14px;">
-                <div class="netflix-form-group" style="flex: 1; margin-bottom: 0;">
-                  <label class="netflix-form-label" for="dm-rating-edit">Maturity Rating</label>
-                  <select id="dm-rating-edit" class="netflix-form-select" style="background:#141414; color:white; border: 1px solid rgba(255,255,255,0.15); border-radius:4px; padding: 10px; font-size:12px; width:100%;">
-                    <option value="G" ${m.rating === 'G' ? 'selected' : ''}>G (General)</option>
-                    <option value="PG" ${m.rating === 'PG' ? 'selected' : ''}>PG (Parental Guidance)</option>
-                    <option value="PG-13" ${m.rating === 'PG-13' ? 'selected' : ''}>PG-13 (Parents Strongly Cautioned)</option>
-                    <option value="TV-14" ${m.rating === 'TV-14' ? 'selected' : ''}>TV-14 (Parents Strongly Cautioned)</option>
-                    <option value="R" ${m.rating === 'R' ? 'selected' : ''}>R (Restricted)</option>
-                    <option value="NC-17" ${m.rating === 'NC-17' ? 'selected' : ''}>NC-17 (Adults Only)</option>
-                    <option value="18+" ${m.rating === '18+' ? 'selected' : ''}>18+ (Adults Only)</option>
-                  </select>
-                </div>
-                <div class="netflix-form-group" style="flex: 1; margin-bottom: 0;">
-                  <label class="netflix-form-label" for="dm-match-edit">Match Rate (%)</label>
-                  <input type="number" id="dm-match-edit" class="netflix-form-input edit-input" value="${m.matchRate || (95 + Math.abs((m.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 6))}" min="0" max="100" style="padding: 10px; font-size:12px;">
-                </div>
               </div>
             </div>
 
@@ -4650,12 +4451,12 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <input type="text" id="dm-thumb-url-input" class="netflix-form-input" value="${m.thumbnail || ''}" placeholder="Paste Image URL here...">
                 </div>
                 
-                <div style="display: flex; gap: 6px; margin-bottom: 5px; flex-wrap: wrap;">
-                  <button type="button" style="flex: 1; min-width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-thumb-input').click()">
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-thumb-input').click()">
                     📁 Select File
                   </button>
-                  <button type="button" class="btn" style="flex: 1.2; min-width: 100px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
-                    ✨ AI Poster
+                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateThumbnailPromptWithAI()">
+                    ✨ AI Generator
                   </button>
                 </div>
                 <input type="file" id="dm-thumb-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { document.getElementById('dm-thumb-url-input').value = 'Local File Selected: ' + this.files[0].name; }">
@@ -4670,13 +4471,12 @@ window.openDetailModal = (id, e, editMode = false) => {
                   <input type="text" id="dm-title-img-url-input" class="netflix-form-input" value="${m.titleImage || ''}" placeholder="Paste URL here..." oninput="const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = this.value; preview.style.display = this.value ? 'block' : 'none'; }">
                 </div>
                 
-                <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
-                  <button type="button" style="flex: 1; min-width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                  <button type="button" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'" onclick="document.getElementById('dm-title-img-file-input').click()">
                     📁 Select File
                   </button>
-                  <button type="button" class="btn" style="flex: 2; min-width: 180px; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 4px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span>✨ Generate Logo & Remove BG</span>
+                  <button type="button" class="btn" style="flex: 1.2; justify-content: center; background: linear-gradient(90deg, #e50914, #ff5252); border: none; color: white; display: flex; align-items: center; gap: 6px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAI()">
+                    ✨ AI Generator
                   </button>
                 </div>
                 <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
@@ -4690,8 +4490,8 @@ window.openDetailModal = (id, e, editMode = false) => {
         </div>
         <div class="detail-right" style="font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); border-left: 1px solid rgba(255,255,255,0.08); padding-left: 24px;">
           <div><span style="color:#777; font-weight:bold;">Cast:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Sarthak</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Reechita</span></div>
-          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">Genres:</span> <span class="dr-genres" style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">${genresRight}</span></div>
-          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">This Show Is:</span> <span class="dr-vibe" style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">${vibeRight}</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">Genres:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Romance</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Emotional</span></div>
+          <div style="margin-top:14px;"><span style="color:#777; font-weight:bold;">This Show Is:</span> <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Heartfelt</span>, <span style="color:#ccc; cursor:pointer; transition:color 0.2s;" onmouseenter="this.style.color='#fff'; this.style.textDecoration='underline'" onmouseleave="this.style.color='#ccc'; this.style.textDecoration='none'">Intimate</span></div>
         </div>
       </div>
     </div>
@@ -4802,9 +4602,7 @@ window.switchDmEditTab = (tabName) => {
     btnArtwork.style.borderBottom = 'none';
     
     contentStory.classList.remove('hidden');
-    contentStory.classList.add('netflix-tab-fade');
     contentArtwork.style.display = 'none';
-    contentArtwork.classList.remove('netflix-tab-fade');
   } else {
     btnArtwork.style.color = '#e50914';
     btnArtwork.style.borderBottom = '3px solid #e50914';
@@ -4813,15 +4611,13 @@ window.switchDmEditTab = (tabName) => {
     
     contentArtwork.style.display = 'block';
     contentArtwork.classList.remove('hidden');
-    contentArtwork.classList.add('netflix-tab-fade');
     contentStory.classList.add('hidden');
-    contentStory.classList.remove('netflix-tab-fade');
     
     // Also make sure the individual cards are visible inside the tab
     const thumbEdit = document.getElementById('dm-thumb-edit');
     const titleImgEdit = document.getElementById('dm-title-image-edit');
-    if (thumbEdit) { thumbEdit.classList.remove('hidden'); thumbEdit.classList.add('netflix-tab-fade'); }
-    if (titleImgEdit) { titleImgEdit.classList.remove('hidden'); titleImgEdit.classList.add('netflix-tab-fade'); }
+    if (thumbEdit) thumbEdit.classList.remove('hidden');
+    if (titleImgEdit) titleImgEdit.classList.remove('hidden');
   }
 };
 
@@ -4836,21 +4632,15 @@ window.toggleDetailEdit = () => {
   const thumbEdit = document.getElementById('dm-thumb-edit');
   const titleImgEdit = document.getElementById('dm-title-image-edit');
   const catEdit = document.getElementById('dm-cat-edit-container');
-  const deleteBtn = document.getElementById('dm-delete-btn');
-  const photoBtn = document.getElementById('dm-view-photo-btn');
   
   const viewContent = document.getElementById('dm-view-content');
   const editForm = document.getElementById('dm-edit-form');
   
   if(title.classList.contains('hidden')) {
     title.classList.remove('hidden');
-    title.classList.add('netflix-fade-in');
-    if (desc) { desc.classList.remove('hidden'); desc.classList.add('netflix-fade-in'); }
-    if (playBtn) { playBtn.classList.remove('hidden'); playBtn.classList.add('netflix-fade-in'); }
-    if (photoBtn) { photoBtn.classList.remove('hidden'); photoBtn.classList.add('netflix-fade-in'); }
+    if (desc) desc.classList.remove('hidden');
+    if (playBtn) playBtn.classList.remove('hidden');
     editBtn.classList.remove('hidden');
-    editBtn.classList.add('netflix-fade-in');
-    if (deleteBtn) deleteBtn.classList.add('hidden');
     titleEdit.classList.add('hidden');
     descEdit.classList.add('hidden');
     saveBtn.classList.add('hidden');
@@ -4858,35 +4648,22 @@ window.toggleDetailEdit = () => {
     if(titleImgEdit) titleImgEdit.classList.add('hidden');
     if(catEdit) catEdit.classList.add('hidden');
     
-    if (viewContent) {
-      viewContent.classList.remove('hidden');
-      viewContent.classList.add('netflix-fade-in');
-    }
+    if (viewContent) viewContent.classList.remove('hidden');
     if (editForm) editForm.classList.add('hidden');
   } else {
     title.classList.add('hidden');
-    title.classList.remove('netflix-fade-in');
-    if (desc) { desc.classList.add('hidden'); desc.classList.remove('netflix-fade-in'); }
-    if (playBtn) { playBtn.classList.add('hidden'); playBtn.classList.remove('netflix-fade-in'); }
-    if (photoBtn) { photoBtn.classList.add('hidden'); photoBtn.classList.remove('netflix-fade-in'); }
+    if (desc) desc.classList.add('hidden');
+    if (playBtn) playBtn.classList.add('hidden');
     editBtn.classList.add('hidden');
-    editBtn.classList.remove('netflix-fade-in');
-    if (deleteBtn) { deleteBtn.classList.remove('hidden'); deleteBtn.classList.add('netflix-fade-in'); }
     titleEdit.classList.remove('hidden');
-    titleEdit.classList.add('netflix-fade-in');
     descEdit.classList.remove('hidden');
-    descEdit.classList.add('netflix-fade-in');
     saveBtn.classList.remove('hidden');
-    saveBtn.classList.add('netflix-fade-in');
-    if (thumbEdit) { thumbEdit.classList.remove('hidden'); thumbEdit.classList.add('netflix-fade-in'); }
-    if(titleImgEdit) { titleImgEdit.classList.remove('hidden'); titleImgEdit.classList.add('netflix-fade-in'); }
-    if(catEdit) { catEdit.classList.remove('hidden'); catEdit.classList.add('netflix-fade-in'); }
+    if (thumbEdit) thumbEdit.classList.remove('hidden');
+    if(titleImgEdit) titleImgEdit.classList.remove('hidden');
+    if(catEdit) catEdit.classList.remove('hidden');
     
     if (viewContent) viewContent.classList.add('hidden');
-    if (editForm) {
-      editForm.classList.remove('hidden');
-      editForm.classList.add('netflix-fade-in');
-    }
+    if (editForm) editForm.classList.remove('hidden');
     window.switchDmEditTab('story');
     titleEdit.focus();
   }
@@ -4901,16 +4678,6 @@ window.saveDetailEdit = async (id) => {
     const catSelect = document.getElementById('dm-cat-edit');
     if (catSelect) {
       m.category = catSelect.value;
-    }
-
-    const ratingSelect = document.getElementById('dm-rating-edit');
-    if (ratingSelect) {
-      m.rating = ratingSelect.value;
-    }
-
-    const matchInput = document.getElementById('dm-match-edit');
-    if (matchInput) {
-      m.matchRate = parseInt(matchInput.value, 10) || 98;
     }
 
     const fileInput = document.getElementById('dm-thumb-input');
@@ -4953,48 +4720,6 @@ window.saveDetailEdit = async (id) => {
       document.getElementById('dm-desc').innerText = m.desc;
     }
     
-    // update metadata visually
-    const metaContainer = document.querySelector('#detailModal .detail-meta');
-    if (metaContainer) {
-      metaContainer.innerHTML = `<span style="color: #46d369; text-shadow: 0 0 5px rgba(70,211,105,0.5); font-weight: bold;">${m.matchRate || 98}% Romantic Match</span> <span class="year">${m.year}</span> <span class="rating">${m.rating}</span> <span class="rating" id="dm-duration" style="display: none; border-color: rgba(255,255,255,0.4); color: #fff;"></span> <span class="quality">4K Ultra HD</span>`;
-    }
-
-    // update right-side genres visually
-    const drGenres = document.querySelector('#detailModal .dr-genres');
-    const drVibe = document.querySelector('#detailModal .dr-vibe');
-    if (drGenres && drVibe) {
-      let genresRight = 'Romance, Emotional';
-      let vibeRight = 'Heartfelt, Intimate';
-      const catLow = (m.category || '').toLowerCase();
-      if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
-        genresRight = 'Romance, Emotional';
-        vibeRight = 'Heartfelt, Intimate';
-      } else if (catLow.includes('party') || catLow.includes('celebration')) {
-        genresRight = 'Festive, Upbeat';
-        vibeRight = 'Fun, Togetherness';
-      } else if (catLow.includes('special') || catLow.includes('event')) {
-        genresRight = 'Milestones, Timeless';
-        vibeRight = 'Special, Legacy';
-      } else if (catLow.includes('comedy')) {
-        genresRight = 'Cute, Funny';
-        vibeRight = 'Romantic, Lighthearted';
-      } else if (catLow.includes('intimate')) {
-        genresRight = 'Warm, Sweet';
-        vibeRight = 'Close, Heartfelt';
-      } else if (catLow.includes('anniversary')) {
-        genresRight = 'Fine Dining, Classy';
-        vibeRight = 'Together, Romantic';
-      } else if (catLow.includes('travel') || catLow.includes('adventure')) {
-        genresRight = 'Journey, Exploring';
-        vibeRight = 'Adventures, Scenic';
-      } else {
-        genresRight = 'Emotional, Heartfelt';
-        vibeRight = 'Memory, Timeless';
-      }
-      drGenres.innerText = genresRight;
-      drVibe.innerText = vibeRight;
-    }
-
     // update thumbnail visually
     const previewImg = document.getElementById('detailModal').querySelector('.detail-header img');
     if (previewImg) previewImg.src = m.thumbnail;
@@ -5165,30 +4890,36 @@ window.downloadVideo = async (id) => {
   }
   
   const isYt = m.videoUrl && !m.videoUrl.includes('/') && !m.videoUrl.includes('blob:');
-  const finalLink = isYt ? `https://www.youtube.com/watch?v=${m.videoUrl}` : m.videoUrl;
   
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(finalLink);
-      window.showToast('Video link copied to clipboard! Opening downloader...');
-    } else {
-      // Fallback copy method for iframe and non-secure environments
-      const textarea = document.createElement('textarea');
-      textarea.value = finalLink;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      window.showToast('Video link copied to clipboard! Opening downloader...');
+  if (isYt) {
+    const ytUrl = `https://www.youtube.com/watch?v=${m.videoUrl}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(ytUrl);
+        window.showToast('YouTube link copied to clipboard! Opening downloader...');
+      } else {
+        window.showToast('Opening downloader tool...');
+      }
+    } catch (err) {
+      window.showToast('Opening downloader tool...');
     }
-  } catch (err) {
-    window.showToast('Opening downloader tool...');
+    
+    // Open downloader website
+    window.open('https://vidssave.com/youtube-video-downloader-6fu', '_blank');
+  } else {
+    // Native video download
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(m.videoUrl);
+      }
+    } catch(e){}
+    window.showToast('Starting local video download...');
+    
+    const a = document.createElement('a');
+    a.href = m.videoUrl;
+    a.download = (m.title || 'video') + '.mp4';
+    a.click();
   }
-  
-  // Open the exact downloader URL requested by the user
-  window.open('https://vidssave.com/youtube-video-downloader-7gt', '_blank');
 };
 
 window.shareVideo = (id) => {
@@ -5295,15 +5026,24 @@ window.playVideo = (id) => {
   };
   enterFullscreenAndLandscapeImmediately();
   
-  // Apply starting state and trigger hardware-accelerated CSS animations
+  // Apply starting state: start from a smooth, slightly smaller rounded screen placeholder box
   c.style.display = 'block';
-  c.className = 'playback-overlay landscape-forced entering';
+  c.style.transition = 'none';
+  c.style.opacity = '0';
+  c.style.transform = 'scale(0.8)';
+  c.style.borderRadius = '24px';
   c.style.overflow = 'hidden';
   
-  // After animation finishes, clean up the entering class
+  // Force a browser reflow paint
+  c.offsetHeight;
+  
+  // Transition to full screen size smoothly over exactly 0.55 seconds
   setTimeout(() => {
-    c.classList.remove('entering');
-  }, 600);
+    c.style.transition = 'opacity 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), transform 0.55s cubic-bezier(0.15, 0.85, 0.35, 1), border-radius 0.55s cubic-bezier(0.15, 0.85, 0.35, 1)';
+    c.style.opacity = '1';
+    c.style.transform = 'scale(1)';
+    c.style.borderRadius = '0px';
+  }, 30);
   
   // Play Netflix initial animation before playing video
   const ytId = window.extractYouTubeId(url);
@@ -5525,7 +5265,7 @@ window.playVideo = (id) => {
 
     const togglePlay = () => {
       window.triggerVibration(20);
-      if (mainPlayer.paused) mainPlayer.play().catch(e => console.warn("Play interrupted or blocked:", e));
+      if (mainPlayer.paused) mainPlayer.play();
       else mainPlayer.pause();
     };
 
@@ -5973,27 +5713,16 @@ window.playVideo = (id) => {
        clearInterval(ytTimer);
      }
      document.body.style.overflow = '';
-     if (mainPlayer) {
-       mainPlayer.muted = true;
-       if (typeof mainPlayer.pause === 'function') {
-         try { mainPlayer.pause(); } catch(e) {}
-       }
-     }
-     if (introPlayer) {
-       introPlayer.muted = true;
-       if (typeof introPlayer.pause === 'function') {
-         try { introPlayer.pause(); } catch(e) {}
-       }
-     }
-     if (mainPlayer && mainPlayer.tagName === 'IFRAME' && mainPlayer.contentWindow) {
-       try {
-         mainPlayer.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-         mainPlayer.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
-       } catch(e) {}
+     if (mainPlayer && typeof mainPlayer.pause === 'function') mainPlayer.pause();
+     if (introPlayer && typeof introPlayer.pause === 'function') introPlayer.pause();
+     // Temporarily bypass the immediate src wipe
+     if (false && mainPlayer) {
+       mainPlayer.src = "";
+       if (typeof mainPlayer.load === 'function') mainPlayer.load();
      }
      if (document.fullscreenElement) document.exitFullscreen().catch(e => console.log(e));
-     c.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
-     c.style.transform = 'scale(0.95)';
+     c.style.transition = 'transform 1.0s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1)';
+     c.style.transform = 'scale(0.92)';
      c.style.opacity = '0';
      setTimeout(() => {
        if (mainPlayer) {
@@ -6002,7 +5731,7 @@ window.playVideo = (id) => {
        }
        c.innerHTML = ''; // fully unmount internal elements
        c.remove();
-     }, 300);
+     }, 1000);
 
      if (!isPopState) {
        if (history.state && history.state.playerOpen) {
@@ -6175,30 +5904,7 @@ window.handleAddMemoryClick = () => {
   }
 };
 
-// Copy professional Netflix-style description prompt and open Google Gemini
-window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, titleInputId, descInputId, buttonId) => {
-  const titleVal = currentTitle || (document.getElementById(titleInputId) ? document.getElementById(titleInputId).value.trim() : '') || 'Our Special Moment';
-  const ytLink = youtubeUrl || '';
-  
-  const prompt = `Write a spectacular, captivating, and emotionally-resonant movie/series synopsis/description (around 2 to 3 sentences, maximum 40 words) for a beautiful romantic or celebratory personal memory of ours.
-   
-Title: "${titleVal}"
-${ytLink ? `YouTube Link: ${ytLink}\n(Note: If you have access, you can use the video transcript/details to make it more precise!)` : ''}
-
-The tone should be deeply heartwarming, elegant, and cinematic, written in the style of official Netflix series summaries. It must draw the reader in and make them feel the warmth, love, and joy of this beautiful milestone. Make it extremely premium, concise, and captivating. Just output the description itself, no quotes, no extra conversational preamble or introduction.`;
-
-  navigator.clipboard.writeText(prompt).then(() => {
-    window.showToast("✨ Description prompt copied! Opening Google Gemini...");
-    setTimeout(() => {
-      window.open('https://gemini.google.com/app', '_blank');
-    }, 1000);
-  }).catch((err) => {
-    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
-    window.open('https://gemini.google.com/app', '_blank');
-  });
-};
-
-// Copy YouTube descriptive prompts and open Google Gemini (fallback)
+// Copy YouTube descriptive prompts and open Google Gemini
 window.generateDescriptionWithAI = () => {
   const link = document.getElementById('up-yt-link').value.trim();
   
@@ -6262,72 +5968,6 @@ Background Color: The background MUST be a completely solid, plain, pure pitch-b
   }).catch(() => {
     alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
     window.open('https://gemini.google.com/app', '_blank');
-  });
-};
-
-window.generateTitleLogoPromptWithAIAndOpenBoth = () => {
-  const upTitleInput = document.getElementById('up-title');
-  const dmTitleInput = document.getElementById('dm-title-edit');
-  const title = (upTitleInput ? upTitleInput.value.trim() : '') || (dmTitleInput ? dmTitleInput.value.trim() : '') || 'Our Love Story';
-  
-  const upCat = document.getElementById('up-cat');
-  const dmCat = document.getElementById('dm-cat-edit');
-  const category = (upCat ? upCat.value : '') || (dmCat ? dmCat.value : '') || 'Our Romantic Scenes';
-  
-  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
-  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
-     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
-  } else if (category.toLowerCase().includes('special event')) {
-     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
-  }
-  
-  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
-Text must read EXACTLY: "${title}"
-The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
-Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
-
-  navigator.clipboard.writeText(prompt).then(() => {
-    window.showToast("Branded Title logo prompt copied! Opening Gemini & Remove.bg...");
-    setTimeout(() => {
-      window.open('https://gemini.google.com/app', '_blank');
-      window.open('https://www.remove.bg', '_blank');
-    }, 1000);
-  }).catch(() => {
-    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
-    window.open('https://gemini.google.com/app', '_blank');
-    window.open('https://www.remove.bg', '_blank');
-  });
-};
-
-window.generateBulkTitleLogoPromptWithAIAndOpenBoth = () => {
-  const titleInput = document.getElementById('bulk-title-override');
-  const title = (titleInput ? titleInput.value.trim() : '') || 'Our Love Story';
-  
-  const catSelect = document.getElementById('bulk-category-override');
-  const category = (catSelect ? catSelect.value : '') || 'Our Romantic Scenes';
-  
-  let vibe = 'romantic, warm calligraphy, elegant brush strokes, intimate red/rose tones';
-  if (category.toLowerCase().includes('party') || category.toLowerCase().includes('celebration')) {
-     vibe = 'festive, bright neon, energetic modern sans, bold glowing colors, celebratory sparks';
-  } else if (category.toLowerCase().includes('special event')) {
-     vibe = 'timeless premium serif, vintage golden letters, cinematic classic typography, beautiful texture';
-  }
-  
-  const prompt = `Create a spectacular, horizontal movie/series title trademark logo PNG.
-Text must read EXACTLY: "${title}"
-The typeface style should be fully inspired by legendary Netflix original series logos (modern, elegant, bold, dramatic, or stylized, matching the vibe of: ${vibe}). It should be flat or have clean cinematic textures, glowing outlines, or high-contrast metal/neon finishes (not cheap plastic-looking 3D). It must look professional, high-budget, and extremely clean.
-Background Color: The background MUST be a completely solid, plain, pure pitch-black color (#000000). There must be absolutely NO gradients, NO lighting drops, NO shadows, NO borders, NO mockups, and NO background elements behind it. Just the stunning Netflix-style typography perfectly isolated on a solid true black canvas (so the application can instantly and cleanly key out the black background to be fully transparent).`;
-
-  navigator.clipboard.writeText(prompt).then(() => {
-    window.showToast("Branded Title logo prompt copied! Opening Gemini & Remove.bg...");
-    setTimeout(() => {
-      window.open('https://gemini.google.com/app', '_blank');
-      window.open('https://www.remove.bg', '_blank');
-    }, 1000);
-  }).catch(() => {
-    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
-    window.open('https://gemini.google.com/app', '_blank');
-    window.open('https://www.remove.bg', '_blank');
   });
 };
 
@@ -6397,20 +6037,6 @@ window.openBulkUploadModal = () => {
       </div>
       <input type="file" id="bulk-upload-input" multiple accept="image/*" style="display:none;">
       
-      <!-- BATCH DESCRIPTION (OPTIONAL) -->
-      <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 110px; margin-bottom: 20px;" id="bulk-desc-container">
-        <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color: #777; font-weight:700; padding:8px 12px 0 12px; position:absolute; top:2px; left:0; z-index:2; pointer-events:none;">Description</div>
-        <textarea id="bulk-upload-desc" rows="2" style="width:100%; border:none; padding:24px 12px 34px 12px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: none; height: 100%;" placeholder="Describe these photos..." onfocus="document.getElementById('bulk-desc-container').style.background='#383838'; document.getElementById('bulk-desc-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('bulk-desc-container').style.background='#2b2b2b'; document.getElementById('bulk-desc-container').style.borderColor='transparent';"></textarea>
-        
-        <!-- SPARKLE UTILITY STRIP -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-          <div id="bulk-desc-sparkle-btn" onclick="window.generateBulkUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-            <span>Generate with Gemini AI</span>
-          </div>
-        </div>
-      </div>
-      
       <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
         <button style="background:transparent; border:1px solid rgba(255,255,255,0.25); color:#e5e5e5; padding:12px 24px; font-size:14px; font-weight:500; border-radius:4px; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.4)';" onmouseleave="this.style.background='transparent'; this.style.color='#e5e5e5'; this.style.borderColor='rgba(255,255,255,0.25)';" onclick="const dm = document.getElementById('bulkUploadModal'); dm.classList.remove('open'); setTimeout(()=>dm.remove(),300)">Cancel</button>
         <button id="bulk-upload-save" style="background:#e50914; border:none; color:white; padding:12px 30px; font-size:14px; font-weight:700; border-radius:4px; cursor:not-allowed; transition:all 0.2s; opacity:0.4;" onmouseenter="if(!this.disabled) { this.style.background='#ff0f22'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 0 20px rgba(229,9,20,0.5)'; }" onmouseleave="this.style.background='#e50914'; this.style.transform='translateY(0)'; this.style.boxShadow='none';" disabled>Upload Photos</button>
@@ -6427,27 +6053,6 @@ window.openBulkUploadModal = () => {
   const countDisp = m.querySelector('#file-count');
   
   let currentBatchFiles = [];
-
-  window.generateBulkUploadDescriptionWithAI = () => {
-    if (currentBatchFiles.length === 0) {
-      window.netflixAlert('Please select or drag some photos first to generate a customized description.');
-      return;
-    }
-    const filesList = currentBatchFiles.map(f => f.name.split('.')[0]).join(', ') || 'photos';
-    const prompt = `Write a spectacular, captivating, and emotionally-resonant movie/series synopsis/description (around 2 to 3 sentences, maximum 40 words) for a gallery batch of beautiful personal memory photos of ours. 
-The items being uploaded represent these themes or subjects: \${filesList}.
-
-The tone should be deeply heartwarming, elegant, and cinematic, written in the style of official Netflix series summaries. It must draw the reader in and make them feel the warmth, love, and joy of these beautiful milestones. Make it extremely premium, concise, and captivating. Just output the description itself, no quotes, no extra conversational preamble or introduction.`;
-
-    navigator.clipboard.writeText(prompt).then(() => {
-      window.netflixAlert('Professional Netflix description prompt copied to clipboard!\\n\\nGemini is opening in a new tab. Paste the prompt (Ctrl+V or Cmd+V) to get your cinematic description, then paste the result here!');
-      setTimeout(() => {
-        window.open('https://gemini.google.com/app', '_blank');
-      }, 1000);
-    }).catch(() => {
-      window.netflixAlert('Could not copy prompt automatically. Please manually type your description or visit gemini.google.com!');
-    });
-  };
   
   const handleFiles = (files) => {
     if(files && files.length > 0) {
@@ -6579,8 +6184,6 @@ The tone should be deeply heartwarming, elegant, and cinematic, written in the s
     // Toggle bulk transaction to pause snapshot logic and prevent rendering collisions
     appState.bulkTransactionActive = true;
     
-    const batchDesc = (document.getElementById('bulk-upload-desc')?.value || '').trim();
-
     for(let file of toUpload) {
       const idx = done + failed;
       progressText.innerText = `Compressing & Uploading: ${file.name} (${idx + 1}/${total})`;
@@ -6594,7 +6197,7 @@ The tone should be deeply heartwarming, elegant, and cinematic, written in the s
       const newMem = {
         id: 'm_' + Date.now() + Math.floor(Math.random() * 1000),
         title: file.name.split('.')[0] || 'Photo',
-        desc: batchDesc,
+        desc: '',
         category: 'Moments',
         year: new Date().getFullYear().toString(),
         rating: 'PG-13',
@@ -7613,13 +7216,13 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Title Logo Image URL</label>
         </div>
         
-        <div style="display:flex; gap:6px; flex-wrap: wrap;">
-          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
+        <div style="display:flex; gap:6px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
             Local File
           </button>
-          <button type="button" style="flex:2; min-width:140px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAIAndOpenBoth()">
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAI()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span>✨ Generate Logo & Remove BG</span>
+            AI Prompt
           </button>
         </div>
         <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
@@ -7638,11 +7241,11 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Custom Backdrop URL</label>
         </div>
         
-        <div style="display:flex; gap:6px; flex-wrap: wrap;">
-          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
+        <div style="display:flex; gap:6px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
             Local Photo
           </button>
-          <button type="button" style="flex:1; min-width:80px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             AI Poster
           </button>
@@ -7661,7 +7264,7 @@ window.updateBulkToolbar = () => {
         
         <!-- Sparkle option inside textarea footer -->
         <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-          <div id="bulk-desc-sparkle" onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
+          <div onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             <span>Gemini AI Desc</span>
           </div>
@@ -7686,11 +7289,13 @@ window.updateBulkToolbar = () => {
             <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #777; font-weight: 700;">Maturity Gating</span>
             <select id="bulk-rating-override" class="bm-select-input" style="width:100%; border-radius: 6px; background:#1c1c1c; border-color:rgba(255,255,255,0.08); font-size:12px; padding:6px 10px;">
               <option value="">-- No Change --</option>
-              <option value="U">U</option>
-              <option value="U/A 7+">U/A 7+</option>
-              <option value="U/A 13+">U/A 13+</option>
-              <option value="U/A 16+">U/A 16+</option>
-              <option value="U/A 18+">U/A 18+</option>
+              <option value="G">G</option>
+              <option value="PG">PG</option>
+              <option value="PG-13">PG-13</option>
+              <option value="R">R</option>
+              <option value="TV-PG">TV-PG</option>
+              <option value="TV-14">TV-14</option>
+              <option value="TV-MA">TV-MA</option>
             </select>
           </div>
           
@@ -7702,13 +7307,11 @@ window.updateBulkToolbar = () => {
       </div>
 
       <!-- Action Buttons -->
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top:16px; border-top: 1px solid rgba(255,255,255,0.06);">
-        <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:12px; font-size:13px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.45)'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none'; this.style.transform='translateY(0)';" onclick="window.applyBulkEdit()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top:10px;">
+        <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:10px; font-size:12px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:5px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.5)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none';" onclick="window.applyBulkEdit()">
           Apply Bulk Upgrades
         </button>
-        <button class="btn" style="width:100%; background: rgba(229, 9, 20, 0.15); color: #ff4d5a; font-weight: 700; padding: 12px; font-size: 13px; border-radius: 6px; border: 1px solid rgba(229, 9, 20, 0.35); cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'; this.style.borderColor='rgba(229, 9, 20, 0.6)'; this.style.color='#fff'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'; this.style.borderColor='rgba(229, 9, 20, 0.35)'; this.style.color='#ff4d5a'; this.style.transform='translateY(0)';" onclick="window.applyBulkDelete()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        <button class="btn" style="width:100%; background:transparent; color:#999; font-weight:600; padding: 8px; font-size: 11px; border-radius: 6px; border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.4)'; this.style.color='#ff3b47';" onmouseleave="this.style.background='transparent'; this.style.borderColor='rgba(255,255,255,0.06)'; this.style.color='#999';" onclick="window.applyBulkDelete()">
           Permanently Eliminate Selected
         </button>
       </div>
@@ -7807,10 +7410,16 @@ window.generateBulkDescriptionWithAI = () => {
   const titleInput = document.getElementById('bulk-title-override');
   const title = titleInput ? titleInput.value.trim() : '';
   if (!title) {
-    window.netflixAlert('Please enter a Title first, so Gemini can generate a matching description.');
+    window.showToast('Please enter a Title first, so Gemini can generate a matching description.');
     return;
   }
-  window.generateDescriptionWithGeminiAPI('', title, 'bulk-title-override', 'bulk-desc-override', 'bulk-desc-sparkle');
+  const prompt = `Generate an engaging, short, dramatic Netflix-style tagline synopsis description (under 25 words) for a memory titled: "${title}". Make it emotional, romantic, energetic or documentary-style depending on memory title. Keep it clean and impactful.`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("Gemini description request prompt copied! Opening Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 1000);
+  });
 };
 
 window.applyBulkEdit = async () => {
@@ -7903,24 +7512,11 @@ window.applyBulkEdit = async () => {
   }
 };
 
-window.bulkDeleteAllMemories = () => {
-  if (!appState.memories || appState.memories.length === 0) {
-    window.netflixAlert("There are no memories to delete.");
-    return;
-  }
-  
-  window.netflixConfirm(`CRITICAL WARNING: Are you sure you want to permanently delete ALL ${appState.memories.length} memories? This action is irreversible!`, async () => {
-    window.selectedBulkIds = appState.memories.map(m => m.id);
-    await window.applyBulkDelete(true);
-  });
-};
-
-window.applyBulkDelete = async (skipConfirm = false) => {
+window.applyBulkDelete = async () => {
   if (window.selectedBulkIds.length === 0) return;
   
   const count = window.selectedBulkIds.length;
-
-  const performDelete = async () => {
+  window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
     let deletedCount = 0;
     appState.bulkTransactionActive = true;
     
@@ -7978,75 +7574,5 @@ window.applyBulkDelete = async (skipConfirm = false) => {
         window.refreshRowsView(null, null, true);
       }, 300);
     }
-  };
-
-  if (skipConfirm) {
-    await performDelete();
-  } else {
-    window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
-      await performDelete();
-    });
-  }
+  });
 };
-
-// Global Premium Multi-Layer Liquid Click-Ripple System
-document.addEventListener('click', (e) => {
-  const target = e.target.closest('.btn, .circ-play-btn, .media-card, .hc-btn, .circ-btn, button, .modal-close-btn');
-  if (!target) return;
-  
-  // Get click coordinates relative to the element
-  const rect = target.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  // Create ripple container
-  let container = target.querySelector('.liquid-ripple-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.className = 'liquid-ripple-container';
-    // Ensure target is relative positioned
-    const style = window.getComputedStyle(target);
-    if (style.position === 'static') {
-      target.style.position = 'relative';
-    }
-    target.appendChild(container);
-  }
-  
-  // Create the three layers of the premium liquid ripple
-  const size = Math.max(rect.width, rect.height) * 2;
-  
-  const glow = document.createElement('div');
-  glow.className = 'liquid-ripple-wave liquid-ripple-wave-glow';
-  glow.style.width = size + 'px';
-  glow.style.height = size + 'px';
-  glow.style.left = (x - size / 2) + 'px';
-  glow.style.top = (y - size / 2) + 'px';
-  
-  const primary = document.createElement('div');
-  primary.className = 'liquid-ripple-wave liquid-ripple-wave-primary';
-  primary.style.width = size + 'px';
-  primary.style.height = size + 'px';
-  primary.style.left = (x - size / 2) + 'px';
-  primary.style.top = (y - size / 2) + 'px';
-  
-  const secondary = document.createElement('div');
-  secondary.className = 'liquid-ripple-wave liquid-ripple-wave-secondary';
-  secondary.style.width = (size * 0.8) + 'px';
-  secondary.style.height = (size * 0.8) + 'px';
-  secondary.style.left = (x - size * 0.8 / 2) + 'px';
-  secondary.style.top = (y - size * 0.8 / 2) + 'px';
-  
-  container.appendChild(glow);
-  container.appendChild(primary);
-  container.appendChild(secondary);
-  
-  // Cleanup wave elements
-  setTimeout(() => {
-    glow.remove();
-    primary.remove();
-    secondary.remove();
-    if (container.children.length === 0) {
-      container.remove();
-    }
-  }, 850);
-});
