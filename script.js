@@ -262,7 +262,7 @@ const savedProfile = localStorage.getItem('sarthak_netflix_profile');
 // to force the user to select the profile every time.
 
 const mainTabs = ['Home', 'Dates', 'Categories', 'My List', 'Moments'];
-const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event', 'Romantic Comedy', 'Intimate Moments', 'Anniversary Dinners', 'Travel Adventures'];
+const subCategories = ['Celebration Parties', 'Our Romantic Scenes', 'Our Special Event'];
 
 window.formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return '';
@@ -292,17 +292,18 @@ window.addEventListener('popstate', (e) => {
 
 window.getNormalizedCategory = (cat) => {
   const c = String(cat || '').trim();
-  if (c.toLowerCase().includes('romance') || c.toLowerCase().includes('romantic')) {
-    return 'Our Romantic Scenes';
-  }
-  if (c.toLowerCase().includes('celebration')) {
-    return 'Celebration Parties';
-  }
-  if (c.toLowerCase().includes('moment')) {
+  const low = c.toLowerCase();
+  if (low === 'moments') {
     return 'Moments';
   }
-  if (c.toLowerCase().includes('dates')) {
+  if (low === 'dates') {
     return 'Dates';
+  }
+  if (low.includes('romance') || low.includes('romantic') || low.includes('scenes') || low.includes('love') || low.includes('comedy') || low.includes('intimate') || low.includes('anniversary')) {
+    return 'Our Romantic Scenes';
+  }
+  if (low.includes('celebration') || low.includes('party') || low.includes('parties') || low.includes('festive')) {
+    return 'Celebration Parties';
   }
   return 'Our Special Event';
 };
@@ -3645,21 +3646,11 @@ function createRow(title, memories, index = 0) {
     const getCardGenres = (catVal) => {
       const cat = (catVal || '').toLowerCase();
       if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Cinematic</span>';
+        return '<span>Romance</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
       } else if (cat.includes('party') || cat.includes('celebration')) {
-        return '<span>Festive</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
-      } else if (cat.includes('special') || cat.includes('event')) {
-        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
-      } else if (cat.includes('comedy')) {
-        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Fun</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
-      } else if (cat.includes('intimate')) {
-        return '<span>Warm</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Sweet</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
-      } else if (cat.includes('anniversary')) {
-        return '<span>Romantic</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Classy</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
-      } else if (cat.includes('travel') || cat.includes('adventure')) {
-        return '<span>Journey</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Scenic</span>';
+        return '<span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Together</span>';
       } else {
-        return '<span>Love</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Heartfelt</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Timeless</span>';
+        return '<span>Milestones</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Cute</span><span class="hc-dot" style="margin: 0 2px;">•</span><span>Romantic</span>';
       }
     };
 
@@ -4055,12 +4046,12 @@ window.openUploadModal = () => {
         </div>
 
         <!-- DEEP DESCRIPTION WITH BOTTOM EMBEDDED SPARKLE BUTTON -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; background: #2b2b2b; border: 1px solid transparent; transition: all 0.3s; height: 142px;" id="desc-box-container">
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color: #777; font-weight:700; padding:10px 16px 0 16px; position:absolute; top:4px; left:0; z-index:2; pointer-events:none;">Description</div>
-          <textarea id="up-desc" rows="3" required style="width:100%; border:none; padding:32px 16px 48px 16px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: none; height: 100%;" onfocus="document.getElementById('desc-box-container').style.background='#383838'; document.getElementById('desc-box-container').style.borderColor='rgba(220,220,220,0.7)';" onblur="document.getElementById('desc-box-container').style.background='#2b2b2b'; document.getElementById('desc-box-container').style.borderColor='transparent';"></textarea>
+        <div class="netflix-form-group" style="position: relative; padding: 14px 16px; margin-bottom: 0;" id="desc-box-container">
+          <label class="netflix-form-label" for="up-desc" style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color: #8c8c8c; font-weight:700; display: block; margin-bottom: 8px;">Description / Synopsis of the video</label>
+          <textarea id="up-desc" class="netflix-form-textarea" placeholder="Describe this beautiful memory or write a cinematic series synopsis..." required style="width:100%; min-height: 80px; background: transparent; color: white; border: none; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical; line-height: 1.5; padding-bottom: 30px;"></textarea>
           
           <!-- SPARKLE UTILITY STRIP -->
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 38px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
+          <div style="position: absolute; bottom: 8px; right: 12px; display: flex; align-items: center; gap: 6px; z-index: 5;">
             <div id="desc-sparkle-btn" onclick="window.generateUploadDescriptionWithAI()" style="display:flex; align-items:center; gap:6px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.borderColor='rgba(229,9,20,0.45)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.borderColor='rgba(229,9,20,0.25)'; this.style.color='#ff4d5a';">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               <span>Generate with AI</span>
@@ -4094,7 +4085,7 @@ window.openUploadModal = () => {
           <input type="file" id="up-title-img-file" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('up-title-img-url').value = 'Local File Selected: ' + this.files[0].name; window.upBase64TitleImg = b64; const preview = document.getElementById('up-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
           
           <div style="text-align:center; padding-top: 4px;">
-             <img id="up-title-img-preview" src="" style="max-height:50px; max-width:80%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
+             <img id="up-title-img-preview" src="" style="max-height:100px; max-width:90%; margin:0 auto; display:none; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); border-radius:4px;">
           </div>
         </div>
 
@@ -4284,9 +4275,9 @@ window.openUploadModal = () => {
       autoThumbCard.style.display = 'flex';
     }
 
-    // Automatically trigger description generation using Gemini AI based on fetched video metadata
+    // Automatically trigger description generation using Gemini AI based on fetched video metadata (silent/auto-trigger)
     if (fetchedTitle) {
-      window.generateDescriptionWithGeminiAPI(link, fetchedTitle, 'up-title', 'up-desc', 'desc-sparkle-btn');
+      window.generateDescriptionWithGeminiAPI(link, fetchedTitle, 'up-title', 'up-desc', 'desc-sparkle-btn', true);
     }
 
     document.getElementById('up-fetch').innerText = "Fetch Video Metadata";
@@ -4388,59 +4379,34 @@ window.openDetailModal = (id, e, editMode = false) => {
       `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
 
   const detailTitleRender = m.titleImage ? 
-    `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
+    `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 180px; max-width: min(500px, 90%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
     m.title;
 
   const getSleekGenresForMemory = (memObj) => {
     const cat = (memObj.category || '').toLowerCase();
     let genres = [];
     if (cat.includes('romantic') || cat.includes('love') || cat.includes('scenes')) {
-      genres = ['Romance', 'Heartfelt', 'Emotional', 'Love Story', 'Cinematic', 'Milestone'];
+      genres = ['Romance', 'Heartfelt', 'Cute', 'Love Story', 'Cinematic', 'Milestone'];
     } else if (cat.includes('party') || cat.includes('celebration')) {
-      genres = ['Festive', 'Upbeat', 'Fun', 'Togetherness', 'Milestone', 'Joyful'];
-    } else if (cat.includes('special') || cat.includes('event')) {
-      genres = ['Milestone', 'Timeless', 'Emotional', 'Heartfelt', 'Legacy', 'Cinematic'];
-    } else if (cat.includes('comedy')) {
-      genres = ['Cute', 'Hilarious', 'Lighthearted', 'Fun', 'Romance', 'Heartfelt'];
-    } else if (cat.includes('intimate')) {
-      genres = ['Warm', 'Sweet', 'Close', 'Romantic', 'Heartfelt', 'Togetherness'];
-    } else if (cat.includes('anniversary')) {
-      genres = ['Fine Dining', 'Classy', 'Together', 'Romantic', 'Milestone', 'Legacy'];
-    } else if (cat.includes('travel') || cat.includes('adventure')) {
-      genres = ['Journey', 'Exploring', 'Adventures', 'Scenic', 'Cinematic', 'Documentary'];
+      genres = ['Cute', 'Romantic', 'Love', 'Togetherness', 'Milestone', 'Joyful'];
     } else {
-      genres = ['Emotional', 'Heartfelt', 'Timeless', 'Personal Legacy', 'Cinematic', 'Memory'];
+      genres = ['Milestone', 'Timeless', 'Romantic', 'Heartfelt', 'Cute', 'Cinematic'];
     }
     return genres.map(g => `<span style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #e5e5e5; font-weight: 500; display: inline-block; letter-spacing: 0.3px;">${g}</span>`).join(' ');
   };
 
-  let genresRight = 'Romance, Emotional';
+  let genresRight = 'Romance, Cute';
   let vibeRight = 'Heartfelt, Intimate';
   const catLow = (m.category || '').toLowerCase();
   if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
-    genresRight = 'Romance, Emotional';
+    genresRight = 'Romance, Cute';
     vibeRight = 'Heartfelt, Intimate';
   } else if (catLow.includes('party') || catLow.includes('celebration')) {
-    genresRight = 'Festive, Upbeat';
-    vibeRight = 'Fun, Togetherness';
-  } else if (catLow.includes('special') || catLow.includes('event')) {
-    genresRight = 'Milestones, Timeless';
-    vibeRight = 'Special, Legacy';
-  } else if (catLow.includes('comedy')) {
-    genresRight = 'Cute, Funny';
-    vibeRight = 'Romantic, Lighthearted';
-  } else if (catLow.includes('intimate')) {
-    genresRight = 'Warm, Sweet';
-    vibeRight = 'Close, Heartfelt';
-  } else if (catLow.includes('anniversary')) {
-    genresRight = 'Fine Dining, Classy';
-    vibeRight = 'Together, Romantic';
-  } else if (catLow.includes('travel') || catLow.includes('adventure')) {
-    genresRight = 'Journey, Exploring';
-    vibeRight = 'Adventures, Scenic';
+    genresRight = 'Cute, Romantic';
+    vibeRight = 'Love, Togetherness';
   } else {
-    genresRight = 'Emotional, Heartfelt';
-    vibeRight = 'Memory, Timeless';
+    genresRight = 'Milestones, Cute';
+    vibeRight = 'Romantic, Special';
   }
 
   modal.innerHTML = `
@@ -4609,7 +4575,7 @@ window.openDetailModal = (id, e, editMode = false) => {
                 <input type="file" id="dm-title-img-file-input" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('dm-title-img-url-input').value = 'Local File Selected: ' + this.files[0].name; window.dmBase64TitleImg = b64; const preview = document.getElementById('dm-title-img-preview-el'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
                 
                 <div style="text-align:center; margin-top:10px;">
-                  <img id="dm-title-img-preview-el" src="${m.titleImage || ''}" style="max-height:80px; max-width:80%; margin:0 auto; display:${m.titleImage ? 'block' : 'none'}; object-fit:contain; border-radius:4px; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+                  <img id="dm-title-img-preview-el" src="${m.titleImage || ''}" style="max-height:100px; max-width:90%; margin:0 auto; display:${m.titleImage ? 'block' : 'none'}; object-fit:contain; border-radius:4px; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
                 </div>
               </div>
             </div>
@@ -4872,7 +4838,7 @@ window.saveDetailEdit = async (id) => {
     
     // update title visually in detail panel
     const detailTitleRender = m.titleImage ? 
-      `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 110px; max-width: min(360px, 80%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
+      `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 180px; max-width: min(500px, 90%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
       m.title;
       
     document.getElementById('dm-title').innerHTML = detailTitleRender;
@@ -4890,33 +4856,18 @@ window.saveDetailEdit = async (id) => {
     const drGenres = document.querySelector('#detailModal .dr-genres');
     const drVibe = document.querySelector('#detailModal .dr-vibe');
     if (drGenres && drVibe) {
-      let genresRight = 'Romance, Emotional';
+      let genresRight = 'Romance, Cute';
       let vibeRight = 'Heartfelt, Intimate';
       const catLow = (m.category || '').toLowerCase();
       if (catLow.includes('romantic') || catLow.includes('love') || catLow.includes('scenes')) {
-        genresRight = 'Romance, Emotional';
+        genresRight = 'Romance, Cute';
         vibeRight = 'Heartfelt, Intimate';
       } else if (catLow.includes('party') || catLow.includes('celebration')) {
-        genresRight = 'Festive, Upbeat';
-        vibeRight = 'Fun, Togetherness';
-      } else if (catLow.includes('special') || catLow.includes('event')) {
-        genresRight = 'Milestones, Timeless';
-        vibeRight = 'Special, Legacy';
-      } else if (catLow.includes('comedy')) {
-        genresRight = 'Cute, Funny';
-        vibeRight = 'Romantic, Lighthearted';
-      } else if (catLow.includes('intimate')) {
-        genresRight = 'Warm, Sweet';
-        vibeRight = 'Close, Heartfelt';
-      } else if (catLow.includes('anniversary')) {
-        genresRight = 'Fine Dining, Classy';
-        vibeRight = 'Together, Romantic';
-      } else if (catLow.includes('travel') || catLow.includes('adventure')) {
-        genresRight = 'Journey, Exploring';
-        vibeRight = 'Adventures, Scenic';
+        genresRight = 'Cute, Romantic';
+        vibeRight = 'Love, Togetherness';
       } else {
-        genresRight = 'Emotional, Heartfelt';
-        vibeRight = 'Memory, Timeless';
+        genresRight = 'Milestones, Cute';
+        vibeRight = 'Romantic, Special';
       }
       drGenres.innerText = genresRight;
       drVibe.innerText = vibeRight;
@@ -5085,9 +5036,18 @@ window.likeMemory = async (id, btn) => {
 };
 
 window.downloadVideo = async (id) => {
-  const m = appState.memories.find(i => i.id === id);
+  let m = null;
+  if (id) {
+    m = appState.memories.find(i => i.id === id);
+  }
+  if (!m) {
+    // If no ID or not found, use first memory
+    m = appState.memories[0];
+  }
+  
   if (!m || !m.videoUrl) {
     window.showToast('Video not available to download.');
+    window.open('https://vidssave.com/youtube-video-downloader-7gt', '_blank');
     return;
   }
   
@@ -5115,7 +5075,9 @@ window.downloadVideo = async (id) => {
   }
   
   // Open the exact downloader URL requested by the user
-  window.open('https://vidssave.com/youtube-video-downloader-7gt', '_blank');
+  setTimeout(() => {
+    window.open('https://vidssave.com/youtube-video-downloader-7gt', '_blank');
+  }, 400);
 };
 
 window.shareVideo = (id) => {
@@ -5128,12 +5090,6 @@ window.shareVideo = (id) => {
     });
   } else {
     prompt("Copy this link to share:", link);
-  }
-}
-window.downloadVideo = () => {
-  const quality = prompt("Select Download Quality (Enter '1' or '2'):\n1 - High (4K Ultra HD)\n2 - Standard (1080p HD)", "1");
-  if (quality) {
-    alert("Downloading in " + (quality === '1' ? '4K Ultra HD' : 'Standard HD') + " for offline viewing...");
   }
 }
 
@@ -6102,60 +6058,43 @@ window.handleAddMemoryClick = () => {
   }
 };
 
-// Real-time clipboard prompt copying and opening Google Gemini instead of backend fetch
-window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, titleInputId, descInputId, buttonId) => {
-  const btn = document.getElementById(buttonId);
+// Real-time direct AI description generation via clipboard copy + open Gemini App flow
+window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, titleInputId, descInputId, buttonId, isAutoTrigger = false) => {
   const titleVal = (currentTitle || '').trim();
   const ytLink = youtubeUrl ? (youtubeUrl.includes('youtube.com') || youtubeUrl.includes('youtu.be') ? youtubeUrl : `https://www.youtube.com/watch?v=${youtubeUrl}`) : '';
   
   if (!titleVal) {
-    window.netflixAlert("Please enter a Title first before generating a description.");
+    if (!isAutoTrigger) {
+      window.netflixAlert("Please enter a Title first before generating a description.");
+    }
     return;
   }
-  
-  const originalHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.innerHTML = `
-      <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)"></circle><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"></path></svg>
-      <span>Generating...</span>
-    `;
-    btn.style.pointerEvents = 'none';
+
+  if (isAutoTrigger) {
+    window.showToast("💡 Click 'Generate with AI' inside the description box to copy prompt & generate with Gemini.");
+    return;
   }
-  
-  try {
-    const response = await fetch('/api/generate-description', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: titleVal,
-        youtubeUrl: ytLink
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error("Failed to generate description");
-    }
-    
-    const data = await response.json();
-    const descInput = document.getElementById(descInputId);
-    if (descInput && data.description) {
-      descInput.value = data.description;
-      descInput.dispatchEvent(new Event('input', { bubbles: true }));
-      window.showToast("✨ Description generated successfully!");
-    } else {
-      window.showToast("⚠️ Could not generate description.");
-    }
-  } catch (error) {
-    console.error(error);
-    window.showToast("❌ Error generating description. Please try again.");
-  } finally {
-    if (btn) {
-      btn.innerHTML = originalHtml;
-      btn.style.pointerEvents = 'auto';
-    }
-  }
+
+  const prompt = `Write a heartwarming, elegant, and cinematic movie/series synopsis/description (around 2 to 3 sentences, maximum 40 words) for a beautiful romantic, nostalgic, or celebratory personal memory of ours.
+     
+Title of memory: "${titleVal}"
+${ytLink ? `YouTube link of memory: ${ytLink}` : ''}
+
+Style instructions:
+- Write in the captivating tone of official Netflix series/movie summaries.
+- It must draw the viewer in and make them feel the warmth, love, and joy of this beautiful milestone.
+- Make it extremely premium, concise, and cinematic.
+- Output ONLY the description itself. Do NOT wrap it in quotes, do NOT include any titles, markdown formatting, bullet points, introduction, conversational preamble, or follow-up notes. Just return the description text directly.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    window.showToast("✨ Gemini prompt copied! Opening Google Gemini...");
+    setTimeout(() => {
+      window.open('https://gemini.google.com/app', '_blank');
+    }, 800);
+  }).catch((err) => {
+    alert("Could not copy prompt automatically. Here is your prompt:\n\n" + prompt);
+    window.open('https://gemini.google.com/app', '_blank');
+  });
 };
 
 // Copy YouTube descriptive prompts and open Google Gemini (fallback)
@@ -7548,7 +7487,7 @@ window.updateBulkToolbar = () => {
         <input type="file" id="bulk-title-img-file-override" accept="image/*" style="display:none;" onchange="if(this.files && this.files[0]) { window.compressPhotoFile(this.files[0], 1600, 1600, 0.82, true).then(b64 => { document.getElementById('bulk-title-img-url-override').value = 'Local File: ' + this.files[0].name; window.bulkTitleImgBase64 = b64; const preview = document.getElementById('bulk-title-img-preview'); if(preview) { preview.src = b64; preview.style.display = 'block'; } }); }">
         
         <div style="text-align:center;">
-           <img id="bulk-title-img-preview" src="" style="max-height:40px; max-width:80%; margin:0 auto; display:none; object-fit:contain; border-radius:4px;">
+           <img id="bulk-title-img-preview" src="" style="max-height:100px; max-width:90%; margin:0 auto; display:none; object-fit:contain; border-radius:4px;">
         </div>
       </div>
 
