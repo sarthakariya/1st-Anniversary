@@ -22,8 +22,8 @@ const TEMPLATES = [
     videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-wet-road-surface-with-raindrops-rippling-at-night-44336-large.mp4",
     tags: "Rainy, Spontaneous, Cozy",
     duration: "1h 15m",
-    year: "15-10-2024",
-    rating: "U"
+    year: "2024",
+    rating: "G"
   },
   {
     name: "🌅 Sunset Coastal Walk",
@@ -33,8 +33,8 @@ const TEMPLATES = [
     videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-holding-hands-during-sunset-walk-by-the-coast-42909-large.mp4",
     tags: "Sunset, Coastal, Love",
     duration: "45m",
-    year: "15-08-2023",
-    rating: "U/A 7+"
+    year: "2023",
+    rating: "PG"
   }
 ];
 
@@ -46,22 +46,13 @@ export default function AddMemoryModal({
   profileId,
   onSuccess
 }: AddMemoryModalProps) {
-  // Get today's date in dd-mm-yyyy format
-  const getTodayFormatted = () => {
-    const d = new Date();
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const yearStr = d.getFullYear();
-    return `${day}-${month}-${yearStr}`;
-  };
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [year, setYear] = useState(getTodayFormatted());
+  const [year, setYear] = useState('2024');
   const [duration, setDuration] = useState('1h 30m');
-  const [maturityRating, setMaturityRating] = useState('U/A 16+');
+  const [maturityRating, setMaturityRating] = useState('PG-13');
   const [tagsInput, setTagsInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -286,14 +277,13 @@ export default function AddMemoryModal({
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              {/* Year / Date */}
+              {/* Year */}
               <div className="space-y-1">
-                <label className="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-neutral-500 block">Date (DD-MM-YYYY)</label>
+                <label className="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-neutral-500 block">Year</label>
                 <div className="relative">
                   <Calendar className="absolute left-2.5 top-3 w-3.5 h-3.5 text-neutral-500" />
                   <input
                     type="text"
-                    placeholder="DD-MM-YYYY"
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
                     className={`w-full text-xs font-bold rounded-lg pl-8 pr-2 py-2 outline-none focus:ring-1 focus:ring-red-600 text-center ${
@@ -331,11 +321,11 @@ export default function AddMemoryModal({
                       isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
                     }`}
                   >
-                    <option value="U">U</option>
-                    <option value="U/A 7+">U/A 7+</option>
-                    <option value="U/A 13+">U/A 13+</option>
-                    <option value="U/A 16+">U/A 16+</option>
-                    <option value="U/A 18+">U/A 18+</option>
+                    <option value="G">G</option>
+                    <option value="PG">PG</option>
+                    <option value="PG-13">PG-13</option>
+                    <option value="TV-14">TV-14</option>
+                    <option value="TV-MA">TV-MA</option>
                   </select>
                 </div>
               </div>

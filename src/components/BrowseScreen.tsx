@@ -1,4 +1,4 @@
-import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle, Grid, PlusCircle, Trash2, Film, Pause, ThumbsUp, Download, RotateCcw, RotateCw } from 'lucide-react';
+import { Search, Bell, Info, Play, X, ChevronRight, Check, Volume2, VolumeX, RefreshCw, Plus, ChevronDown, Settings, User, LogOut, Pencil, HelpCircle, Grid, PlusCircle, Trash2, Film } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MAIN_FEATURE, MOVIE_CATEGORIES, PROFILES } from '../data';
 import { Memory, Profile } from '../types';
@@ -182,132 +182,6 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isHelpCentreOpen, setIsHelpCentreOpen] = useState(false);
 
-  // States and Ref for modal video player & interactive downloading
-  const [isModalMuted, setIsModalMuted] = useState(true);
-  const [isModalPlaying, setIsModalPlaying] = useState(true);
-  const modalVideoRef = useRef<HTMLVideoElement | null>(null);
-
-  // Editing state for the modal Pencil button
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editYear, setEditYear] = useState('');
-  const [editMaturityRating, setEditMaturityRating] = useState('U/A 16+');
-  const [editDuration, setEditDuration] = useState('');
-  const [editCast, setEditCast] = useState('');
-  const [editTags, setEditTags] = useState('');
-
-  // Prefill edit states whenever selectedMemory changes
-  useEffect(() => {
-    if (selectedMemory) {
-      setIsModalPlaying(true);
-      setIsEditing(false);
-      setEditTitle(selectedMemory.title || '');
-      setEditDescription(selectedMemory.description || '');
-      setEditYear(selectedMemory.year || '');
-      setEditMaturityRating(selectedMemory.maturityRating || 'U/A 16+');
-      setEditDuration(selectedMemory.duration || '');
-      setEditCast(selectedMemory.cast ? selectedMemory.cast.join(', ') : '');
-      setEditTags(selectedMemory.tags ? selectedMemory.tags.join(', ') : '');
-    }
-  }, [selectedMemory]);
-
-  // Handle saving memory edits
-  const handleSaveEdit = async () => {
-    if (!selectedMemory) return;
-    const updatedData = {
-      title: editTitle,
-      description: editDescription,
-      year: editYear,
-      maturityRating: editMaturityRating,
-      duration: editDuration,
-      cast: editCast.split(',').map(s => s.trim()).filter(Boolean),
-      tags: editTags.split(',').map(s => s.trim()).filter(Boolean),
-    };
-
-    try {
-      const isFirestore = firestoreMemories.some(m => m.id === selectedMemory.id);
-      if (isFirestore) {
-        const { updateDoc, doc } = await import('firebase/firestore');
-        await updateDoc(doc(db, 'memories', selectedMemory.id), updatedData);
-        showToast("Memory details updated in real-time!", "success");
-      } else {
-        const { addDoc, collection } = await import('firebase/firestore');
-        await addDoc(collection(db, 'memories'), {
-          ...selectedMemory,
-          ...updatedData,
-          id: undefined // let Firestore assign its own ID
-        });
-        showToast("Memory saved to library database!", "success");
-      }
-      
-      setSelectedMemory({
-        ...selectedMemory,
-        ...updatedData
-      });
-      setIsEditing(false);
-    } catch (err) {
-      console.error("Save edit failed: ", err);
-      showToast("Failed to save changes. Please try again.", "warn");
-    }
-  };
-
-  // Download video handler (copies real video link, opens downloader website)
-  const handleDownload = (videoUrl: string | undefined) => {
-    const urlToCopy = videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-romantic-couple-by-the-lake-at-sunset-42907-large.mp4';
-    
-    let copied = false;
-    
-    // Attempt 1: Standard iframe-safe textarea selection fallback
-    try {
-      const textArea = document.createElement("textarea");
-      textArea.value = urlToCopy;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      copied = document.execCommand('copy');
-      document.body.removeChild(textArea);
-    } catch (err) {
-      console.error("Fallback execCommand copy failed:", err);
-    }
-
-    if (copied) {
-      showToast("Copied video download link to clipboard!", "success");
-    } else {
-      // Attempt 2: Navigator Clipboard API
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(urlToCopy)
-          .then(() => {
-            showToast("Copied video download link to clipboard!", "success");
-          })
-          .catch((e) => {
-            console.error("Clipboard API failed:", e);
-            // Ultimate fallback for security locked browsers
-            prompt("Could not auto-copy. Please copy the link below manually:", urlToCopy);
-          });
-      } else {
-        prompt("Could not auto-copy. Please copy the link below manually:", urlToCopy);
-      }
-    }
-
-    // Try to open downloader URL using safe element click (higher clearance for popup blockers)
-    try {
-      const link = document.createElement("a");
-      link.href = "https://vidssave.com/youtube-video-downloader-7gt";
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Simulated anchor click failed, falling back to window.open:", err);
-      window.open("https://vidssave.com/youtube-video-downloader-7gt", "_blank");
-    }
-  };
-
   // Premium Custom Toast Notifications
   const [toast, setToast] = useState<{ message: string; type?: 'info' | 'success' | 'warn'; id: number } | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -348,9 +222,9 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
             thumbnailUrl: data.thumbnailUrl || data.thumbnail || 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=640&auto=format&fit=crop',
             videoUrl: data.videoUrl || '',
             matchPercentage: Number(data.matchPercentage || 98),
-            year: data.year || '13-07-2026',
+            year: data.year || '2024',
             duration: data.duration || '2h',
-            maturityRating: data.maturityRating || data.rating || 'U/A 16+',
+            maturityRating: data.maturityRating || data.rating || 'PG-13',
             cast: Array.isArray(data.cast) ? data.cast : ['Sia', 'Aman'],
             tags: Array.isArray(data.tags) ? data.tags : ['Family'],
           });
@@ -876,7 +750,7 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedMemory(null)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
             />
 
             {/* Modal Card Chassis: Close transition is the mathematical inverse axis compress */}
@@ -891,179 +765,43 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                 y: 220,
               }}
               transition={{ duration: 0.45, ease: [0.25, 1, 0.4, 1] }}
-              className={`relative w-full md:w-[850px] max-w-full rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.85)] z-10 ${modalBg} border ${
-                isMorning ? 'border-gray-200' : 'border-neutral-850'
+              className={`relative w-full md:w-[850px] max-w-full rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 ${modalBg} border ${
+                isMorning ? 'border-gray-200' : 'border-neutral-800'
               }`}
             >
-              {/* Media Banner Section */}
-              <div className="h-[260px] md:h-[400px] relative bg-black overflow-hidden">
-                {/* Fallback Thumbnail Image */}
+              <div className="h-[250px] md:h-[380px] relative bg-neutral-900">
                 <img src={selectedMemory.thumbnailUrl} alt={selectedMemory.title} className="w-full h-full object-cover absolute inset-0 select-none" />
-                
-                {/* Live Video Player Element */}
-                {selectedMemory.videoUrl && (
-                  <video
-                    ref={modalVideoRef}
-                    src={selectedMemory.videoUrl}
-                    className="w-full h-full object-cover absolute inset-0 select-none"
-                    autoPlay={isModalPlaying}
-                    loop
-                    muted={isModalMuted}
-                    playsInline
-                  />
-                )}
+                <div className={`absolute inset-0 bg-gradient-to-b from-transparent from-65% ${isMorning ? 'to-[#f5f5f1]' : 'to-[#181818]'}`} />
 
-                {/* Ambient Shading Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-60% pointer-events-none" />
-                <div className={`absolute inset-0 bg-gradient-to-b from-transparent from-60% ${isMorning ? 'to-[#f5f5f1]' : 'to-[#181818]'} pointer-events-none`} />
-
-                {/* Visual Playback Controls in the Absolute Center of player banner */}
-                <div className="absolute inset-0 flex items-center justify-center gap-6 z-25 pointer-events-auto">
-                  {/* Skip Back 10s */}
-                  <button
-                    onClick={() => {
-                      if (modalVideoRef.current) {
-                        modalVideoRef.current.currentTime = Math.max(0, modalVideoRef.current.currentTime - 10);
-                        showToast("Skipped back 10s", "success");
-                      }
-                    }}
-                    className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-all border border-white/15 hover:border-white/40 active:scale-90"
-                    title="Rewind 10 Seconds"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </button>
-
-                  {/* Large Play/Pause Toggle */}
-                  <button
-                    onClick={() => {
-                      setIsModalPlaying(!isModalPlaying);
-                      if (modalVideoRef.current) {
-                        if (isModalPlaying) {
-                          modalVideoRef.current.pause();
-                        } else {
-                          modalVideoRef.current.play().catch(() => {});
-                        }
-                      }
-                    }}
-                    className="w-14 h-14 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-all border border-white/20 hover:border-white/50 active:scale-90"
-                    title={isModalPlaying ? "Pause Video" : "Play Video"}
-                  >
-                    {isModalPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 fill-white" />}
-                  </button>
-
-                  {/* Skip Forward 10s */}
-                  <button
-                    onClick={() => {
-                      if (modalVideoRef.current) {
-                        modalVideoRef.current.currentTime = Math.min(modalVideoRef.current.duration || 0, modalVideoRef.current.currentTime + 10);
-                        showToast("Skipped forward 10s", "success");
-                      }
-                    }}
-                    className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-all border border-white/15 hover:border-white/40 active:scale-90"
-                    title="Forward 10 Seconds"
-                  >
-                    <RotateCw className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Top Actions: Sound Mute & Close button */}
-                <div className="absolute top-[20px] right-[20px] z-[120] flex items-center gap-3">
-                  {selectedMemory.videoUrl && (
-                    <button
-                      onClick={() => setIsModalMuted(!isModalMuted)}
-                      className="w-[38px] h-[38px] rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-neutral-900 transition-colors border border-white/10"
-                      title={isModalMuted ? "Unmute Video" : "Mute Video"}
-                    >
-                      {isModalMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
-                  )}
-
-                  <motion.button
-                    onClick={() => setSelectedMemory(null)}
-                    className="w-[38px] h-[38px] rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-neutral-900 transition-colors"
-                    whileHover="exitHover"
-                  >
-                    <X className="w-5 h-5 relative z-10" />
-                    <motion.div
-                      className="absolute inset-0 rounded-full border border-white/35 pointer-events-none"
-                      variants={{
-                        exitHover: {
-                          scale: 1.25,
-                          opacity: 0.8,
-                          transition: {
-                            duration: 0.45,
-                            ease: [0.175, 0.885, 0.32, 1.275],
-                          },
+                {/* Close Trigger surrounded by Thin Circular Outline Box Expanding on Hover with Air-Bubble Easing */}
+                <motion.button
+                  onClick={() => setSelectedMemory(null)}
+                  className="absolute top-[20px] right-[20px] z-[120] w-[38px] h-[38px] rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-neutral-900 transition-colors"
+                  whileHover="exitHover"
+                >
+                  <X className="w-5 h-5 relative z-10" />
+                  <motion.div
+                    className="absolute inset-0 rounded-full border border-white/35 pointer-events-none"
+                    variants={{
+                      exitHover: {
+                        scale: 1.25,
+                        opacity: 0.8,
+                        transition: {
+                          duration: 0.45,
+                          ease: [0.175, 0.885, 0.32, 1.275], // soft fluid air-bubble expansion curve
                         },
-                      }}
-                    />
-                  </motion.button>
-                </div>
+                      },
+                    }}
+                  />
+                </motion.button>
 
-                {/* Bottom Left Control Row & Title overlay */}
-                <div className="absolute bottom-[20px] md:bottom-[45px] left-[20px] md:left-[40px] right-[20px] md:right-[40px] z-30 flex items-end justify-between pointer-events-none">
-                  <div className="flex-1 mr-4 pointer-events-auto">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 select-none text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight">
-                      {selectedMemory.title}
-                    </h2>
-                    <div className="flex gap-3 flex-wrap items-center">
-                      <button 
-                        onClick={() => {
-                          setIsModalPlaying(true);
-                          if (modalVideoRef.current) {
-                            modalVideoRef.current.currentTime = 0;
-                            modalVideoRef.current.play().catch(() => {});
-                          }
-                          showToast(`Now playing: ${selectedMemory.title}`, "success");
-                        }}
-                        className="px-7 py-2.5 rounded-md flex items-center gap-2 font-extrabold text-sm bg-white text-black transition-all hover:bg-neutral-200 active:scale-95 cursor-pointer shadow-md select-none"
-                      >
-                        <Play className="w-5 h-5 fill-current" /> Play
-                      </button>
-                      
-                      <button 
-                        onClick={() => showToast(`Added "${selectedMemory.title}" to My List!`, "success")}
-                        className="w-10 h-10 rounded-full border-2 border-neutral-400 bg-black/40 text-white flex items-center justify-center cursor-pointer hover:border-white hover:bg-neutral-800/40 transition-all duration-200 active:scale-90 select-none shadow-md"
-                        title="Add to My List"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
-
-                      <button 
-                        onClick={() => showToast(`Liked "${selectedMemory.title}"!`, "success")}
-                        className="w-10 h-10 rounded-full border-2 border-neutral-400 bg-black/40 text-white flex items-center justify-center cursor-pointer hover:border-white hover:bg-neutral-800/40 transition-all duration-200 active:scale-90 select-none shadow-md"
-                        title="Rate Positive (Thumbs Up)"
-                      >
-                        <ThumbsUp className="w-4 h-4" />
-                      </button>
-
-                      <button 
-                        onClick={() => handleDownload(selectedMemory.videoUrl)}
-                        className="w-10 h-10 rounded-full border-2 border-neutral-400 bg-black/40 text-white flex items-center justify-center cursor-pointer hover:border-white hover:bg-neutral-800/40 transition-all duration-200 active:scale-90 select-none shadow-md animate-pulse-subtle"
-                        title="Download Video Link"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Actions Right Side (Edit & Delete triggers) */}
-                  <div className="flex items-center gap-2.5 pointer-events-auto">
-                    {/* Pencil Edit button */}
-                    <button 
-                      onClick={() => {
-                        setIsEditing(!isEditing);
-                        showToast(isEditing ? "Viewing memory info" : "Opening inline metadata editor...", "info");
-                      }}
-                      className={`w-10 h-10 rounded-full border-2 text-white flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-90 shadow-md select-none ${
-                        isEditing ? 'bg-red-600 border-red-500 hover:bg-red-750' : 'bg-black/40 border-neutral-400 hover:bg-white hover:bg-neutral-800/40'
-                      }`}
-                      title="Edit Memory Details"
-                    >
-                      <Pencil className="w-4 h-4" />
+                {/* Title & Info controls */}
+                <div className="absolute bottom-[20px] md:bottom-[40px] left-[20px] md:left-[40px]">
+                  <h2 className={`text-3xl md:text-[44px] font-extrabold mb-4 select-none ${isMorning ? 'text-black' : 'text-white'}`}>{selectedMemory.title}</h2>
+                  <div className="flex gap-[12px] flex-wrap items-center">
+                    <button className="px-6 py-2.5 rounded flex items-center gap-2 font-extrabold text-sm md:text-base bg-white text-black transition-transform hover:scale-103 cursor-pointer">
+                      <Play className="w-4 h-4 fill-current" /> Play Memory
                     </button>
-
-                    {/* Delete button (shows only for Firestore custom library items) */}
                     {firestoreMemories.some(m => m.id === selectedMemory?.id) && (
                       <button
                         onClick={async () => {
@@ -1076,16 +814,15 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                             showToast("Could not delete memory. Please try again.", "warn");
                           }
                         }}
-                        className="w-10 h-10 rounded-full bg-red-600/90 border-2 border-red-500 text-white flex items-center justify-center cursor-pointer hover:bg-red-750 transition-all duration-200 active:scale-90 shadow-md select-none"
-                        title="Delete from Library"
+                        className="px-6 py-2.5 rounded flex items-center gap-2 font-extrabold text-sm md:text-base bg-red-600 hover:bg-red-750 text-white transition-transform hover:scale-103 cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" /> Delete Memory
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Maturity Rating Overlay Right Ribbon */}
+                {/* Maturity Rating Ribbon inside info dialog: slides open over 0.7s with zero-reflow scaleX */}
                 <motion.div
                   initial={{ scaleX: 0, opacity: 0 }}
                   animate={{ scaleX: 1, opacity: 0.95 }}
@@ -1093,186 +830,39 @@ export default function BrowseScreen({ profile, isMorning, onSwitchProfile, onSi
                   style={{ transformOrigin: 'right' }}
                   className="absolute right-0 bottom-12 z-30 hidden md:flex items-center bg-black/60 border-l-[3px] border-white pl-4 py-1.5 text-white text-[10px] uppercase font-bold backdrop-blur-md shadow-md overflow-hidden whitespace-nowrap h-[28px] w-[150px]"
                 >
-                  {selectedMemory.maturityRating} | FULL HD
+                  {selectedMemory.maturityRating} | FULL QUALITY
                 </motion.div>
               </div>
 
-              {/* Dynamic Bottom Info Area */}
-              {isEditing ? (
-                /* REDESIGNED INLINE METADATA EDITOR */
-                <div className={`p-6 md:p-10 ${textColor} border-t ${isMorning ? 'border-gray-200' : 'border-neutral-800'}`}>
-                  <h3 className="text-base font-extrabold mb-5 flex items-center gap-2 text-red-500 uppercase tracking-wide">
-                    <Pencil className="w-4 h-4" /> Edit Memory Metadata
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-6 text-sm">
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Memory Title</label>
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className={`w-full text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 ${
-                            isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                          }`}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Description</label>
-                        <textarea
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          rows={4}
-                          className={`w-full text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 ${
-                            isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Date (DD-MM-YYYY)</label>
-                          <input
-                            type="text"
-                            value={editYear}
-                            onChange={(e) => setEditYear(e.target.value)}
-                            placeholder="DD-MM-YYYY"
-                            className={`w-full text-xs font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 text-center ${
-                              isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                            }`}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Maturity Rating</label>
-                          <select
-                            value={editMaturityRating}
-                            onChange={(e) => setEditMaturityRating(e.target.value)}
-                            className={`w-full text-xs font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 text-center cursor-pointer ${
-                              isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                            }`}
-                          >
-                            <option value="U">U</option>
-                            <option value="U/A 7+">U/A 7+</option>
-                            <option value="U/A 13+">U/A 13+</option>
-                            <option value="U/A 16+">U/A 16+</option>
-                            <option value="U/A 18+">U/A 18+</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Duration</label>
-                        <input
-                          type="text"
-                          value={editDuration}
-                          onChange={(e) => setEditDuration(e.target.value)}
-                          className={`w-full text-xs font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 ${
-                            isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                          }`}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Cast Members (comma separated)</label>
-                        <input
-                          type="text"
-                          value={editCast}
-                          onChange={(e) => setEditCast(e.target.value)}
-                          className={`w-full text-xs font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 ${
-                            isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                          }`}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500 block">Genres & Vibes (comma separated)</label>
-                        <input
-                          type="text"
-                          value={editTags}
-                          onChange={(e) => setEditTags(e.target.value)}
-                          className={`w-full text-xs font-semibold rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-red-600 ${
-                            isMorning ? 'bg-white border border-gray-300 text-black' : 'bg-neutral-900 border border-neutral-800 text-white'
-                          }`}
-                        />
-                      </div>
-                    </div>
+              {/* Informational specs split column */}
+              <div className={`p-6 md:p-10 grid md:grid-cols-[2fr_1fr] gap-6 md:gap-[40px] text-sm md:text-base ${textColor}`}>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-[10px] text-[#46d369] font-bold text-xs sm:text-sm">
+                    <span>{selectedMemory.matchPercentage}% Match</span>
+                    <span className={textColor}>{selectedMemory.year}</span>
+                    <span className="px-1.5 py-0.2 border border-neutral-600 rounded-sm scale-95">{selectedMemory.maturityRating}</span>
+                    <span className={textColor}>{selectedMemory.duration}</span>
                   </div>
+                  <p className={`leading-[1.65] text-xs sm:text-sm font-medium ${mutedTextColor}`}>
+                    {selectedMemory.description}
+                  </p>
+                </div>
 
-                  <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-neutral-800/65">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-5 py-2 text-xs font-extrabold uppercase rounded-lg border border-neutral-500 hover:bg-neutral-800/40 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="px-6 py-2 text-xs font-extrabold uppercase rounded-lg bg-red-600 hover:bg-red-750 text-white transition-colors"
-                    >
-                      Save Changes
-                    </button>
+                <div className="text-xs text-neutral-500 leading-relaxed space-y-3.5">
+                  <div>
+                    <span className="font-semibold text-neutral-500 uppercase tracking-wider block mb-0.5">Cast</span>
+                    <span className="text-neutral-400 font-medium">{selectedMemory.cast.join(', ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-neutral-500 uppercase tracking-wider block mb-0.5">Genres</span>
+                    <span className="text-neutral-400 font-medium">{selectedMemory.tags.join(', ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-neutral-500 uppercase tracking-wider block mb-0.5">Vibe</span>
+                    <span className="text-neutral-400 font-medium">Romantic, Intimate, Intensely Personal</span>
                   </div>
                 </div>
-              ) : (
-                /* REDESIGNED NETFLIX-STYLE SPECS CONTAINER GRID */
-                <div className={`p-6 md:p-10 grid md:grid-cols-[2fr_1fr] gap-6 md:gap-[40px] text-sm md:text-base ${textColor}`}>
-                  {/* Left Column (Meta + Descriptions) */}
-                  <div className="space-y-4">
-                    {/* Meta Indicators row */}
-                    <div className="flex flex-wrap items-center gap-[12px] text-xs sm:text-sm font-semibold select-none">
-                      <span className="text-[#46d369] font-bold">
-                        {selectedMemory.matchPercentage}% {selectedMemory.tags[0] || 'Romantic'} Match
-                      </span>
-                      <span className="opacity-90 font-medium text-white">
-                        {selectedMemory.year}
-                      </span>
-                      <span className="px-1.5 py-0.5 border border-white/40 rounded text-[11px] font-bold leading-none select-none text-white bg-black/20">
-                        {selectedMemory.maturityRating}
-                      </span>
-                      <span className="px-1.5 py-0.5 border border-white/40 rounded text-[11px] font-bold leading-none select-none text-white bg-black/20">
-                        {selectedMemory.duration}
-                      </span>
-                      <span className="px-1.5 py-0.5 border border-white/40 rounded text-[11px] font-bold leading-none select-none text-white bg-black/20">
-                        4K Ultra HD
-                      </span>
-                    </div>
-
-                    {/* RED TOP 10 INDICATOR ROW */}
-                    <div className="flex items-center gap-2.5 select-none pt-1">
-                      <div className="bg-red-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded leading-none shadow tracking-wider uppercase flex flex-col items-center justify-center h-5 w-6">
-                        <span className="text-[7px] leading-none uppercase font-extrabold tracking-tighter">TOP</span>
-                        <span className="text-[10px] leading-none font-black -mt-0.5">10</span>
-                      </div>
-                      <span className="text-sm font-bold text-red-500 tracking-tight">
-                        #1 in Memories Today
-                      </span>
-                    </div>
-
-                    {/* Memory description text */}
-                    <p className={`leading-[1.65] text-xs sm:text-sm font-medium ${mutedTextColor} pt-1`}>
-                      {selectedMemory.description}
-                    </p>
-                  </div>
-
-                  {/* Right Column (Divider + Credits List) */}
-                  <div className="text-xs leading-relaxed space-y-3 md:pl-6 md:border-l border-neutral-800/50 flex flex-col justify-start select-none">
-                    <div>
-                      <span className="text-neutral-500 font-semibold">Cast: </span>
-                      <span className="text-neutral-300 font-semibold">
-                        {selectedMemory.cast && selectedMemory.cast.length > 0 ? selectedMemory.cast.join(', ') : 'Sia, Aman'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500 font-semibold">Genres: </span>
-                      <span className="text-neutral-300 font-semibold">
-                        {selectedMemory.tags && selectedMemory.tags.length > 0 ? selectedMemory.tags.join(', ') : 'Romantic, Core Memory'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </motion.div>
           </div>
         )}
