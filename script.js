@@ -3717,13 +3717,13 @@ function createRow(title, memories, index = 0) {
             
             if (isYouTube) {
               const cardW = card.offsetWidth || r.width || 260;
-              const scale = (cardW / 1200) * 1.5;
+              const scale = (cardW / 1200) * 1.5 * 1.15;
               videoContainer.innerHTML = `
                 <iframe class="media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd360&fs=0&disablekb=1" style="position:absolute; top:50%; left:50%; width:1200px; height:675px; transform:translate(-50%, -50%) scale(${scale}); transform-origin:center center; border:none; pointer-events:none !important;" allow="autoplay; encrypted-media"></iframe>
               `;
             } else {
               videoContainer.innerHTML = `
-                <video class="media-card-hover-video" src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+                <video class="media-card-hover-video" src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; transform: scale(1.15); transform-origin: center center; pointer-events:none;"></video>
               `;
             }
             requestAnimationFrame(() => {
