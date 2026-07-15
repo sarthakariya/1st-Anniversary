@@ -3731,7 +3731,7 @@ function createRow(title, memories, index = 0) {
               if (thumbImg) thumbImg.style.opacity = '0';
             });
           }
-        }, 400);
+        }, 1000);
       }
     };
 

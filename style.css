@@ -825,16 +825,16 @@ input:checked + .slider:before { transform: translateX(20px); }
   100% { box-shadow: 0 0 8px rgba(229, 9, 20, 0.5); }
 }
 .media-card {
-  flex: 0 0 clamp(180px, 20vw, 280px);
-  min-width: 140px;
-  max-width: 300px;
+  flex: 0 0 clamp(200px, 22vw, 300px);
+  min-width: 150px;
+  max-width: 320px;
   position: relative;
   border-radius: 16px !important;
   background: #222;
   cursor: pointer;
   border: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s, border-radius 0.3s;
+  transition: transform 0.58s cubic-bezier(0.25, 1, 0.4, 1), box-shadow 0.58s ease, border-radius 0.45s ease;
   transition-delay: 0s;
   aspect-ratio: 16/9;
   will-change: transform, box-shadow;
@@ -849,7 +849,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   border: none !important;
   box-shadow: 0 24px 60px rgba(0,0,0,0.98);
   border-radius: 8px 8px 0 0 !important;
-  transition-delay: 0.15s; /* Intelligent intent delay - prevents flashing when passing mouse over */
+  transition: transform 0.64s cubic-bezier(0.25, 1, 0.4, 1), box-shadow 0.64s ease, border-radius 0.5s ease;
+  transition-delay: 0.18s; /* Intelligent intent delay - prevents flashing when passing mouse over */
 }
 .media-card img {
   position: absolute;
@@ -883,12 +884,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   left: 0;
   width: 100%;
   background: #181818;
-  padding: 14px;
+  padding: 10px 12px;
   border-radius: 0 0 8px 8px !important;
   box-shadow: 0 16px 36px rgba(0,0,0,0.85);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
   transition-delay: 0s;
   transform: translateY(-5px);
 }
@@ -896,11 +897,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
-  transition-delay: 0.15s; /* Match intent delay */
+  transition: opacity 0.58s ease, transform 0.58s ease;
+  transition-delay: 0.18s; /* Match intent delay */
 }
-.hc-buttons { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.hc-buttons { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
 .hc-btn {
-  width: 30px; height: 30px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.45);
   display: flex; align-items: center; justify-content: center;
@@ -909,8 +911,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .hc-btn svg {
-  width: 13px !important;
-  height: 13px !important;
+  width: 11px !important;
+  height: 11px !important;
 }
 .hc-btn:hover {
   background: white; color: black; border-color: white;
@@ -1907,7 +1909,7 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 
 /* 1. Shine and card hover glow additions */
 .media-card {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.58s cubic-bezier(0.25, 1, 0.4, 1), box-shadow 0.58s cubic-bezier(0.25, 1, 0.4, 1), border-color 0.58s cubic-bezier(0.25, 1, 0.4, 1), border-radius 0.45s ease !important;
 }
 
 .media-card:hover {
