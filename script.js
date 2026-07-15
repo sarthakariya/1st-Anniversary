@@ -874,6 +874,7 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
           };
           
           const isLiked = appState.likedMemories && appState.likedMemories.includes(m.id);
+          const isAdded = appState.myList && appState.myList.includes(m.id);
           div.innerHTML = `
             <img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
             <div class="hover-chassis">
@@ -884,11 +885,14 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
                 <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Static Photo" style="background: rgba(255,255,255,0.15);">
                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </div>
-                <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
-                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="${isAdded ? 'Remove from List' : 'Add to My List'}">
+                   ${isAdded ? 
+                     `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.15s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` : 
+                     `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+                   }
                 </div>
                 <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
-                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
                 </div>
                 <div style="flex:1;"></div>
                 <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
@@ -3610,15 +3614,19 @@ function createRow(title, memories, index = 0) {
     // Lazy load the thumbnail
     const displayThumb = (m.thumbnail || '').replace('hqdefault.jpg', 'maxresdefault.jpg');
     const isLiked = appState.likedMemories && appState.likedMemories.includes(m.id);
+    const isAdded = appState.myList && appState.myList.includes(m.id);
     const buttonsHtml = m.videoUrl ? `
           <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </div>
-          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="${isAdded ? 'Remove from List' : 'Add to My List'}">
+             ${isAdded ? 
+               `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.15s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` : 
+               `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+             }
           </div>
           <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
           </div>
           <div style="flex:1;"></div>
           <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
@@ -3631,11 +3639,14 @@ function createRow(title, memories, index = 0) {
           <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Photo" style="background: rgba(255,255,255,0.15);">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
-          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="Add to My List">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="${isAdded ? 'Remove from List' : 'Add to My List'}">
+             ${isAdded ? 
+               `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: scaleUp 0.15s ease-out;"><polyline points="20 6 9 17 4 12"/></svg>` : 
+               `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+             }
           </div>
           <div class="hc-btn hc-like" onclick="window.likeMemory('${m.id}', this); event.stopPropagation();" title="${isLiked ? 'Unlike' : 'Like'}" style="${isLiked ? 'color: #E50914; border-color: #E50914;' : ''}">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
           </div>
           <div style="flex:1;"></div>
           <div class="hc-btn hc-more" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="More Info">
@@ -4072,13 +4083,13 @@ window.openUploadModal = () => {
             <label style="position: absolute; top: 14px; left: 12px; color: #777; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 13px;">Title Logo Image URL</label>
           </div>
           
-          <div style="display:flex; gap:6px; flex-wrap: wrap;">
-            <button type="button" style="flex:1; min-width:80px; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 10px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 4px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              Local File
+          <div style="display:flex; gap:10px;">
+            <button type="button" style="flex:1; background: rgba(255,255,255,0.08); border:none; color:#ccc; padding: 8px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: all 0.2s; text-align:center; display: flex; align-items: center; justify-content: center; gap: 5px;" onmouseenter="this.style.background='rgba(255,255,255,0.16)'; this.style.color='#fff';" onmouseleave="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ccc';" onclick="document.getElementById('up-title-img-file').click()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Upload Local File
             </button>
-            <button type="button" style="flex:2; min-width:180px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 10px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.3s; text-align:center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,9,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 8px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-align:center; display: flex; align-items: center; justify-content: center;" onmouseenter="this.style.boxShadow='0 0 10px rgba(229,10,20,0.5)';" onmouseleave="this.style.boxShadow='none';" onclick="window.generateTitleLogoPromptWithAIAndOpenBoth()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
               <span>Generate with AI</span>
             </button>
           </div>
@@ -4411,8 +4422,10 @@ window.openDetailModal = (id, e, editMode = false) => {
 
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
-      <div class="modal-controls">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.remove(); }, 350);">&times;</button>
+      <div class="modal-controls" style="z-index: 999999;">
+        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.remove(); }, 350);" title="Close Window" style="display: flex; align-items: center; justify-content: center; padding: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <div class="detail-header">
         ${mediaHtml}
@@ -4590,6 +4603,21 @@ window.openDetailModal = (id, e, editMode = false) => {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Background overlay click-to-close handler when clicking outside the modal content
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('open');
+      setTimeout(() => {
+        const v = modal.querySelectorAll('video, iframe');
+        v.forEach(el => {
+          el.src = '';
+          if (el.load) el.load();
+        });
+        modal.remove();
+      }, 350);
+    }
+  };
 
   const detailHeaderForYt = modal.querySelector('.detail-header');
   if (detailHeaderForYt && isYouTube) {
@@ -4999,6 +5027,10 @@ window.syncLikeUI = (id) => {
       btn.style.color = isNowLiked ? '#E50914' : '';
       btn.style.borderColor = isNowLiked ? '#E50914' : '';
       btn.title = isNowLiked ? 'Unlike' : 'Like';
+      const svg = btn.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('fill', isNowLiked ? 'currentColor' : 'none');
+      }
       
       btn.classList.add('pop-active');
       setTimeout(() => btn.classList.remove('pop-active'), 400);
@@ -6071,7 +6103,6 @@ window.generateDescriptionWithGeminiAPI = async (youtubeUrl, currentTitle, title
   }
 
   if (isAutoTrigger) {
-    window.showToast("💡 Click 'Generate with AI' inside the description box to copy prompt & generate with Gemini.");
     return;
   }
 
@@ -7290,16 +7321,18 @@ window.openBulkManagerModal = () => {
       <div style="padding: 10px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.3);">
         <div style="display:flex; flex-direction:column; gap:2px;">
           <h2 style="margin:0; font-size: 18px; font-weight:700; color: white; display:flex; align-items:center; gap:10px;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.45));"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M12 8v8M8 12h8"></path></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 5px rgba(229,9,20,0.45));"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
             Bulk Memories Manager & Upgrader
           </h2>
           <span style="color:#777; font-size:11px; font-weight: 500;">Easily search, select, categorise, or completely style dozens of memory layers and backdrop covers using Gemini models.</span>
         </div>
-        <button class="upload-close" style="position:static; background:transparent; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s; padding:0;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="upload-close" style="position:static; background:transparent; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:none; color:#a0a0a0; cursor:pointer; transition:all 0.2s; padding:0;" onmouseenter="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)';" onmouseleave="this.style.color='#a0a0a0'; this.style.background='transparent';" onclick="const dm = document.getElementById('bulkManagerModal'); dm.classList.remove('open'); setTimeout(() => dm.remove(), 300);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
       <!-- Content Area -->
-      <div style="flex:1; display:grid; grid-template-columns: 1fr 410px; min-height: 0; box-sizing: border-box; background: #0c0c0c;">
+      <div class="bm-main-layout">
         
         <!-- Left Section: Grid and Control Bar -->
         <div style="display: flex; flex-direction: column; padding: 15px; border-right: 1px solid rgba(255,255,255,0.05); min-height:0; box-sizing:border-box;">
@@ -7307,12 +7340,19 @@ window.openBulkManagerModal = () => {
           <!-- Search Row -->
           <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
             <div style="position: relative; flex: 1; min-width: 250px;">
-              <input type="text" id="bm-search-input" placeholder="🔍 Find memories by title, category, year or rating..." style="width:100%; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px 8px 12px; border-radius: 6px; color: white; outline: none; font-size: 13px; transition: all 0.2s;" oninput="window.filterBulkGrid()" onfocus="this.style.borderColor='#e50914'; this.style.background='#222';">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="bm-search-input" placeholder="Find memories by title, category, year or rating..." style="width:100%; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); padding: 9px 12px 9px 36px; border-radius: 6px; color: white; outline: none; font-size: 13px; transition: all 0.2s;" oninput="window.filterBulkGrid()" onfocus="this.style.borderColor='#e50914'; this.style.background='#222';">
             </div>
 
             <div style="display: flex; gap: 8px;">
-              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(true)">✓ Select All</button>
-              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:5px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(false)">✗ Clear All</button>
+              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:6px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(true)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                <span>Select All</span>
+              </button>
+              <button class="btn" style="background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.05); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display:flex; align-items:center; gap:6px;" onmouseenter="this.style.background='rgba(255,255,255,0.12)'; this.style.color='white';" onmouseleave="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#ddd';" onclick="window.bulkSelectAll(false)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                <span>Clear All</span>
+              </button>
             </div>
           </div>
 
@@ -7475,12 +7515,13 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Title Logo Image URL</label>
         </div>
         
-        <div style="display:flex; gap:6px; flex-wrap: wrap;">
-          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-title-img-file-override').click()">
-            Local File
+        <div style="display:flex; gap:10px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="document.getElementById('bulk-title-img-file-override').click()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>Local File</span>
           </button>
-          <button type="button" style="flex:2; min-width:140px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAIAndOpenBoth()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkTitleLogoPromptWithAIAndOpenBoth()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"></path><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"></path></svg>
             <span>Generate with AI</span>
           </button>
         </div>
@@ -7500,12 +7541,13 @@ window.updateBulkToolbar = () => {
           <label style="position: absolute; top: 12px; left: 10px; color: #555; pointer-events: none; transition: all 0.18s; transform-origin: left top; font-size: 12px;">Custom Backdrop URL</label>
         </div>
         
-        <div style="display:flex; gap:6px; flex-wrap: wrap;">
-          <button type="button" style="flex:1; min-width:65px; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer;" onclick="document.getElementById('bulk-thumb-file-override').click()">
-            Local Photo
+        <div style="display:flex; gap:10px;">
+          <button type="button" style="flex:1; background: rgba(255,255,255,0.06); border:none; color:#ccc; padding: 6px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="document.getElementById('bulk-thumb-file-override').click()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>Local Photo</span>
           </button>
-          <button type="button" style="flex:1; min-width:80px; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <button type="button" style="flex:1; background:linear-gradient(90deg, #e50914, #ff5252); border:none; color:white; padding: 6px 10px; border-radius:4px; font-weight:600; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="window.generateBulkThumbnailPromptWithAI()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"></path><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"></path></svg>
             <span>Generate with AI</span>
           </button>
         </div>
@@ -7517,14 +7559,14 @@ window.updateBulkToolbar = () => {
       </div>
 
       <!-- BULK DESCRIPTION INPUT -->
-      <div style="position: relative; border-radius: 8px; overflow: hidden; background: #1c1c1c; border: 1px solid rgba(255,255,255,0.08); height: 86px;" id="bulk-desc-container">
-        <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color: #555; font-weight:700; padding:6px 12px 0 12px; position:absolute; top:2px; left:0; z-index:2; pointer-events:none;">New Description</div>
-        <textarea id="bulk-desc-override" rows="2" style="width:100%; border:none; padding:18px 12px 28px 12px; background: transparent; color: white; outline: none; font-family: inherit; font-size: 12px; box-sizing: border-box; resize: none; height: 100%;"></textarea>
+      <div class="netflix-form-group" style="position: relative; padding: 10px 14px; margin-bottom: 8px;" id="bulk-desc-container">
+        <label class="netflix-form-label" for="bulk-desc-override" style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color: #8c8c8c; font-weight:700; display: block; margin-bottom: 6px;">New Description / Synopsis</label>
+        <textarea id="bulk-desc-override" class="netflix-form-textarea" placeholder="Describe these beautiful memories or enter synopsis..." style="width:100%; min-height: 70px; background: transparent; color: white; border: none; outline: none; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical; line-height: 1.5; padding-bottom: 24px;"></textarea>
         
         <!-- Sparkle option inside textarea footer -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.03); z-index: 5;">
-          <div id="bulk-desc-sparkle" onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)';" onmouseleave="this.style.background='rgba(229,9,20,0.1)';">
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <div style="position: absolute; bottom: 6px; right: 8px; z-index: 5;">
+          <div id="bulk-desc-sparkle" onclick="window.generateBulkDescriptionWithAI()" style="display:flex; align-items:center; gap:4px; background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.25); color: #ff4d5a; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseenter="this.style.background='rgba(229,9,20,0.25)'; this.style.color='white';" onmouseleave="this.style.background='rgba(229,9,20,0.1)'; this.style.color='#ff4d5a';">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"></path><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"></path></svg>
             <span>Generate with AI</span>
           </div>
         </div>
@@ -7566,12 +7608,12 @@ window.updateBulkToolbar = () => {
       <!-- Action Buttons -->
       <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top:16px; border-top: 1px solid rgba(255,255,255,0.06);">
         <button class="btn" style="width:100%; background:#e50914; color:white; font-weight:700; padding:12px; font-size:13px; border-radius: 6px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='#ff1f2d'; this.style.boxShadow='0 0 15px rgba(229,9,20,0.45)'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='#e50914'; this.style.boxShadow='none'; this.style.transform='translateY(0)';" onclick="window.applyBulkEdit()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
           Apply Bulk Upgrades
         </button>
         <button class="btn" style="width:100%; background: rgba(229, 9, 20, 0.15); color: #ff4d5a; font-weight: 700; padding: 12px; font-size: 13px; border-radius: 6px; border: 1px solid rgba(229, 9, 20, 0.35); cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; transition: all 0.25s; display:flex; align-items:center; justify-content:center; gap:8px;" onmouseenter="this.style.background='rgba(229, 9, 20, 0.3)'; this.style.borderColor='rgba(229, 9, 20, 0.6)'; this.style.color='#fff'; this.style.transform='translateY(-1px)';" onmouseleave="this.style.background='rgba(229, 9, 20, 0.15)'; this.style.borderColor='rgba(229, 9, 20, 0.35)'; this.style.color='#ff4d5a'; this.style.transform='translateY(0)';" onclick="window.applyBulkDelete()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-          Permanently Eliminate Selected
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          Delete Selected Memories
         </button>
       </div>
 
@@ -7778,7 +7820,10 @@ window.bulkDeleteAllMemories = () => {
 };
 
 window.applyBulkDelete = async (skipConfirm = false) => {
-  if (window.selectedBulkIds.length === 0) return;
+  if (!window.selectedBulkIds || window.selectedBulkIds.length === 0) {
+    window.netflixAlert("Please select at least one memory to delete first.");
+    return;
+  }
   
   const count = window.selectedBulkIds.length;
 
@@ -7845,7 +7890,7 @@ window.applyBulkDelete = async (skipConfirm = false) => {
   if (skipConfirm) {
     await performDelete();
   } else {
-    window.netflixConfirm(`Are you sure you want to permanently delete all ${count} selected memories?`, async () => {
+    window.netflixConfirm(`CRITICAL: Are you absolutely sure you want to permanently delete the ${count} selected memories? This action cannot be undone and will erase them forever!`, async () => {
       await performDelete();
     });
   }
