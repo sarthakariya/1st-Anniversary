@@ -3666,7 +3666,7 @@ function createRow(title, memories, index = 0) {
     };
 
     card.innerHTML = `
-      <div class="media-card-img-wrapper" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; border-radius:4px; z-index:1;">
+      <div class="media-card-img-wrapper" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; border-radius:inherit; z-index:1;">
         <img data-src="${displayThumb}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="${m.title}" decoding="async" loading="lazy" fetchpriority="low" style="width:100%; height:100%; object-fit:cover; transition: opacity 0.3s; display: block;">
         <div class="media-card-video-container" style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; transition: opacity 0.3s; background: black; pointer-events: none; overflow:hidden; display: none;"></div>
         <div class="media-card-click-shield" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:10; background: rgba(0,0,0,0); pointer-events: auto; cursor: pointer;"></div>
@@ -3691,7 +3691,7 @@ function createRow(title, memories, index = 0) {
     card.onmouseenter = () => {
       const r = card.getBoundingClientRect();
       const ww = window.innerWidth;
-      const originOffset = r.width * 0.20;
+      const originOffset = r.width * 0.24;
       
       const row = card.closest('.row');
       if (row) row.classList.add('row-active-hover');
