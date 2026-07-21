@@ -825,11 +825,11 @@ input:checked + .slider:before { transform: translateX(20px); }
   100% { box-shadow: 0 0 8px rgba(229, 9, 20, 0.5); }
 }
 .media-card {
-  flex: 0 0 clamp(200px, 22vw, 300px);
-  min-width: 150px;
-  max-width: 320px;
+  flex: 0 0 clamp(160px, 17vw, 240px);
+  min-width: 130px;
+  max-width: 250px;
   position: relative;
-  border-radius: 16px !important;
+  border-radius: 8px !important;
   background: #222;
   cursor: pointer;
   border: none;
@@ -859,7 +859,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   left: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  border-radius: 16px !important;
+  border-radius: 8px !important;
   pointer-events: none;
   transition: opacity 0.3s, border-radius 0.3s;
   display: block;
@@ -868,13 +868,13 @@ input:checked + .slider:before { transform: translateX(20px); }
   border-radius: 8px 8px 0 0 !important;
 }
 .media-card-img-wrapper {
-  border-radius: 16px !important;
+  border-radius: 8px !important;
 }
 .media-card:hover .media-card-img-wrapper {
   border-radius: 8px 8px 0 0 !important;
 }
 .media-card-video-container {
-  border-radius: 16px !important;
+  border-radius: 8px !important;
 }
 .media-card:hover .media-card-video-container {
   border-radius: 8px 8px 0 0 !important;
@@ -2043,6 +2043,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 /* Cinematic Title Logo Perfect Transparency Blending */
 .hero-title-logo-img {
   margin-left: -14px !important;
+  margin-bottom: -75px !important;
+  max-height: 180px !important;
   position: relative !important;
   display: block !important;
 }
@@ -2501,7 +2503,7 @@ body.modal-open {
   
   .hero-title-logo-img {
     max-height: 80px !important;
-    margin-bottom: 2px !important;
+    margin-bottom: -10px !important;
   }
   
   .hero-desc {
