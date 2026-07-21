@@ -797,7 +797,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .row-content {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
@@ -885,7 +885,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   left: 0;
   width: 100%;
   background: #181818;
-  padding: 10px 12px;
+  padding: 6px 10px;
   border-radius: 0 0 8px 8px !important;
   box-shadow: 0 16px 36px rgba(0,0,0,0.85);
   opacity: 0;
@@ -901,9 +901,9 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: opacity 0.58s ease, transform 0.58s ease;
   transition-delay: 0.18s; /* Match intent delay */
 }
-.hc-buttons { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+.hc-buttons { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; }
 .hc-btn {
-  width: 26px; height: 26px;
+  width: 22px; height: 22px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.45);
   display: flex; align-items: center; justify-content: center;
@@ -912,12 +912,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .hc-btn svg {
-  width: 11px !important;
-  height: 11px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 .hc-btn:hover {
   background: white; color: black; border-color: white;
-  transform: scale(1.14);
+  transform: scale(1.1);
 }
 .hc-btn:active {
   transform: scale(0.9);
@@ -925,11 +925,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 .hc-play { background: white; color: black; border-color: white; }
 .hc-play:hover { background: #e6e6e6; color: black; border-color: #e6e6e6; }
 
-.hc-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 8px; font-weight: 500; }
+.hc-meta { display: flex; gap: 6px; align-items: center; font-size: 10px; margin-bottom: 4px; font-weight: 500; }
 .hc-match { color: #46d369; font-weight: bold; }
-.hc-badge { border: 1px solid rgba(255,255,255,0.4); padding: 0 3px; border-radius: 2px; font-size: 10px; color: #ccc; }
+.hc-badge { border: 1px solid rgba(255,255,255,0.4); padding: 0 3px; border-radius: 2px; font-size: 9px; color: #ccc; }
 
-.hc-genres { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #fff; }
+.hc-genres { display: flex; gap: 4px; align-items: center; font-size: 10px; color: #fff; }
 .hc-dot { color: #555; }
 
 

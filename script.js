@@ -737,6 +737,54 @@ window.toggleNotifications = () => {
   document.getElementById('notifPanel').classList.toggle('active');
 };
 
+window.setDatesSortOrder = (order) => {
+  appState.datesSortOrder = order;
+  window.refreshRowsView(null, null, true);
+};
+
+window.getFormattedMemoryDate = (m) => {
+  if (m.year) {
+    const parts = m.year.split('-');
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const mIdx = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(mIdx) && !isNaN(y)) {
+        const dateObj = new Date(y, mIdx, d);
+        return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+    }
+    if (m.year.length === 4 && !isNaN(parseInt(m.year))) {
+      return `Year ${m.year}`;
+    }
+    return m.year;
+  }
+  if (m.dateAdded) {
+    const dateObj = new Date(m.dateAdded);
+    return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  return 'Unknown Date';
+};
+
+window.getMemoryTimestamp = (m) => {
+  if (m.year) {
+    const parts = m.year.split('-');
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const mIdx = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(mIdx) && !isNaN(y)) {
+        return new Date(y, mIdx, d).getTime();
+      }
+    }
+    const yr = parseInt(m.year);
+    if (!isNaN(yr)) {
+      return new Date(yr, 0, 1).getTime();
+    }
+  }
+  return m.dateAdded || 0;
+};
+
 window.refreshRowsView = (rcNode, heroNode, silent = false) => {
   const rc = rcNode || document.querySelector('.slider-container');
   const hero = heroNode || document.getElementById('hero-section');
@@ -879,7 +927,7 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
             <img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
             <div class="hover-chassis">
               <div class="hc-buttons">
-                <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play Slideshow">
+                <div class="hc-btn hc-play" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="Play Slideshow">
                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
                 </div>
                 <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Static Photo" style="background: rgba(255,255,255,0.15);">
@@ -958,14 +1006,80 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
       }
       // For Dates
       if (appState.activeCategory === 'Dates') {
-        if (appState.continueWatching.length > 0) {
-          const cw = appState.memories.filter(m => appState.continueWatching.includes(m.id));
-          if (cw.length) {
-            const rowTitle = appState.currentProfile ? `Continue Watching for ${appState.currentProfile}` : 'Continue Watching';
-            rc.appendChild(createRow(rowTitle, cw, rowIndex++));
+        // Render filter bar
+        const filterBar = document.createElement('div');
+        filterBar.className = 'dates-filter-bar';
+        filterBar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 4%; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 15px; margin-top: -10px; flex-wrap: wrap; gap: 10px;';
+        
+        const sortOrder = appState.datesSortOrder || 'desc';
+        
+        filterBar.innerHTML = `
+          <div style="font-size: 1.15rem; font-weight: 800; color: white; letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #e50914;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Timeline Dates
+          </div>
+          <div class="dates-sort-toggle" style="display: flex; gap: 2px; background: rgba(0,0,0,0.6); padding: 3px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.12);">
+            <button id="sort-newest-btn" class="sort-btn" onclick="window.setDatesSortOrder('desc')" style="padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; cursor: pointer; border: none; background: ${sortOrder === 'desc' ? '#e50914' : 'transparent'}; color: ${sortOrder === 'desc' ? 'white' : '#aaa'}; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.3px;">
+              Newest First
+            </button>
+            <button id="sort-oldest-btn" class="sort-btn" onclick="window.setDatesSortOrder('asc')" style="padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; cursor: pointer; border: none; background: ${sortOrder === 'asc' ? '#e50914' : 'transparent'}; color: ${sortOrder === 'asc' ? 'white' : '#aaa'}; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.3px;">
+              Oldest First
+            </button>
+          </div>
+        `;
+        rc.appendChild(filterBar);
+
+        // Group memories by date
+        const sortedMemories = [...appState.memories]
+          .filter(m => window.getNormalizedCategory(m.category) !== 'Moments');
+
+        const groups = {};
+        sortedMemories.forEach(m => {
+          const dateStr = window.getFormattedMemoryDate(m);
+          if (!groups[dateStr]) {
+            groups[dateStr] = {
+              title: dateStr,
+              timestamp: window.getMemoryTimestamp(m),
+              memories: []
+            };
           }
+          groups[dateStr].memories.push(m);
+        });
+
+        // Convert to array
+        const groupArray = Object.values(groups);
+
+        // Sort groups based on user selection
+        groupArray.sort((a, b) => {
+          if (sortOrder === 'desc') {
+            return b.timestamp - a.timestamp;
+          } else {
+            return a.timestamp - b.timestamp;
+          }
+        });
+
+        // Also sort memories within each group
+        groupArray.forEach(grp => {
+          grp.memories.sort((a, b) => {
+            if (sortOrder === 'desc') {
+              return b.dateAdded - a.dateAdded;
+            } else {
+              return a.dateAdded - b.dateAdded;
+            }
+          });
+        });
+
+        // Render each group as a row
+        if (groupArray.length === 0) {
+          const noData = document.createElement('div');
+          noData.style.cssText = 'padding: 40px; text-align: center; color: #888; font-size: 1.1rem;';
+          noData.innerText = 'No memories found in Timeline.';
+          rc.appendChild(noData);
+        } else {
+          groupArray.forEach(grp => {
+            rc.appendChild(createRow(grp.title, grp.memories, rowIndex++));
+          });
         }
-        rc.appendChild(createRow('Timeline (Newest First)', [...appState.memories].filter(m => window.getNormalizedCategory(m.category) !== 'Moments').sort((a,b) => b.dateAdded - a.dateAdded), rowIndex++));
       }
     }
     
@@ -3616,7 +3730,7 @@ function createRow(title, memories, index = 0) {
     const isLiked = appState.likedMemories && appState.likedMemories.includes(m.id);
     const isAdded = appState.myList && appState.myList.includes(m.id);
     const buttonsHtml = m.videoUrl ? `
-          <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play">
+          <div class="hc-btn hc-play" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="Play">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </div>
           <div class="hc-btn hc-add" onclick="window.toggleMyList('${m.id}', event); event.stopPropagation();" title="${isAdded ? 'Remove from List' : 'Add to My List'}">
@@ -3633,7 +3747,7 @@ function createRow(title, memories, index = 0) {
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
     ` : `
-          <div class="hc-btn hc-play" onclick="window.playVideo('${m.id}'); event.stopPropagation();" title="Play Slideshow">
+          <div class="hc-btn hc-play" onclick="window.openDetailModal('${m.id}', event); event.stopPropagation();" title="Play Slideshow">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </div>
           <div class="hc-btn hc-view" onclick="window.viewPhotoStatic('${m.id}'); event.stopPropagation();" title="View Photo" style="background: rgba(255,255,255,0.15);">
