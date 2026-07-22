@@ -3306,7 +3306,7 @@ window.shuffleHero = () => {
               }, 1200);
             }
           }
-        }, 2000);
+        }, 1500);
       }
       
       // Clean up previous elements after transition duration completes
@@ -3575,7 +3575,7 @@ function createHero() {
           }, 1200);
         }
       }
-    }, 2000);
+    }, 1500);
   }
   return c;
 }
@@ -3861,7 +3861,7 @@ function createRow(title, memories, index = 0) {
               if (thumbImg) thumbImg.style.opacity = '0';
             });
           }
-        }, 2000);
+        }, 1500);
       }
     };
 
@@ -4819,7 +4819,7 @@ window.openDetailModal = (id, e, editMode = false) => {
           }
         }
       }
-    }, 2000);
+    }, 1500);
   }
 
   // Dynamically fetch and display actual duration
