@@ -6396,13 +6396,14 @@ window.generateThumbnailPromptWithAI = () => {
      vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
   }
   
-  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this photo and the video title: "${title}".
+  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this reference photo and the video title: "${title}".
 
 CRITICAL SPECIFICATIONS:
-1. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. Even if the provided reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides, outpaint, and adapt the composition to perfectly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
-2. NETFLIX BRANDING: Tastefully place a clean, official red "Netflix" logo in the top-left corner of the thumbnail, matching the exact styling and placement of professional Netflix Originals.
-3. TITLE TEXT: Overlay the title "${title}" prominently but tastefully in an elegant cinematic font. Style it beautifully like an official series/movie title logo near the bottom-left or bottom-center of the thumbnail, using clean typography with soft drop-shadows or glow for perfect readability against the background.
-4. MOOD & QUALITY: The overall thumbnail scene must match the vibe of: "${desc}". Style it with a beautiful "${vibe}" atmosphere, rich cinematic color grading, professional shallow depth of field, and natural cinematic lighting. It must look like a high-budget Netflix original series movie cover.`;
+1. NATURAL REALISM & BACKGROUND PRESERVATION: Keep the generated image highly realistic, warm, and authentic. DO NOT make it look like artificial or generic AI art. Preserve the core composition, subjects, and background details of the original reference photo as much as possible, rather than replacing or heavily modifying them. Ensure any elements or characters from the original photo remain recognizable and realistic.
+2. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. If the reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides naturally using cinematic details, outpainting, and background extension to seamlessly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
+3. NETFLIX BRANDING: Tastefully overlay a small, official red Netflix "N" icon in the top-left corner of the thumbnail, matching the exact size, subtle styling, and placement of professional Netflix series covers.
+4. TITLE TEXT OVERLAY: Tastefully overlay the title "${title}" in a premium Netflix-style typography. The placement should be decided based on the image's composition (e.g., bottom-left, bottom-center, or wherever it fits best and is highly legible). Style the text with professional, bold cinematic font, complete with soft drop-shadows or a subtle background glow to ensure perfect legibility.
+5. MOOD & QUALITY: The overall atmosphere should align with "${desc}". Style it with a beautiful "${vibe}" atmosphere, premium professional cinematic color grading, shallow depth of field, and natural, dramatic movie lighting. It must look like a high-budget Netflix Original cover.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
@@ -7804,13 +7805,14 @@ window.generateBulkThumbnailPromptWithAI = () => {
      vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
   }
   
-  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this photo and the video title: "${title}".
+  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this reference photo and the video title: "${title}".
 
 CRITICAL SPECIFICATIONS:
-1. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. Even if the provided reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides, outpaint, and adapt the composition to perfectly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
-2. NETFLIX BRANDING: Tastefully place a clean, official red "Netflix" logo in the top-left corner of the thumbnail, matching the exact styling and placement of professional Netflix Originals.
-3. TITLE TEXT: Overlay the title "${title}" prominently but tastefully in an elegant cinematic font. Style it beautifully like an official series/movie title logo near the bottom-left or bottom-center of the thumbnail, using clean typography with soft drop-shadows or glow for perfect readability against the background.
-4. MOOD & QUALITY: The overall thumbnail scene must match the vibe of: "${desc}". Style it with a beautiful "${vibe}" atmosphere, rich cinematic color grading, professional shallow depth of field, and natural cinematic lighting. It must look like a high-budget Netflix original series movie cover.`;
+1. NATURAL REALISM & BACKGROUND PRESERVATION: Keep the generated image highly realistic, warm, and authentic. DO NOT make it look like artificial or generic AI art. Preserve the core composition, subjects, and background details of the original reference photo as much as possible, rather than replacing or heavily modifying them. Ensure any elements or characters from the original photo remain recognizable and realistic.
+2. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. If the reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides naturally using cinematic details, outpainting, and background extension to seamlessly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
+3. NETFLIX BRANDING: Tastefully overlay a small, official red Netflix "N" icon in the top-left corner of the thumbnail, matching the exact size, subtle styling, and placement of professional Netflix series covers.
+4. TITLE TEXT OVERLAY: Tastefully overlay the title "${title}" in a premium Netflix-style typography. The placement should be decided based on the image's composition (e.g., bottom-left, bottom-center, or wherever it fits best and is highly legible). Style the text with professional, bold cinematic font, complete with soft drop-shadows or a subtle background glow to ensure perfect legibility.
+5. MOOD & QUALITY: The overall atmosphere should align with "${desc}". Style it with a beautiful "${vibe}" atmosphere, premium professional cinematic color grading, shallow depth of field, and natural, dramatic movie lighting. It must look like a high-budget Netflix Original cover.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
