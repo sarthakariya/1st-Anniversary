@@ -641,8 +641,6 @@ input:checked + .slider:before { transform: translateX(20px); }
   transition: transform 0.85s cubic-bezier(0.25, 1, 0.4, 1), opacity 0.85s cubic-bezier(0.25, 1, 0.4, 1);
 }
 .hero-text-roll-item.minimized .hero-title {
-  transform: scale(0.62) !important;
-  transform-origin: left bottom !important;
   margin-bottom: 8px !important;
 }
 .hero-text-roll-item.minimized .hero-badge-sub {
@@ -801,21 +799,15 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 40px 0 150px 0;
+  padding: 40px 4% 150px 4% !important;
   margin-top: -40px;
   margin-bottom: -150px;
   scroll-snap-type: x mandatory;
+  scroll-padding-left: 4% !important;
+  scroll-padding-right: 4% !important;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   pointer-events: none;
-}
-.row-content > .media-card:first-child,
-.row-content > .skeleton-card:first-child {
-  margin-left: 4% !important;
-}
-.row-content > .media-card:last-child,
-.row-content > .skeleton-card:last-child {
-  margin-right: 4% !important;
 }
 .row-content > * {
   pointer-events: auto;
@@ -1670,14 +1662,16 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth
 .slider-container .row-content {
   margin-top: -100px !important;
   margin-bottom: -240px !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  padding-left: 4% !important;
+  padding-right: 4% !important;
   padding-top: 100px !important;
   padding-bottom: 240px !important;
   height: auto !important;
   overflow-y: hidden !important;
   overflow-x: auto !important;
   display: flex !important;
+  scroll-padding-left: 4% !important;
+  scroll-padding-right: 4% !important;
 }
 
 /* Fluid card sizes for CSS 26, 32, 33 and all other list cards */
@@ -2496,8 +2490,10 @@ body.modal-open {
     margin-bottom: 0 !important;
     padding-top: 10px !important;
     padding-bottom: 10px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: 4% !important;
+    padding-right: 4% !important;
+    scroll-padding-left: 4% !important;
+    scroll-padding-right: 4% !important;
   }
   
   .hero-info {
@@ -2703,10 +2699,12 @@ button:active, .btn:active, .circ-play-btn:active, .media-card:active {
   
   /* Responsive row spacing to prevent gaps */
   .row-content {
-    padding: 10px 0 20px 0 !important;
+    padding: 10px 4% 20px 4% !important;
     margin-top: -10px !important;
     margin-bottom: -20px !important;
     gap: 8px !important;
+    scroll-padding-left: 4% !important;
+    scroll-padding-right: 4% !important;
   }
   .media-card {
     flex: 0 0 clamp(120px, 26vw, 170px) !important;
