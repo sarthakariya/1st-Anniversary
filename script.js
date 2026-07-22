@@ -3182,7 +3182,7 @@ window.shuffleHero = () => {
       newMediaItem.innerHTML = `
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
           <img id="hero-img-overlay" class="hero-video" src="${nextHeroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
-          ${nextBackgroundHtml}
+          <div class="hero-video-inject-target"></div>
         </div>
       `;
       
@@ -3257,47 +3257,56 @@ window.shuffleHero = () => {
       
       // Autoplay previews: once background element streams, fade the thumbnail cover safely
       if (nextBackgroundHtml) {
+        const injectTarget = newMediaItem.querySelector('.hero-video-inject-target');
         const imgOverlay = newMediaItem.querySelector('#hero-img-overlay');
-        const nv = newMediaItem.querySelector('#hero-native-video');
-        if (nv) {
-          // Native video: fade out overlay as soon as playback actually starts streaming
-          nv.addEventListener('playing', () => {
-            if (imgOverlay) imgOverlay.style.opacity = '0';
-          });
-          // Fallback if event is slow to fire
-          setTimeout(() => {
-            if (imgOverlay) imgOverlay.style.opacity = '0';
-          }, 1000);
-        } else {
-          // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
-          const iframe = newMediaItem.querySelector('.hero-video');
-          if (iframe) {
-            iframe.addEventListener('load', () => {
+        setTimeout(() => {
+          if (injectTarget && document.contains(injectTarget)) {
+            injectTarget.innerHTML = nextBackgroundHtml;
+            const nv = injectTarget.querySelector('#hero-native-video');
+            if (nv) {
+              // Native video: fade out overlay as soon as playback actually starts streaming
+              nv.addEventListener('playing', () => {
+                if (imgOverlay) imgOverlay.style.opacity = '0';
+              });
+              // Fallback if event is slow to fire
               setTimeout(() => {
                 if (imgOverlay) imgOverlay.style.opacity = '0';
-              }, 400);
-            });
+              }, 1000);
+              
+              // Native preview audio volume fade logic
+              if (!nv.muted) {
+                nv.volume = 0;
+                let vol = 0;
+                const rampInterval = setInterval(() => {
+                  if (!document.contains(nv)) {
+                    clearInterval(rampInterval);
+                    return;
+                  }
+                  vol += 0.05;
+                  if (vol >= 0.25) {
+                    nv.volume = 0.25;
+                    clearInterval(rampInterval);
+                  } else {
+                    nv.volume = vol;
+                  }
+                }, 600);
+              }
+            } else {
+              // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
+              const iframe = injectTarget.querySelector('.hero-video');
+              if (iframe) {
+                iframe.addEventListener('load', () => {
+                  setTimeout(() => {
+                    if (imgOverlay) imgOverlay.style.opacity = '0';
+                  }, 400);
+                });
+              }
+              setTimeout(() => {
+                if (imgOverlay) imgOverlay.style.opacity = '0';
+              }, 1200);
+            }
           }
-          setTimeout(() => {
-            if (imgOverlay) imgOverlay.style.opacity = '0';
-          }, 1200);
-        }
-      }
-      
-      // Native preview audio volume fade logic
-      const nv = newMediaItem.querySelector('#hero-native-video');
-      if (nv && !nv.muted) {
-        nv.volume = 0;
-        let vol = 0;
-        const rampInterval = setInterval(() => {
-          vol += 0.05;
-          if (vol >= 0.25) {
-            nv.volume = 0.25;
-            clearInterval(rampInterval);
-          } else {
-            nv.volume = vol;
-          }
-        }, 600);
+        }, 2000);
       }
       
       // Clean up previous elements after transition duration completes
@@ -3460,7 +3469,7 @@ function createHero() {
       <div class="hero-media-roll-item roll-active">
         <div class="hero-video-wrapper" style="background: black; position: absolute; width: 100%; height: 100%; top: 0; left: 0; overflow: hidden;">
           <img id="hero-img-overlay" class="hero-video" src="${heroMem.thumbnail}" alt="Hero" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 3; transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1);">
-          ${backgroundVideoHtml}
+          <div class="hero-video-inject-target"></div>
           <div id="hero-curtain-mask" style="position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:4; transform: translateX(0%); animation: curtainReveal 0.8s cubic-bezier(0.85, 0, 0.15, 1) forwards;"></div>
         </div>
       </div>
@@ -3517,49 +3526,56 @@ function createHero() {
   }, 50);
 
   if (backgroundVideoHtml) {
+    const injectTarget = c.querySelector('.hero-video-inject-target');
     const imgOverlay = c.querySelector('#hero-img-overlay');
-    const nv = c.querySelector('#hero-native-video');
-    if (nv) {
-      // Native video: fade out overlay as soon as playback actually starts streaming
-      nv.addEventListener('playing', () => {
-        if (imgOverlay) imgOverlay.style.opacity = '0';
-      });
-      // Fallback if event is slow to fire
-      setTimeout(() => {
-        if (imgOverlay) imgOverlay.style.opacity = '0';
-      }, 1000);
-    } else {
-      // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
-      const iframe = c.querySelector('.hero-video');
-      if (iframe) {
-        iframe.addEventListener('load', () => {
+    setTimeout(() => {
+      if (injectTarget && document.contains(injectTarget)) {
+        injectTarget.innerHTML = backgroundVideoHtml;
+        const nv = injectTarget.querySelector('#hero-native-video');
+        if (nv) {
+          // Native video: fade out overlay as soon as playback actually starts streaming
+          nv.addEventListener('playing', () => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          });
+          // Fallback if event is slow to fire
           setTimeout(() => {
             if (imgOverlay) imgOverlay.style.opacity = '0';
-          }, 400);
-        });
-      }
-      setTimeout(() => {
-        if (imgOverlay) imgOverlay.style.opacity = '0';
-      }, 1200);
-    }
-    
-    // Volume Fade Loop Timer for native video
-    setTimeout(() => {
-      const nv = document.getElementById('hero-native-video');
-      if (nv && !nv.muted) {
-        nv.volume = 0;
-        let vol = 0;
-        const rampInterval = setInterval(() => {
-          vol += 0.05; // 5 steps to 0.25
-          if (vol >= 0.25) {
-            nv.volume = 0.25;
-            clearInterval(rampInterval);
-          } else {
-            nv.volume = vol;
+          }, 1000);
+          
+          // Volume Fade Loop Timer for native video
+          if (!nv.muted) {
+            nv.volume = 0;
+            let vol = 0;
+            const rampInterval = setInterval(() => {
+              if (!document.contains(nv)) {
+                clearInterval(rampInterval);
+                return;
+              }
+              vol += 0.05; // 5 steps to 0.25
+              if (vol >= 0.25) {
+                nv.volume = 0.25;
+                clearInterval(rampInterval);
+              } else {
+                nv.volume = vol;
+              }
+            }, 600); // 5 steps * 600ms = 3000ms
           }
-        }, 600); // 5 steps * 600ms = 3000ms
+        } else {
+          // Iframe/YouTube: fade out overlay as soon as the iframe is loaded, or fallback quickly
+          const iframe = injectTarget.querySelector('.hero-video');
+          if (iframe) {
+            iframe.addEventListener('load', () => {
+              setTimeout(() => {
+                if (imgOverlay) imgOverlay.style.opacity = '0';
+              }, 400);
+            });
+          }
+          setTimeout(() => {
+            if (imgOverlay) imgOverlay.style.opacity = '0';
+          }, 1200);
+        }
       }
-    }, 100);
+    }, 2000);
   }
   return c;
 }
@@ -3845,7 +3861,7 @@ function createRow(title, memories, index = 0) {
               if (thumbImg) thumbImg.style.opacity = '0';
             });
           }
-        }, 1000);
+        }, 2000);
       }
     };
 
@@ -4499,9 +4515,12 @@ window.openDetailModal = (id, e, editMode = false) => {
   const ytId = m.videoUrl ? window.extractYouTubeId(m.videoUrl) : null;
   const isYouTube = !!ytId;
   
-  let mediaHtml = appState.settings.autoPlayPreviews && m.videoUrl ? 
-      (isYouTube ? `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd720&fs=0&disablekb=1" style="position:absolute; top:50%; left:50%; width:1600px; height:900px; transform:translate(-50%, -50%) scale(0.45); transform-origin:center center; pointer-events:none !important; border:none;" allow="autoplay"></iframe><div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; background:rgba(0,0,0,0); pointer-events:auto;"></div></div>` : `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`) : 
-      `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
+  let mediaHtml = `
+    <div style="position:relative; width:100%; height:100%; overflow:hidden; background: black;">
+      <img id="dm-thumbnail-overlay" src="${m.thumbnail}" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:3; transition: opacity 1s ease-out;">
+      <div id="dm-video-inject-target" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:2;"></div>
+    </div>
+  `;
 
   const detailTitleRender = m.titleImage ? 
     `<img src="${m.titleImage}" class="detail-title-logo-img" alt="${m.title}" style="max-height: 180px; max-width: min(500px, 90%); width: auto; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.85)); margin-bottom: 10px;" referrerPolicy="no-referrer">` :
@@ -4733,33 +4752,74 @@ window.openDetailModal = (id, e, editMode = false) => {
     }
   };
 
-  const detailHeaderForYt = modal.querySelector('.detail-header');
-  if (detailHeaderForYt && isYouTube) {
-    const modalYtPlayer = modal.querySelector('#modalYtPlayer');
-    if (modalYtPlayer) {
-      const nativeW = 1600;
-      const nativeH = 900;
-      const updateSize = (width) => {
-        const mScale = (width / nativeW) * 1.5;
-        modalYtPlayer.style.width = `${nativeW}px`;
-        modalYtPlayer.style.height = `${nativeH}px`;
-        modalYtPlayer.style.transform = `translate(-50%, -50%) scale(${mScale})`;
-        modalYtPlayer.style.transformOrigin = 'center center';
-        modalYtPlayer.style.position = 'absolute';
-        modalYtPlayer.style.top = '50%';
-        modalYtPlayer.style.left = '50%';
-      };
-      
-      const headerRect = detailHeaderForYt.getBoundingClientRect();
-      updateSize(headerRect.width || 800);
-      
-      const ro = new ResizeObserver((entries) => {
-        for (let entry of entries) {
-          updateSize(entry.contentRect.width);
+  // Delay video injection inside the detail modal (Netflix-style ~2 seconds delay)
+  if (appState.settings.autoPlayPreviews && m.videoUrl) {
+    setTimeout(() => {
+      if (document.body.contains(modal)) {
+        const injectTarget = modal.querySelector('#dm-video-inject-target');
+        const imgOverlay = modal.querySelector('#dm-thumbnail-overlay');
+        if (injectTarget) {
+          if (isYouTube) {
+            injectTarget.innerHTML = `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><iframe id="modalYtPlayer" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=1&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd720&fs=0&disablekb=1" style="position:absolute; top:50%; left:50%; width:1600px; height:900px; transform:translate(-50%, -50%) scale(0.45); transform-origin:center center; pointer-events:none !important; border:none;" allow="autoplay"></iframe><div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; background:rgba(0,0,0,0); pointer-events:auto;"></div></div>`;
+            
+            // Fade out overlay after load
+            const iframe = injectTarget.querySelector('iframe');
+            if (iframe) {
+              iframe.addEventListener('load', () => {
+                setTimeout(() => {
+                  if (imgOverlay) imgOverlay.style.opacity = '0';
+                }, 400);
+              });
+            }
+            // Fallback overlay fade
+            setTimeout(() => {
+              if (imgOverlay) imgOverlay.style.opacity = '0';
+            }, 1200);
+
+            // YouTube sizing logic
+            const detailHeaderForYt = modal.querySelector('.detail-header');
+            const modalYtPlayer = injectTarget.querySelector('#modalYtPlayer');
+            if (detailHeaderForYt && modalYtPlayer) {
+              const nativeW = 1600;
+              const nativeH = 900;
+              const updateSize = (width) => {
+                const mScale = (width / nativeW) * 1.5;
+                modalYtPlayer.style.width = `${nativeW}px`;
+                modalYtPlayer.style.height = `${nativeH}px`;
+                modalYtPlayer.style.transform = `translate(-50%, -50%) scale(${mScale})`;
+                modalYtPlayer.style.transformOrigin = 'center center';
+                modalYtPlayer.style.position = 'absolute';
+                modalYtPlayer.style.top = '50%';
+                modalYtPlayer.style.left = '50%';
+              };
+              
+              const headerRect = detailHeaderForYt.getBoundingClientRect();
+              updateSize(headerRect.width || 800);
+              
+              const ro = new ResizeObserver((entries) => {
+                for (let entry of entries) {
+                  updateSize(entry.contentRect.width);
+                }
+              });
+              ro.observe(detailHeaderForYt);
+            }
+          } else {
+            injectTarget.innerHTML = `<div style="position:relative; width:100%; height:100%; overflow:hidden;"><video src="${m.videoUrl}" autoplay muted loop playsinline style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; filter:blur(40px) brightness(30%); transform:scale(1.2); z-index:1; pointer-events:none;"></video><video id="modal-native-video" src="${m.videoUrl}" autoplay muted loop playsinline style="position:relative; width:100%; height:100%; object-fit:contain; z-index:2; pointer-events:none;"></video></div>`;
+            
+            const nv = injectTarget.querySelector('#modal-native-video');
+            if (nv) {
+              nv.addEventListener('playing', () => {
+                if (imgOverlay) imgOverlay.style.opacity = '0';
+              });
+            }
+            // Fallback overlay fade
+            setTimeout(() => {
+              if (imgOverlay) imgOverlay.style.opacity = '0';
+            }, 1000);
+          }
         }
-      });
-      ro.observe(detailHeaderForYt);
-    }
+      }
+    }, 2000);
   }
 
   // Dynamically fetch and display actual duration
