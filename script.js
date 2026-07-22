@@ -3192,7 +3192,7 @@ window.shuffleHero = () => {
       newTextItem.innerHTML = `
         <div class="hero-text-lockup" style="width: 100%;">
           <div class="${titleClass}">
-            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 180px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: -75px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
+            ${nextHeroMem.titleImage ? `<img class="hero-title-logo-img" src="${nextHeroMem.titleImage}" alt="${nextHeroMem.title}" style="max-height: 240px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: -105px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${nextHeroMem.title}</div>`}
             <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                 <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>
@@ -3473,7 +3473,7 @@ function createHero() {
         <div class="hero-text-roll-item roll-active">
           <div class="hero-text-lockup" style="width: 100%;">
             <div class="${titleClass}">
-              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 180px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: -75px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
+              ${heroMem.titleImage ? `<img class="hero-title-logo-img" src="${heroMem.titleImage}" alt="${heroMem.title}" style="max-height: 240px; max-width: min(650px, 90%); width: auto; object-fit: contain; margin-bottom: -105px; display: block; filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.85));" referrerPolicy="no-referrer">` : `<div style="font-size: 1.15em; line-height: 1.15; margin-bottom: 10px;">${heroMem.title}</div>`}
               <div class="hero-badge-sub" style="display: inline-flex; align-items: center; margin: 8px 0 0 0; font-weight: 800; color: white;">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e50914; color: white; font-weight: 950; padding: 3px 6px; border-radius: 2px; line-height: 1; margin-right: 10px; font-family: system-ui, -apple-system, sans-serif;">
                   <span style="font-size: 7px; letter-spacing: 0.5px; margin-bottom: 1px;">TOP</span>

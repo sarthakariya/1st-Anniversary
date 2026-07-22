@@ -2045,8 +2045,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
 /* Cinematic Title Logo Perfect Transparency Blending */
 .hero-title-logo-img {
   margin-left: -14px !important;
-  margin-bottom: -75px !important;
-  max-height: 180px !important;
+  margin-bottom: -105px !important;
+  max-height: 240px !important;
   position: relative !important;
   display: block !important;
 }
