@@ -6396,12 +6396,13 @@ window.generateThumbnailPromptWithAI = () => {
      vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
   }
   
-  const prompt = `Create a spectacular, photo-realistic 16:9 cinematic movie scene cover that will act as the background thumbnail artwork.
-Concepts/Details: A stunning and emotionally resonant shot inspired by: "${title}".
-Description of the scene: ${desc}.
-Visual Vibe: ${vibe}.
-Style: Shot with 35mm anamorphic camera lens, rich cinematic color grading, beautiful shallow depth of field, natural dramatic lighting. The image must feel premium, high-budget, and tell a story (like a professional Netflix original movie poster background).
-CRITICAL: Do NOT add ANY text, titles, subtitles, words, logos, letterings, watermarks, frames, borders, or banners anywhere on the image. It must be a clean, pure, photo-realistic movie scene thumbnail.`;
+  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this photo and the video title: "${title}".
+
+CRITICAL SPECIFICATIONS:
+1. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. Even if the provided reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides, outpaint, and adapt the composition to perfectly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
+2. NETFLIX BRANDING: Tastefully place a clean, official red "Netflix" logo in the top-left corner of the thumbnail, matching the exact styling and placement of professional Netflix Originals.
+3. TITLE TEXT: Overlay the title "${title}" prominently but tastefully in an elegant cinematic font. Style it beautifully like an official series/movie title logo near the bottom-left or bottom-center of the thumbnail, using clean typography with soft drop-shadows or glow for perfect readability against the background.
+4. MOOD & QUALITY: The overall thumbnail scene must match the vibe of: "${desc}". Style it with a beautiful "${vibe}" atmosphere, rich cinematic color grading, professional shallow depth of field, and natural cinematic lighting. It must look like a high-budget Netflix original series movie cover.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
@@ -7803,12 +7804,13 @@ window.generateBulkThumbnailPromptWithAI = () => {
      vibe = 'magical cinematic golden hour, grand beautiful scenery, classic elegant colors, timeless documentary feels';
   }
   
-  const prompt = `Create a spectacular, photo-realistic 16:9 cinematic movie scene cover that will act as the background thumbnail artwork.
-Concepts/Details: A stunning and emotionally resonant shot inspired by: "${title}".
-Description of the scene: ${desc}.
-Visual Vibe: ${vibe}.
-Style: Shot with 35mm anamorphic camera lens, rich cinematic color grading, beautiful shallow depth of field, natural dramatic lighting. The image must feel premium, high-budget, and tell a story (like a professional Netflix original movie poster background).
-CRITICAL: Do NOT add ANY text, titles, subtitles, words, logos, letterings, watermarks, frames, borders, or banners anywhere on the image. It must be a clean, pure, photo-realistic movie scene thumbnail.`;
+  const prompt = `I am providing a reference photo. Please generate a spectacular, premium 16:9 widescreen 4K quality cinematic thumbnail inspired by this photo and the video title: "${title}".
+
+CRITICAL SPECIFICATIONS:
+1. ASPECT RATIO: The output MUST be a perfect 16:9 aspect ratio widescreen thumbnail. Even if the provided reference photo is in a different ratio (such as 4:3, 1:1, or vertical), expand the sides, outpaint, and adapt the composition to perfectly fit a full, native 16:9 cinematic canvas (do not stretch, warp, or leave blank bars).
+2. NETFLIX BRANDING: Tastefully place a clean, official red "Netflix" logo in the top-left corner of the thumbnail, matching the exact styling and placement of professional Netflix Originals.
+3. TITLE TEXT: Overlay the title "${title}" prominently but tastefully in an elegant cinematic font. Style it beautifully like an official series/movie title logo near the bottom-left or bottom-center of the thumbnail, using clean typography with soft drop-shadows or glow for perfect readability against the background.
+4. MOOD & QUALITY: The overall thumbnail scene must match the vibe of: "${desc}". Style it with a beautiful "${vibe}" atmosphere, rich cinematic color grading, professional shallow depth of field, and natural cinematic lighting. It must look like a high-budget Netflix original series movie cover.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     window.showToast("Cinematic Thumbnail prompt copied! Opening Google Gemini...");
