@@ -801,13 +801,21 @@ input:checked + .slider:before { transform: translateX(20px); }
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  padding: 40px 4% 150px 4%;
+  padding: 40px 0 150px 0;
   margin-top: -40px;
   margin-bottom: -150px;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   pointer-events: none;
+}
+.row-content > .media-card:first-child,
+.row-content > .skeleton-card:first-child {
+  margin-left: 4% !important;
+}
+.row-content > .media-card:last-child,
+.row-content > .skeleton-card:last-child {
+  margin-right: 4% !important;
 }
 .row-content > * {
   pointer-events: auto;
@@ -1662,8 +1670,8 @@ div#app:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth
 .slider-container .row-content {
   margin-top: -100px !important;
   margin-bottom: -240px !important;
-  padding-left: 4% !important;
-  padding-right: 4% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   padding-top: 100px !important;
   padding-bottom: 240px !important;
   height: auto !important;
@@ -2488,8 +2496,8 @@ body.modal-open {
     margin-bottom: 0 !important;
     padding-top: 10px !important;
     padding-bottom: 10px !important;
-    padding-left: 4% !important;
-    padding-right: 4% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
   
   .hero-info {
@@ -2695,7 +2703,7 @@ button:active, .btn:active, .circ-play-btn:active, .media-card:active {
   
   /* Responsive row spacing to prevent gaps */
   .row-content {
-    padding: 10px 4% 20px 4% !important;
+    padding: 10px 0 20px 0 !important;
     margin-top: -10px !important;
     margin-bottom: -20px !important;
     gap: 8px !important;
