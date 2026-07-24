@@ -868,6 +868,18 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
     if (appState.activeCategory === 'My List') {
       rc.appendChild(createRow('My List', appState.memories.filter(m => appState.myList.includes(m.id)), rowIndex++));
     } else if (appState.activeCategory === 'Categories') {
+      // Render Category title header bar with sticky backdrop blur
+      const catHeaderBar = document.createElement('div');
+      catHeaderBar.className = 'categories-filter-bar';
+      catHeaderBar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 4%; margin-bottom: 15px; margin-top: -10px; background: transparent; z-index: 900;';
+      catHeaderBar.innerHTML = `
+        <div style="font-size: 1.15rem; font-weight: 800; color: white; letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #e50914;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Subject Categories
+        </div>
+      `;
+      rc.appendChild(catHeaderBar);
+
       subCategories.forEach(cat => {
         const mems = appState.memories.filter(m => window.getNormalizedCategory(m.category) === cat);
         if (mems.length) rc.appendChild(createRow(cat, mems, rowIndex++));
@@ -1009,7 +1021,7 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
         // Render filter bar
         const filterBar = document.createElement('div');
         filterBar.className = 'dates-filter-bar';
-        filterBar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 4%; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 15px; margin-top: -10px; flex-wrap: wrap; gap: 10px;';
+        filterBar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 4%; margin-bottom: 15px; margin-top: -10px; flex-wrap: wrap; gap: 10px; background: transparent; z-index: 900;';
         
         const sortOrder = appState.datesSortOrder || 'desc';
         
@@ -1076,9 +1088,38 @@ window.refreshRowsView = (rcNode, heroNode, silent = false) => {
           noData.innerText = 'No memories found in Timeline.';
           rc.appendChild(noData);
         } else {
+          const timelineContainer = document.createElement('div');
+          timelineContainer.className = 'dates-timeline-container';
+          timelineContainer.style.cssText = 'position: relative; padding: 10px 0; padding-left: 55px; margin-top: 10px; margin-bottom: 40px; background: transparent; z-index: 100;';
+          
+          const timelineLine = document.createElement('div');
+          timelineLine.className = 'dates-timeline-line';
+          timelineLine.style.cssText = 'position: absolute; top: 30px; bottom: 30px; left: 24px; width: 2px; background: linear-gradient(180deg, #e50914 0%, rgba(229,9,20,0.5) 60%, rgba(229,9,20,0.08) 100%); box-shadow: 0 0 10px rgba(229,9,20,0.6); z-index: 10;';
+          timelineContainer.appendChild(timelineLine);
+
           groupArray.forEach(grp => {
-            rc.appendChild(createRow(grp.title, grp.memories, rowIndex++));
+            const rowWrapper = document.createElement('div');
+            rowWrapper.className = 'timeline-row-wrapper';
+            rowWrapper.style.cssText = 'position: relative; margin-bottom: 30px;';
+            
+            const node = document.createElement('div');
+            node.className = 'dates-timeline-node';
+            node.style.cssText = 'position: absolute; left: -37px; top: 12px; width: 14px; height: 14px; background: #e50914; border-radius: 50%; border: 2.5px solid #141414; box-shadow: 0 0 10px #e50914; z-index: 20; transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);';
+            node.onmouseenter = () => {
+              node.style.transform = 'scale(1.4)';
+              node.style.boxShadow = '0 0 16px #ff4d5a';
+            };
+            node.onmouseleave = () => {
+              node.style.transform = 'scale(1)';
+              node.style.boxShadow = '0 0 10px #e50914';
+            };
+            rowWrapper.appendChild(node);
+            
+            const rowEl = createRow(grp.title, grp.memories, rowIndex++);
+            rowWrapper.appendChild(rowEl);
+            timelineContainer.appendChild(rowWrapper);
           });
+          rc.appendChild(timelineContainer);
         }
       }
     }
@@ -2925,26 +2966,33 @@ function createNavbar() {
           nav.style.boxShadow = 'none';
         }
 
-        // Pause/play hero background video on scroll past threshold
+        // Pause/play hero background video on scroll past threshold (optimized to prevent play/pause command spam)
         const isScrolledPast = window.scrollY > 350;
-        const heroVids = document.querySelectorAll('.hero-video');
-        heroVids.forEach(v => {
-          if (isScrolledPast) {
-            if (v.tagName === 'VIDEO') {
-              if (!v.paused) v.pause();
-            } else if (v.tagName === 'IFRAME') {
-              v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-            }
-          } else {
-            if (appState.settings && appState.settings.autoPlayPreviews) {
+        if (window.lastHeroScrollState !== isScrolledPast) {
+          window.lastHeroScrollState = isScrolledPast;
+          const heroVids = document.querySelectorAll('.hero-video');
+          heroVids.forEach(v => {
+            if (isScrolledPast) {
               if (v.tagName === 'VIDEO') {
-                if (v.paused) v.play().catch(() => {});
+                if (!v.paused) v.pause();
               } else if (v.tagName === 'IFRAME') {
-                v.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                try {
+                  v.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                } catch(err) {}
+              }
+            } else {
+              if (appState.settings && appState.settings.autoPlayPreviews) {
+                if (v.tagName === 'VIDEO') {
+                  if (v.paused) v.play().catch(() => {});
+                } else if (v.tagName === 'IFRAME') {
+                  try {
+                    v.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                  } catch(err) {}
+                }
               }
             }
-          }
-        });
+          });
+        }
 
         ticking = false;
       });
@@ -3170,7 +3218,7 @@ window.shuffleHero = () => {
       if (appState.settings.autoPlayPreviews && nextHeroMem.videoUrl) {
         const isMuted = appState.isHeroMuted !== false;
         if (isYouTube) {
-          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:115vw;height:64.6875vw;min-height:115vh;min-width:204.44vh;transform:translate(-50%, -50%) scale(1.01);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
+          nextBackgroundHtml = `<div class="temp-blend-layer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${nextHeroMem.videoUrl}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${nextHeroMem.videoUrl}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.78vh;transform:translate(-50%, -50%) scale(1.08);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
         } else {
           nextBackgroundHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${nextHeroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
         }
@@ -3303,10 +3351,10 @@ window.shuffleHero = () => {
               }
               setTimeout(() => {
                 if (imgOverlay) imgOverlay.style.opacity = '0';
-              }, 1200);
+              }, 800);
             }
           }
-        }, 1500);
+        }, 1000);
       }
       
       // Clean up previous elements after transition duration completes
@@ -3458,7 +3506,7 @@ function createHero() {
   if (appState.settings.autoPlayPreviews && heroMem.videoUrl) {
     const isMuted = appState.isHeroMuted !== false;
     if (isYouTube) {
-      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:115vw;height:64.6875vw;min-height:115vh;min-width:204.44vh;transform:translate(-50%, -50%) scale(1.01);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
+      backgroundVideoHtml = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;pointer-events:none;"><iframe class="hero-video media-card-hover-video" src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=0&mute=${isMuted ? '1' : '0'}&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&loop=1&playlist=${ytId}&enablejsapi=1&vq=hd1080&hd=1&disablekb=1&playsinline=1" style="position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100vh;min-width:177.78vh;transform:translate(-50%, -50%) scale(1.08);border:none;pointer-events:none;" allow="autoplay"></iframe></div>`;
     } else {
       backgroundVideoHtml = `<video id="hero-native-video" class="hero-video media-card-hover-video" src="${heroMem.videoUrl}" ${isMuted ? 'muted' : ''} autoplay loop playsinline fetchpriority="high" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;"></video>`;
     }
@@ -3572,10 +3620,10 @@ function createHero() {
           }
           setTimeout(() => {
             if (imgOverlay) imgOverlay.style.opacity = '0';
-          }, 1200);
+          }, 800);
         }
       }
-    }, 1500);
+    }, 1000);
   }
   return c;
 }
@@ -3861,7 +3909,7 @@ function createRow(title, memories, index = 0) {
               if (thumbImg) thumbImg.style.opacity = '0';
             });
           }
-        }, 1500);
+        }, 1000);
       }
     };
 
@@ -3952,6 +4000,7 @@ window.openModernDatePicker = (inputEl) => {
     top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.75);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 20000;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -4474,6 +4523,35 @@ window.openUploadModal = () => {
   };
 };
 
+window.closeDetailModal = () => {
+  const dm = document.getElementById('detailModal');
+  if (!dm) return;
+  dm.classList.remove('open');
+  
+  // Resume hero video if autoplay is enabled and scrollY is within bounds
+  if (appState.settings && appState.settings.autoPlayPreviews && window.scrollY <= 350) {
+    const heroVids = document.querySelectorAll('.hero-video');
+    heroVids.forEach(v => {
+      if (v.tagName === 'VIDEO') {
+        v.play().catch(() => {});
+      } else if (v.tagName === 'IFRAME') {
+        try {
+          v.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        } catch(err) {}
+      }
+    });
+  }
+
+  setTimeout(() => {
+    const v = dm.querySelectorAll('video, iframe');
+    v.forEach(el => {
+      el.src = '';
+      if (el.load) el.load();
+    });
+    dm.remove();
+  }, 350);
+};
+
 // === DETAIL MODAL ===
 window.openDetailModal = (id, e, editMode = false) => {
   const m = appState.memories.find(i => i.id === id);
@@ -4556,7 +4634,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   modal.innerHTML = `
     <div class="detail-modal" style="transform-origin: ${originX} ${originY};">
       <div class="modal-controls" style="z-index: 999999;">
-        <button class="modal-close-btn" onclick="const dm = document.getElementById('detailModal'); dm.classList.remove('open'); setTimeout(() => { const v = dm.querySelectorAll('video, iframe'); v.forEach(el => { el.src=''; if(el.load) el.load(); }); dm.remove(); }, 350);" title="Close Window" style="display: flex; align-items: center; justify-content: center; padding: 0;">
+        <button class="modal-close-btn" onclick="window.closeDetailModal()" title="Close Window" style="display: flex; align-items: center; justify-content: center; padding: 0;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
@@ -4815,11 +4893,11 @@ window.openDetailModal = (id, e, editMode = false) => {
             // Fallback overlay fade
             setTimeout(() => {
               if (imgOverlay) imgOverlay.style.opacity = '0';
-            }, 1000);
+            }, 800);
           }
         }
       }
-    }, 1500);
+    }, 1000);
   }
 
   // Dynamically fetch and display actual duration
