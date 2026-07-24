@@ -525,16 +525,21 @@ async function saveStateList(key, data) {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
-    openModals.forEach(m => {
-      m.classList.remove('open');
-      setTimeout(() => { 
-        m.remove(); 
-        if (typeof window.refreshRowsView === 'function') {
-          window.refreshRowsView(null, null, true);
-        }
-      }, 400);
-    });
+    const dm = document.getElementById('detailModal');
+    if (dm && dm.classList.contains('open')) {
+      window.closeDetailModal();
+    } else {
+      const openModals = document.querySelectorAll('.upload-modal.open, .detail-overlay.open');
+      openModals.forEach(m => {
+        m.classList.remove('open');
+        setTimeout(() => { 
+          m.remove(); 
+          if (typeof window.refreshRowsView === 'function') {
+            window.refreshRowsView(null, null, true);
+          }
+        }, 400);
+      });
+    }
   }
 });
 document.addEventListener('click', (e) => {
@@ -4528,8 +4533,9 @@ window.closeDetailModal = () => {
   if (!dm) return;
   dm.classList.remove('open');
   
-  // Resume hero video if autoplay is enabled and scrollY is within bounds
-  if (appState.settings && appState.settings.autoPlayPreviews && window.scrollY <= 350) {
+  // Resume hero video if autoplay is not explicitly disabled and scrollY is within bounds
+  const shouldPlay = !appState.settings || appState.settings.autoPlayPreviews !== false;
+  if (shouldPlay && window.scrollY <= 350) {
     const heroVids = document.querySelectorAll('.hero-video');
     heroVids.forEach(v => {
       if (v.tagName === 'VIDEO') {
@@ -4818,15 +4824,7 @@ window.openDetailModal = (id, e, editMode = false) => {
   // Background overlay click-to-close handler when clicking outside the modal content
   modal.onclick = (e) => {
     if (e.target === modal) {
-      modal.classList.remove('open');
-      setTimeout(() => {
-        const v = modal.querySelectorAll('video, iframe');
-        v.forEach(el => {
-          el.src = '';
-          if (el.load) el.load();
-        });
-        modal.remove();
-      }, 350);
+      window.closeDetailModal();
     }
   };
 
@@ -6169,6 +6167,21 @@ window.playVideo = (id) => {
        }
        c.innerHTML = ''; // fully unmount internal elements
        c.remove();
+
+       // Resume hero video if autoplay is enabled and scrollY is within bounds
+       const shouldPlay = !appState.settings || appState.settings.autoPlayPreviews !== false;
+       if (shouldPlay && window.scrollY <= 350) {
+         const heroVids = document.querySelectorAll('.hero-video');
+         heroVids.forEach(v => {
+           if (v.tagName === 'VIDEO') {
+             v.play().catch(() => {});
+           } else if (v.tagName === 'IFRAME') {
+             try {
+               v.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+             } catch(err) {}
+           }
+         });
+       }
      }, 300);
 
      if (!isPopState) {
